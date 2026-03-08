@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoTemplate, LaudoVersion, TextBlockData, Patient } from '@/types'
+import { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoTemplate, LaudoVersion, TextBlockData, Patient, createScoreTableFromTemplate } from '@/types'
 import { getLaudo, saveLaudo, saveCustomTemplate, getPatients } from '@/lib/storage'
 import { getFormById, getFormResponseById } from '@/lib/form-service'
+import { getScoreTableTemplate } from '@/lib/score-table-template-service'
 import { createBlock, computeBlockMetas } from '@/lib/utils'
 import { useVersioning } from '@/hooks/useVersioning'
 import OutlineTree from '@/components/editor/OutlineTree'
@@ -132,11 +133,19 @@ export default function LaudoEditor() {
   )
 
   const handleAddBlock = useCallback(
-    (type: BlockType, variant?: BlockVariant) => {
+    (type: BlockType, variant?: BlockVariant, templateId?: string) => {
       if (!laudo) return
 
       const sorted = [...laudo.blocks].sort((a, b) => a.order - b.order)
       const newBlock = createBlock(type, 0)
+
+      // Score table com template: preencher dados do template
+      if (type === 'score-table' && templateId) {
+        const template = getScoreTableTemplate(templateId)
+        if (template) {
+          newBlock.data = createScoreTableFromTemplate(template)
+        }
+      }
 
       // Subtitle variant: set subtitle field so it's recognized as a subsection
       if (type === 'text' && variant === 'subtitle') {

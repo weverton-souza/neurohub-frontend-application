@@ -34,6 +34,7 @@ import '@/lib/chart-setup'
 import { getProfessional } from '@/lib/storage'
 import { generateSocialIcon, base64ToUint8Array } from '@/lib/social-icons'
 import { getImageDimensions } from '@/lib/image-utils'
+import { computeCellResult } from '@/lib/formula-engine'
 
 // ========== Color constants ==========
 const DARK_BLUE = '1B4F72'
@@ -530,14 +531,19 @@ function renderScoreTable(data: ScoreTableData): (Paragraph | Table)[] {
   const colWidth = Math.floor(PAGE_CONTENT_WIDTH / colCount)
 
   // Header row
+  const getDocxAlignment = (col: { alignment?: 'left' | 'center' | 'right' }) => {
+    const a = col.alignment ?? 'center'
+    return a === 'left' ? AlignmentType.LEFT : a === 'right' ? AlignmentType.RIGHT : AlignmentType.CENTER
+  }
+
   const headerCells = data.columns.map(
-    (col, colIndex) =>
+    (col) =>
       new TableCell({
         width: { size: colWidth, type: WidthType.DXA },
         shading: { fill: DARK_BLUE, type: ShadingType.CLEAR, color: 'auto' },
         children: [
           new Paragraph({
-            alignment: colIndex === 0 ? AlignmentType.LEFT : AlignmentType.CENTER,
+            alignment: AlignmentType.CENTER,
             spacing: { before: 40, after: 40 },
             children: [
               new TextRun({
@@ -557,21 +563,24 @@ function renderScoreTable(data: ScoreTableData): (Paragraph | Table)[] {
 
   // Data rows
   const dataRows = data.rows.map((row, index) => {
-    const bgColor = index % 2 === 0 ? WHITE : LIGHT_GRAY
-    const cells = data.columns.map((col, colIndex) => {
-      const value = row.values[col.id] || ''
+    const defaultBgColor = index % 2 === 0 ? WHITE : LIGHT_GRAY
+    const cells = data.columns.map((col) => {
+      const result = computeCellResult(data, row.id, col.id)
+      const cellBgColor = result.bgColor ? result.bgColor.replace('#', '') : defaultBgColor
+      const cellTextColor = result.bgColor && result.textColor ? result.textColor.replace('#', '') : undefined
       return new TableCell({
         width: { size: colWidth, type: WidthType.DXA },
-        shading: { fill: bgColor, type: ShadingType.CLEAR, color: 'auto' },
+        shading: { fill: cellBgColor, type: ShadingType.CLEAR, color: 'auto' },
         children: [
           new Paragraph({
-            alignment: colIndex === 0 ? AlignmentType.LEFT : AlignmentType.CENTER,
+            alignment: getDocxAlignment(col),
             spacing: { before: 20, after: 20 },
             children: [
               new TextRun({
-                text: value,
+                text: result.text,
                 size: 20,
                 font: 'Calibri',
+                ...(cellTextColor ? { color: cellTextColor } : {}),
               }),
             ],
           }),

@@ -1,13 +1,15 @@
-import { BlockType } from '@/types'
+import { useState } from 'react'
+import type { BlockType } from '@/types'
 import { BLOCK_TYPE_LABELS, BLOCK_TYPE_DESCRIPTIONS, BLOCK_TYPE_COLORS, getBlockTypeIcon } from '@/lib/block-constants'
 import Modal from '@/components/ui/Modal'
+import ScoreTableTemplatePicker from '@/components/editor/ScoreTableTemplatePicker'
 
 export type BlockVariant = 'subtitle'
 
 interface BlockSelectorProps {
   isOpen: boolean
   onClose: () => void
-  onSelect: (type: BlockType, variant?: BlockVariant) => void
+  onSelect: (type: BlockType, variant?: BlockVariant, templateId?: string) => void
 }
 
 // Subtitle icon
@@ -37,35 +39,65 @@ const blockOptions: BlockOption[] = [
 ]
 
 export default function BlockSelector({ isOpen, onClose, onSelect }: BlockSelectorProps) {
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+
   const handleSelect = (option: BlockOption) => {
+    if (option.type === 'score-table') {
+      // Score table: abrir template picker
+      setShowTemplatePicker(true)
+      return
+    }
     onSelect(option.type, option.variant)
+    handleClose()
+  }
+
+  const handleClose = () => {
+    setShowTemplatePicker(false)
     onClose()
   }
 
+  const handleSelectTemplate = (templateId: string) => {
+    onSelect('score-table', undefined, templateId)
+    handleClose()
+  }
+
+  const handleSelectEmpty = () => {
+    onSelect('score-table')
+    handleClose()
+  }
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Adicionar Bloco" size="md">
-      <div className="grid grid-cols-2 gap-3 p-4">
-        {blockOptions.map((option) => (
-          <button
-            key={`${option.type}-${option.variant ?? 'default'}`}
-            type="button"
-            onClick={() => handleSelect(option)}
-            className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/50 transition-all text-left group"
-          >
-            <div className={`p-2 rounded-lg shrink-0 ${option.colorClass}`}>
-              {option.icon}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900 text-sm group-hover:text-brand-700">
-                {option.label}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {option.description}
-              </p>
-            </div>
-          </button>
-        ))}
-      </div>
+    <Modal isOpen={isOpen} onClose={handleClose} title="Adicionar Bloco" size="md">
+      {showTemplatePicker ? (
+        <ScoreTableTemplatePicker
+          onSelectTemplate={handleSelectTemplate}
+          onSelectEmpty={handleSelectEmpty}
+          onBack={() => setShowTemplatePicker(false)}
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-3 p-4">
+          {blockOptions.map((option) => (
+            <button
+              key={`${option.type}-${option.variant ?? 'default'}`}
+              type="button"
+              onClick={() => handleSelect(option)}
+              className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/50 transition-all text-left group"
+            >
+              <div className={`p-2 rounded-lg shrink-0 ${option.colorClass}`}>
+                {option.icon}
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 text-sm group-hover:text-brand-700">
+                  {option.label}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {option.description}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </Modal>
   )
 }

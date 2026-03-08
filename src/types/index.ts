@@ -146,15 +146,19 @@ export interface TextBlockData {
   useLabeledItems: boolean
 }
 
+// ========== Score Table ==========
+
 export interface ScoreTableColumn {
   id: string
   label: string
+  formula?: string  // fórmula de texto, ex: "CLASSIFICAR([Percentil];>=98;\"Muito Superior\";...)"
+  alignment?: 'left' | 'center' | 'right'
 }
 
 // Cada row guarda valores por column id
 export interface ScoreTableRow {
   id: string
-  values: Record<string, string> // chave = column.id, valor = conteúdo da célula
+  values: Record<string, string> // chave = column.id, valor = conteúdo da célula (pode ser fórmula)
 }
 
 export interface ScoreTableData {
@@ -162,6 +166,33 @@ export interface ScoreTableData {
   columns: ScoreTableColumn[]
   rows: ScoreTableRow[]
   footnote: string
+  templateId?: string | null
+}
+
+// ========== Score Table Templates ==========
+
+export interface ScoreTableTemplateColumn {
+  id: string
+  label: string
+  formula: string | null  // fórmula de texto ou null para input manual
+}
+
+export interface ScoreTableTemplateRow {
+  id: string
+  defaultValues: Record<string, string>  // inclui fórmulas como valores
+}
+
+export interface ScoreTableTemplate {
+  id: string
+  name: string
+  description: string
+  instrumentName: string
+  category: string
+  columns: ScoreTableTemplateColumn[]
+  rows: ScoreTableTemplateRow[]
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface InfoBoxData {
@@ -486,6 +517,29 @@ export function createEmptyScoreTableRow(columns: ScoreTableColumn[]): ScoreTabl
   return {
     id: crypto.randomUUID(),
     values,
+  }
+}
+
+// ========== Formula Factory Functions ==========
+
+export function createScoreTableFromTemplate(template: ScoreTableTemplate): ScoreTableData {
+  const columns: ScoreTableColumn[] = template.columns.map(c => ({
+    id: c.id,
+    label: c.label,
+    formula: c.formula ?? undefined,
+  }))
+
+  const rows: ScoreTableRow[] = template.rows.map(r => ({
+    id: crypto.randomUUID(),
+    values: { ...r.defaultValues },
+  }))
+
+  return {
+    title: template.name,
+    columns,
+    rows,
+    footnote: '',
+    templateId: template.id,
   }
 }
 
