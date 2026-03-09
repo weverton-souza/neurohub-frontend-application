@@ -540,15 +540,35 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
       }
       setCpEditIndex(null)
     } else {
-      // Inserindo nova cor: remove @#parcial na posição do cursor e insere @#RRGGBB completo
+      // Inserindo nova cor: ajusta lightness para igualar as cores existentes na tabela
+      let finalColor = color
+      const colorRegex = /@#([0-9A-Fa-f]{6})/g
+      const lightnesses: number[] = []
+      for (const row of data.rows) {
+        for (const col of data.columns) {
+          if (`${row.id}:${col.id}` === editingCellId) continue
+          const val = row.values[col.id] ?? ''
+          let m
+          colorRegex.lastIndex = 0
+          while ((m = colorRegex.exec(val)) !== null) {
+            lightnesses.push(hexToHsl('#' + m[1])[2])
+          }
+        }
+      }
+      if (lightnesses.length > 0) {
+        const lightestL = Math.max(...lightnesses)
+        const [h, s] = hexToHsl(color)
+        finalColor = hslToHex(h, s, lightestL)
+      }
+      // Remove @#parcial na posição do cursor e insere @#RRGGBB completo
       const pos = cursorPosRef.current ?? activeBarValue.length
       const textBeforeCursor = activeBarValue.slice(0, pos)
       const textAfterCursor = activeBarValue.slice(pos)
       const cleaned = textBeforeCursor.replace(/@#?[0-9A-Fa-f]{0,6}$/, '')
-      const newValue = cleaned + '@' + color.toUpperCase() + textAfterCursor
+      const newValue = cleaned + '@' + finalColor.toUpperCase() + textAfterCursor
       updateCell(rowId, colId, newValue)
     }
-  }, [editingCellId, activeBarValue, updateCell, cpEditIndex, formulaColors])
+  }, [editingCellId, activeBarValue, updateCell, cpEditIndex, formulaColors, data])
 
   const handleAcSelect = useCallback((funcName: string) => {
     if (!editingCellId || !acData) return
