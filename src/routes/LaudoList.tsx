@@ -1,10 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Laudo,
-  LaudoTemplate,
-  Block,
-} from '@/types'
+import type { Laudo, LaudoTemplate, Block } from '@/types'
 import {
   getLaudos,
   saveLaudo,
@@ -13,8 +9,10 @@ import {
   deleteCustomTemplate,
 } from '@/lib/storage'
 import { getAllTemplates } from '@/lib/default-templates'
-import { createBlock, paginate } from '@/lib/utils'
 import { formatDateTime } from '@/lib/utils'
+import { createEmptyLaudo } from '@/lib/laudo-utils'
+import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
+import { usePagination } from '@/lib/hooks/use-pagination'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
@@ -27,9 +25,6 @@ export default function LaudoList() {
   const [laudos, setLaudos] = useState<Laudo[]>([])
   const [customTemplates, setCustomTemplates] = useState<LaudoTemplate[]>([])
   const [showNewModal, setShowNewModal] = useState(false)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
 
   // Load data
   useEffect(() => {
@@ -40,22 +35,9 @@ export default function LaudoList() {
   const allTemplates = getAllTemplates(customTemplates)
 
   const handleCreateFromScratch = useCallback(() => {
-    const id = crypto.randomUUID()
-    const now = new Date().toISOString()
-    const identificationBlock = createBlock('identification', 0)
-
-    const laudo: Laudo = {
-      id,
-      createdAt: now,
-      updatedAt: now,
-      status: 'rascunho',
-      patientName: '',
-      blocks: [identificationBlock],
-    }
-
-    saveLaudo(laudo)
+    const laudo = createEmptyLaudo()
     setShowNewModal(false)
-    navigate(`/laudo/${id}`)
+    navigate(`/laudo/${laudo.id}`)
   }, [navigate])
 
   const handleCreateFromTemplate = useCallback(
@@ -87,14 +69,12 @@ export default function LaudoList() {
     [navigate]
   )
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      deleteLaudo(id)
-      setLaudos(getLaudos())
-      setConfirmDeleteId(null)
-    },
-    []
-  )
+  const handleDeleteLaudo = useCallback((id: string) => {
+    deleteLaudo(id)
+    setLaudos(getLaudos())
+  }, [])
+
+  const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteLaudo)
 
   const handleDeleteTemplate = useCallback(
     (id: string) => {
@@ -111,10 +91,7 @@ export default function LaudoList() {
     [laudos]
   )
 
-  const paginatedPage = useMemo(
-    () => paginate(sortedLaudos, currentPage, pageSize),
-    [sortedLaudos, currentPage, pageSize]
-  )
+  const { page: paginatedPage, setCurrentPage, pageSize, changePageSize } = usePagination(sortedLaudos)
 
   return (
     <>
@@ -137,10 +114,7 @@ export default function LaudoList() {
               <select
                 id="page-size-laudos"
                 value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value))
-                  setCurrentPage(0)
-                }}
+                onChange={(e) => changePageSize(Number(e.target.value))}
                 className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
               >
                 {[10, 25, 50].map((opt) => (
@@ -313,7 +287,7 @@ export default function LaudoList() {
       {/* Delete Confirm Modal */}
       <Modal
         isOpen={!!confirmDeleteId}
-        onClose={() => setConfirmDeleteId(null)}
+        onClose={cancelDelete}
         title="Confirmar exclusão"
         size="sm"
       >
@@ -322,13 +296,10 @@ export default function LaudoList() {
             Tem certeza de que deseja excluir este laudo? Esta ação não pode ser desfeita.
           </p>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirmDeleteId(null)}>
+            <Button variant="ghost" onClick={cancelDelete}>
               Cancelar
             </Button>
-            <Button
-              variant="danger"
-              onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
-            >
+            <Button variant="danger" onClick={confirmDelete}>
               Excluir
             </Button>
           </div>

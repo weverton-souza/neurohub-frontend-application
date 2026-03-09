@@ -127,18 +127,21 @@
 
 ```
 src/
-  types/index.ts        → todas as interfaces, tipos, constantes e factory functions
-  lib/                  → lógica de negócio, utilitários, serviços
-  lib/storage-utils.ts  → utilitários genéricos de localStorage
-  lib/storage.ts        → CRUD de laudos, pacientes, templates
-  lib/block-constants.tsx → labels, cores, ícones e getBlockTitle()
-  components/blocks/    → um componente por tipo de bloco
-  components/editor/    → componentes do editor (BlockList, BlockSelector, OutlineTree)
-  components/ui/        → componentes reutilizáveis (Button, Input, Modal, Select)
-  components/layout/    → AppLayout, Sidebar, PageHeader
+  types/index.ts           → todas as interfaces, tipos, constantes e factory functions
+  lib/                     → lógica de negócio, utilitários, serviços
+  lib/storage-utils.ts     → utilitários genéricos de localStorage
+  lib/storage.ts           → CRUD de laudos, pacientes, templates
+  lib/block-constants.tsx  → labels, cores, ícones e getBlockTitle()
+  lib/laudo-utils.ts       → criação de laudos (createEmptyLaudo, createLaudoFromPatient)
+  lib/generic-template-service.ts → factory genérico para serviços de template (score-table, chart)
+  lib/hooks/               → custom hooks reutilizáveis (useAutoSave, useConfirmDelete, usePagination, useClickOutside)
+  components/blocks/       → um componente por tipo de bloco
+  components/editor/       → componentes do editor (BlockList, BlockSelector, OutlineTree)
+  components/ui/           → componentes reutilizáveis (Button, Input, Modal, Select)
+  components/layout/       → AppLayout, Sidebar, PageHeader
   components/form-builder/ → componentes do construtor de formulários
   components/form-fill/    → componentes de preenchimento de formulários
-  routes/               → páginas (uma por rota)
+  routes/                  → páginas (uma por rota)
 ```
 
 ## Regras de Código
@@ -157,6 +160,9 @@ src/
 - `getBlockTitle()` fica em `block-constants.tsx` — nunca recriar localmente
 - `resolveAnswerDisplay()` fica em `variable-service.ts` — fonte única para exibição de respostas
 - localStorage: usar `readFromStorage`, `writeToStorage`, `upsertInStorage`, `deleteFromStorage` de `storage-utils.ts`
+- Criação de laudos: usar `createEmptyLaudo()` e `createLaudoFromPatient()` de `laudo-utils.ts`
+- Custom hooks reutilizáveis em `lib/hooks/`: `useAutoSave`, `useConfirmDelete`, `usePagination`, `useClickOutside`
+- Template services: usar `createTemplateService()` de `generic-template-service.ts` para novos serviços de template
 
 ### Componentes React
 - Componentes funcionais com export default

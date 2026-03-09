@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { InfoBoxData, VariableInfo } from '@/types'
+import type { InfoBoxData, VariableInfo } from '@/types'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import VariablePicker from '@/components/editor/VariablePicker'

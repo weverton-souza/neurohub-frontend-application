@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { FormField, FormFieldMapping, LaudoTemplate, FORM_FIELD_TYPE_LABELS } from '@/types'
+import type { FormField, FormFieldMapping, LaudoTemplate } from '@/types'
+import { FORM_FIELD_TYPE_LABELS } from '@/types'
 import { getBlockTitle } from '@/lib/block-constants'
 import { buildFormSectionGroups } from '@/lib/utils'
 

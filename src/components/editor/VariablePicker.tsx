@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { VariableInfo } from '@/types'
+import { useClickOutside } from '@/lib/hooks/use-click-outside'
 
 /** @deprecated Use VariableInfo from @/types instead */
 export type VariableItem = VariableInfo
@@ -23,17 +24,11 @@ export default function VariablePicker({ variables, onInsert, className = '' }: 
   const searchRef = useRef<HTMLInputElement>(null)
 
   // Close on outside click
-  useEffect(() => {
-    if (!isOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-        setSearch('')
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen])
+  const handleClose = useCallback(() => {
+    setIsOpen(false)
+    setSearch('')
+  }, [])
+  useClickOutside(containerRef, handleClose, isOpen)
 
   // Focus search on open
   useEffect(() => {

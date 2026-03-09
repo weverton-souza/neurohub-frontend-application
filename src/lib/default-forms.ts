@@ -230,14 +230,3 @@ export const DEFAULT_FORMS: AnamnesisForm[] = [
   FORM_INFANTIL,
   FORM_BREVE,
 ]
-
-/**
- * Retorna todos os formulários (padrão + customizados).
- * Padrão sempre aparecem primeiro.
- */
-export function getAllForms(customForms: AnamnesisForm[]): AnamnesisForm[] {
-  // Não duplicar se o custom tem mesmo id de um default
-  const defaultIds = new Set(DEFAULT_FORMS.map((f) => f.id))
-  const filtered = customForms.filter((f) => !defaultIds.has(f.id))
-  return [...DEFAULT_FORMS, ...filtered]
-}

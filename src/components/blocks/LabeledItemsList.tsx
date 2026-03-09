@@ -1,4 +1,4 @@
-import { LabeledItem } from '@/types'
+import type { LabeledItem } from '@/types'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import Button from '@/components/ui/Button'

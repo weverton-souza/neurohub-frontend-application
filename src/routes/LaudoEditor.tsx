@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoTemplate, LaudoVersion, TextBlockData, Patient, createScoreTableFromTemplate, createChartFromTemplate } from '@/types'
+import type { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoTemplate, LaudoVersion, TextBlockData, Patient } from '@/types'
+import { createScoreTableFromTemplate, createChartFromTemplate } from '@/types'
 import { getLaudo, saveLaudo, saveCustomTemplate, getPatients } from '@/lib/storage'
 import { getFormById, getFormResponseById } from '@/lib/form-service'
 import { getScoreTableTemplate } from '@/lib/score-table-template-service'
 import { getChartTemplate } from '@/lib/chart-template-service'
 import { createBlock, computeBlockMetas } from '@/lib/utils'
 import { useVersioning } from '@/hooks/useVersioning'
+import { useAutoSave } from '@/lib/hooks/use-auto-save'
+import { useClickOutside } from '@/lib/hooks/use-click-outside'
 import OutlineTree from '@/components/editor/OutlineTree'
 import BlockSelector, { BlockVariant } from '@/components/editor/BlockSelector'
 import BlockEditModal from '@/components/editor/BlockEditModal'
@@ -23,7 +26,6 @@ export default function LaudoEditor() {
 
   const [laudo, setLaudo] = useState<Laudo | null>(null)
   const [showBlockSelector, setShowBlockSelector] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [templateDesc, setTemplateDesc] = useState('')
@@ -37,7 +39,8 @@ export default function LaudoEditor() {
   const [formProvenanceId, setFormProvenanceId] = useState<string | null>(null)
   const sectionSelectorRef = useRef<HTMLDivElement>(null)
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveLaudoFn = useCallback((data: Laudo) => saveLaudo(data), [])
+  const { saveStatus, scheduleSave, forceSave } = useAutoSave<Laudo>(saveLaudoFn)
 
   // Load laudo and patients
   useEffect(() => {
@@ -72,40 +75,14 @@ export default function LaudoEditor() {
     createSnapshot,
   } = useVersioning(laudo)
 
-  // Auto-save with debounce
-  const scheduleAutoSave = useCallback(
-    (updatedLaudo: Laudo) => {
-      setSaveStatus('unsaved')
-
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
-
-      saveTimeoutRef.current = setTimeout(() => {
-        setSaveStatus('saving')
-        saveLaudo(updatedLaudo)
-        setSaveStatus('saved')
-      }, 1000)
-    },
-    []
-  )
-
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
-    }
-  }, [])
-
   const updateLaudo = useCallback(
     (updates: Partial<Laudo>) => {
       if (!laudo) return
       const updated = { ...laudo, ...updates }
       setLaudo(updated)
-      scheduleAutoSave(updated)
+      scheduleSave(updated)
     },
-    [laudo, scheduleAutoSave]
+    [laudo, scheduleSave]
   )
 
   const handleBlocksChange = useCallback(
@@ -261,13 +238,8 @@ export default function LaudoEditor() {
 
   const handleForceSave = useCallback(() => {
     if (!laudo) return
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-    setSaveStatus('saving')
-    saveLaudo(laudo)
-    setSaveStatus('saved')
-  }, [laudo])
+    forceSave(laudo)
+  }, [laudo, forceSave])
 
   const handleStatusChange = useCallback(
     (newStatus: LaudoStatus) => {
@@ -354,16 +326,8 @@ export default function LaudoEditor() {
   }, [laudo])
 
   // Close section selector on outside click
-  useEffect(() => {
-    if (!showSectionSelector) return
-    const handleClick = (e: MouseEvent) => {
-      if (sectionSelectorRef.current && !sectionSelectorRef.current.contains(e.target as Node)) {
-        setShowSectionSelector(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [showSectionSelector])
+  const closeSectionSelector = useCallback(() => setShowSectionSelector(false), [])
+  useClickOutside(sectionSelectorRef, closeSectionSelector, showSectionSelector)
 
   if (!laudo) {
     return (

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { IdentificationData, Professional, PatientData, Solicitor, Patient } from '@/types'
+import type { IdentificationData, Professional, PatientData, Solicitor, Patient } from '@/types'
 import Input from '@/components/ui/Input'
 import Toggle from '@/components/ui/Toggle'
 import Select from '@/components/ui/Select'

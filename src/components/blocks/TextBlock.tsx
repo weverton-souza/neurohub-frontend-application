@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
-import { TextBlockData, SlateContent, isSlateContent, htmlToSlateContent } from '@/types'
+import type { TextBlockData, SlateContent } from '@/types'
+import { isSlateContent, htmlToSlateContent } from '@/types'
 import Input from '@/components/ui/Input'
 import PlateEditorComponent, { EMPTY_SLATE_CONTENT } from '@/components/ui/PlateEditor'
 

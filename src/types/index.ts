@@ -871,12 +871,6 @@ export function createEmptyFormResponse(formId: string): FormResponse {
 
 // ========== Form Section Grouping ==========
 
-export interface FormFieldMeta {
-  sectionTitle: string
-  sectionFieldId: string
-  isSection: boolean
-}
-
 export interface FormSectionGroup {
   sectionFieldId: string
   sectionTitle: string

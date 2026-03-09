@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useClickOutside } from '@/lib/hooks/use-click-outside'
 
 export const COLOR_PRESETS = [
   '#55EFC4', '#81ECEC', '#74B9FF', '#A29BFE', '#DFE6E9',
@@ -57,18 +58,12 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
   const pickerRef = useRef<HTMLDivElement>(null)
 
   // Fecha ao clicar fora
-  useEffect(() => {
-    if (!isOpen) return
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-        setBaseHsl(null)
-        setHexInput('')
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [isOpen])
+  const handleCloseOutside = useCallback(() => {
+    setIsOpen(false)
+    setBaseHsl(null)
+    setHexInput('')
+  }, [])
+  useClickOutside(containerRef, handleCloseOutside, isOpen)
 
   // Posicionar o picker para não sair da tela
   useEffect(() => {

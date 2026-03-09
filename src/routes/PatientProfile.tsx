@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import {
+import type {
   Patient,
   PatientData,
   PatientNote,
   PatientEvent,
   PatientEventType,
   Laudo,
+} from '@/types'
+import {
   createEmptyPatientNote,
   createEmptyPatientEvent,
-  createEmptyIdentificationData,
   PATIENT_EVENT_TYPE_LABELS,
   PATIENT_EVENT_TYPE_COLORS,
 } from '@/types'
@@ -23,11 +24,9 @@ import {
   getPatientEvents,
   savePatientEvent,
   deletePatientEvent,
-  saveLaudo,
-  getProfessional,
 } from '@/lib/storage'
-import { createBlock } from '@/lib/utils'
 import { formatDateTime, formatDate } from '@/lib/utils'
+import { createLaudoFromPatient } from '@/lib/laudo-utils'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import Button from '@/components/ui/Button'
@@ -175,27 +174,8 @@ export default function PatientProfile() {
 
   const handleCreateLaudo = useCallback(() => {
     if (!patient) return
-    const laudoId = crypto.randomUUID()
-    const now = new Date().toISOString()
-    const identificationBlock = createBlock('identification', 0)
-
-    const professional = getProfessional()
-    const identData = createEmptyIdentificationData(professional)
-    identData.patient = { ...patient.data }
-    identificationBlock.data = identData
-
-    const laudo: Laudo = {
-      id: laudoId,
-      createdAt: now,
-      updatedAt: now,
-      status: 'rascunho',
-      patientName: patient.data.name,
-      patientId: patient.id,
-      blocks: [identificationBlock],
-    }
-
-    saveLaudo(laudo)
-    navigate(`/laudo/${laudoId}`)
+    const laudo = createLaudoFromPatient(patient)
+    navigate(`/laudo/${laudo.id}`)
   }, [patient, navigate])
 
   const handleAddNote = useCallback(() => {

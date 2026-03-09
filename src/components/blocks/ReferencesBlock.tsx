@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { ReferencesData } from '@/types'
+import type { ReferencesData } from '@/types'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import { CloseIcon } from '@/components/icons'

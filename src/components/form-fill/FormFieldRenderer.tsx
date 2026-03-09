@@ -1,4 +1,4 @@
-import { FormField, FormFieldAnswer } from '@/types'
+import type { FormField, FormFieldAnswer } from '@/types'
 
 interface FormFieldRendererProps {
   field: FormField

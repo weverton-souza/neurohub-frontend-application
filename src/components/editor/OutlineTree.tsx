@@ -13,7 +13,8 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { Block, BlockData, TextBlockData, BLOCK_TYPE_LABELS } from '@/types'
+import type { Block, BlockData, TextBlockData } from '@/types'
+import { BLOCK_TYPE_LABELS } from '@/types'
 import { computeBlockMetas } from '@/lib/utils'
 import { PlusIcon } from '@/components/icons'
 import OutlineRow from '@/components/editor/OutlineRow'

@@ -1,18 +1,14 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import type { AnamnesisForm, FormResponse, FormFieldAnswer } from '@/types'
+import { createEmptyFormResponse, createEmptyFormFieldAnswer } from '@/types'
 import {
-  AnamnesisForm,
-  FormResponse,
-  FormFieldAnswer,
-  createEmptyFormResponse,
-  createEmptyFormFieldAnswer,
-} from '@/types'
-import { getFormById } from '@/lib/form-service'
-import {
+  getFormById,
   getFormResponseById,
   createFormResponse,
   updateFormResponse,
 } from '@/lib/form-service'
+import { useAutoSave } from '@/lib/hooks/use-auto-save'
 import { getPatient } from '@/lib/storage'
 import { buildFormSectionGroups } from '@/lib/utils'
 import FormFieldRenderer from '@/components/form-fill/FormFieldRenderer'
@@ -24,10 +20,10 @@ export default function FormFill() {
 
   const [form, setForm] = useState<AnamnesisForm | null>(null)
   const [response, setResponse] = useState<FormResponse | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set())
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const updateResponseFn = useCallback((data: FormResponse) => updateFormResponse(data), [])
+  const { saveStatus, scheduleSave, forceSave } = useAutoSave<FormResponse>(updateResponseFn)
   const responseIdParam = searchParams.get('response')
   const patientIdParam = searchParams.get('patient')
 
@@ -73,25 +69,14 @@ export default function FormFill() {
     })
   }, [id, navigate, responseIdParam, patientIdParam])
 
-  // Auto-save
-  const scheduleAutoSave = useCallback((updatedResponse: FormResponse) => {
-    setSaveStatus('unsaved')
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    saveTimeoutRef.current = setTimeout(async () => {
-      setSaveStatus('saving')
-      await updateFormResponse(updatedResponse)
-      setSaveStatus('saved')
-    }, 1000)
-  }, [])
-
   const updateResponseState = useCallback((patch: Partial<FormResponse>) => {
     setResponse((prev) => {
       if (!prev) return prev
       const updated = { ...prev, ...patch }
-      scheduleAutoSave(updated)
+      scheduleSave(updated)
       return updated
     })
-  }, [scheduleAutoSave])
+  }, [scheduleSave])
 
   const handleAnswerChange = useCallback((answer: FormFieldAnswer) => {
     if (!response) return
@@ -150,30 +135,22 @@ export default function FormFill() {
   const handleFinalize = useCallback(async () => {
     if (!validate() || !response) return
 
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     const finalized = { ...response, status: 'concluido' as const }
-    await updateFormResponse(finalized)
+    await forceSave(finalized)
     setResponse(finalized)
-    setSaveStatus('saved')
 
     navigate(`/formulario/${id}/respostas`)
-  }, [validate, response, id, navigate])
+  }, [validate, response, id, navigate, forceSave])
 
   const handleSaveDraft = useCallback(async () => {
     if (!response) return
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    setSaveStatus('saving')
-    await updateFormResponse(response)
-    setSaveStatus('saved')
-  }, [response])
+    await forceSave(response)
+  }, [response, forceSave])
 
   const handleBack = useCallback(async () => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    if (response) {
-      await updateFormResponse(response)
-    }
+    if (response) await forceSave(response)
     navigate(`/formulario/${id}/respostas`)
-  }, [response, id, navigate])
+  }, [response, id, navigate, forceSave])
 
   // Derived
   const sortedFields = useMemo(

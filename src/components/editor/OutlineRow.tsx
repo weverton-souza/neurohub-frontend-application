@@ -1,21 +1,23 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import {
+import type {
   Block,
   BlockData,
-  BLOCK_TYPE_LABELS,
   TextBlockData,
   ScoreTableData,
   ChartData,
   InfoBoxData,
   ReferencesData,
   ClosingPageData,
+} from '@/types'
+import {
+  BLOCK_TYPE_LABELS,
   isSlateContent,
   slateContentToPlainText,
 } from '@/types'
 import { BLOCK_TYPE_BORDER_COLORS } from '@/lib/block-constants'
-import { BlockMeta } from '@/lib/utils'
+import type { BlockMeta } from '@/lib/utils'
 
 // level 0 = section (title), level 1 = subsection (subtitle), level 2 = leaf (table/chart/etc)
 interface OutlineRowProps {

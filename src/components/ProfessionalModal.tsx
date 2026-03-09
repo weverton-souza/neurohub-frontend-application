@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
-import { Professional, ContactType, CONTACT_TYPE_OPTIONS, createEmptyContactItem } from '@/types'
+import type { Professional, ContactType } from '@/types'
+import { CONTACT_TYPE_OPTIONS, createEmptyContactItem } from '@/types'
 import { getProfessional, saveProfessional } from '@/lib/storage'
 import { fileToBase64DataUrl, resizeImageToBase64 } from '@/lib/image-utils'
 import Modal from '@/components/ui/Modal'

@@ -1,4 +1,4 @@
-import { LaudoTemplate } from '@/types'
+import type { LaudoTemplate } from '@/types'
 import { getBlockTitle } from '@/lib/block-constants'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'

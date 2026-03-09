@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
+import type { LaudoStatus } from '@/types'
 import {
-  LaudoStatus,
   LAUDO_STATUS_LABELS,
   LAUDO_STATUS_COLORS,
   LAUDO_STATUS_TRANSITIONS,
 } from '@/types'
+import { useClickOutside } from '@/lib/hooks/use-click-outside'
 
 interface StatusSelectorProps {
   status: LaudoStatus
@@ -18,16 +19,8 @@ export default function StatusSelector({ status, onChange }: StatusSelectorProps
   const transitions = LAUDO_STATUS_TRANSITIONS[status]
   const { bg, text } = LAUDO_STATUS_COLORS[status]
 
-  useEffect(() => {
-    if (!open) return
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  const closeDropdown = useCallback(() => setOpen(false), [])
+  useClickOutside(ref, closeDropdown, open)
 
   return (
     <div className="relative" ref={ref}>
