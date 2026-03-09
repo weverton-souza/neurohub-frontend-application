@@ -22,7 +22,7 @@ export default function App() {
         <Route path="/formulario/:id/editar" element={<FormBuilder />} />
         <Route path="/formulario/:id/preencher" element={<FormFill />} />
         <Route path="/formulario/:id/respostas" element={<FormResponseList />} />
-        <Route path="/formulas" element={<FormulaGuide />} />
+        <Route path="/guias" element={<FormulaGuide />} />
       </Route>
     </Routes>
   )

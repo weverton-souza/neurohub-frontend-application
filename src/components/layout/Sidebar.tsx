@@ -37,11 +37,6 @@ const NAV_ITEMS: NavItemConfig[] = [
     icon: ClipboardListIcon,
     matchPaths: ['/formulario/'],
   },
-  {
-    to: '/formulas',
-    label: 'Fórmulas',
-    icon: BookIcon,
-  },
 ]
 
 interface SidebarProps {
@@ -144,6 +139,34 @@ export default function Sidebar({ isCollapsed, onToggle, onOpenProfessionalModal
 
       {/* Bottom section */}
       <div className="border-t border-gray-200 py-3 px-2 space-y-1 shrink-0">
+        {/* Guide link */}
+        <div className="relative group">
+          <NavLink
+            to="/guias"
+            className={`flex items-center gap-3 rounded-lg transition-all duration-300 ${
+              isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'
+            } ${
+              location.pathname === '/guias'
+                ? 'bg-brand-100 text-brand-700 font-medium'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <BookIcon size={20} className="shrink-0" />
+            <span
+              className={`text-sm whitespace-nowrap transition-opacity duration-300 ${
+                isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+              }`}
+            >
+              Guias
+            </span>
+          </NavLink>
+          {isCollapsed && (
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+              Guias
+            </div>
+          )}
+        </div>
+
         {/* Professional settings */}
         <div className="relative group">
           <button
