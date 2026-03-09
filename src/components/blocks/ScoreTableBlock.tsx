@@ -537,6 +537,11 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
         const after = activeBarValue.slice(fc.index + 8) // "@#RRGGBB" = 8 chars
         const newValue = before + '@' + color.toUpperCase() + after
         updateCell(rowId, colId, newValue)
+        const cursorTarget = fc.index + 8 // após @#RRGGBB
+        requestAnimationFrame(() => {
+          formulaBarRef.current?.focus()
+          formulaBarRef.current?.setSelectionRange(cursorTarget, cursorTarget)
+        })
       }
       setCpEditIndex(null)
     } else {
@@ -565,9 +570,18 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
       const textBeforeCursor = activeBarValue.slice(0, pos)
       const textAfterCursor = activeBarValue.slice(pos)
       const cleaned = textBeforeCursor.replace(/@#?[0-9A-Fa-f]{0,6}$/, '')
-      const newValue = cleaned + '@' + finalColor.toUpperCase() + textAfterCursor
+      const colorAnnotation = '@' + finalColor.toUpperCase()
+      const newValue = cleaned + colorAnnotation + textAfterCursor
       updateCell(rowId, colId, newValue)
+      const cursorTarget = cleaned.length + colorAnnotation.length
+      requestAnimationFrame(() => {
+        formulaBarRef.current?.focus()
+        formulaBarRef.current?.setSelectionRange(cursorTarget, cursorTarget)
+      })
     }
+    // Fechar color picker
+    setCpBaseHsl(null)
+    setCpHex('')
   }, [editingCellId, activeBarValue, updateCell, cpEditIndex, formulaColors, data])
 
   const handleAcSelect = useCallback((funcName: string) => {
