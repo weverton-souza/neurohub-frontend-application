@@ -426,11 +426,19 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
     if (!rowId || !colId) return
     cursorPosRef.current = e.target.selectionStart
     updateCell(rowId, colId, e.target.value)
+    // Restaurar cursor após auto-uppercase (React reseta ao mudar o value)
+    const pos = e.target.selectionStart
+    const input = e.target
+    requestAnimationFrame(() => input.setSelectionRange(pos, pos))
   }
 
   const handleCellInputChange = useCallback((rowId: string, colId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     cursorPosRef.current = e.target.selectionStart
     updateCell(rowId, colId, e.target.value)
+    // Restaurar cursor após auto-uppercase
+    const pos = e.target.selectionStart
+    const input = e.target
+    requestAnimationFrame(() => input.setSelectionRange(pos, pos))
   }, [updateCell])
 
   // ========== Formula Autocomplete ==========
