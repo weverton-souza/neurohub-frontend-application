@@ -494,7 +494,7 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
   // Detecta se o cursor está em posição @# para abrir color picker (digitando novo)
   const showColorPickerNew = useMemo(() => {
     if (!activeBarValue || !activeBarValue.trim().startsWith('=')) return false
-    const match = activeBarValue.match(/@#([0-9A-Fa-f]{0,5})$/)
+    const match = activeBarValue.match(/@#?([0-9A-Fa-f]{0,5})$/)
     return !!match
   }, [activeBarValue])
 
@@ -528,7 +528,7 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
       setCpEditIndex(null)
     } else {
       // Inserindo nova cor: remove @# parcial do final e insere @#RRGGBB completo
-      const cleaned = activeBarValue.replace(/@#[0-9A-Fa-f]{0,6}$/, '')
+      const cleaned = activeBarValue.replace(/@#?[0-9A-Fa-f]{0,6}$/, '')
       const newValue = cleaned + '@' + color.toUpperCase()
       updateCell(rowId, colId, newValue)
     }
