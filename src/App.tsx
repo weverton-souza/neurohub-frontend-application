@@ -8,6 +8,7 @@ import FormList from '@/routes/FormList'
 import FormBuilder from '@/routes/FormBuilder'
 import FormFill from '@/routes/FormFill'
 import FormResponseList from '@/routes/FormResponseList'
+import FormulaGuide from '@/routes/FormulaGuide'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/formulario/:id/editar" element={<FormBuilder />} />
         <Route path="/formulario/:id/preencher" element={<FormFill />} />
         <Route path="/formulario/:id/respostas" element={<FormResponseList />} />
+        <Route path="/formulas" element={<FormulaGuide />} />
       </Route>
     </Routes>
   )
