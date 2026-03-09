@@ -1,10 +1,7 @@
-import { useCallback } from 'react'
-import { TextBlockData, LabeledItem } from '@/types'
+import { useCallback, useMemo } from 'react'
+import { TextBlockData, SlateContent, isSlateContent, htmlToSlateContent } from '@/types'
 import Input from '@/components/ui/Input'
-import RichTextEditor from '@/components/ui/RichTextEditor'
-import Toggle from '@/components/ui/Toggle'
-import { useLabeledItems } from '@/hooks/useLabeledItems'
-import LabeledItemsList from '@/components/blocks/LabeledItemsList'
+import PlateEditorComponent, { EMPTY_SLATE_CONTENT } from '@/components/ui/PlateEditor'
 
 interface TextBlockProps {
   data: TextBlockData
@@ -13,13 +10,18 @@ interface TextBlockProps {
 
 export default function TextBlock({ data, onChange }: TextBlockProps) {
   const updateField = useCallback(
-    (field: keyof TextBlockData, value: string | boolean | LabeledItem[]) => {
+    (field: keyof TextBlockData, value: string | boolean | SlateContent) => {
       onChange({ ...data, [field]: value })
     },
     [data, onChange]
   )
 
-  const { addLabeledItem, updateLabeledItem, removeLabeledItem } = useLabeledItems(data, onChange)
+  // Converter HTML legado para SlateContent se necessário
+  const slateContent = useMemo<SlateContent>(() => {
+    if (isSlateContent(data.content)) return data.content
+    if (typeof data.content === 'string' && data.content) return htmlToSlateContent(data.content)
+    return EMPTY_SLATE_CONTENT
+  }, [data.content])
 
   // Regra de negócio: cada bloco de texto tem um único papel
   const blockRole = data.title ? 'section' : data.subtitle ? 'subsection' : 'content'
@@ -46,33 +48,14 @@ export default function TextBlock({ data, onChange }: TextBlockProps) {
         />
       )}
 
-      {/* Conteúdo → textarea + labeled items (sem título nem subtítulo) */}
+      {/* Conteúdo → editor Plate (sem título nem subtítulo) */}
       {blockRole === 'content' && (
-        <>
-          <RichTextEditor
-            label="Conteúdo"
-            content={data.content}
-            onChange={(html) => updateField('content', html)}
-            placeholder="Conteúdo da seção..."
-          />
-
-          <div className="pt-2 border-t border-gray-100">
-            <Toggle
-              label="Usar itens com label"
-              checked={data.useLabeledItems}
-              onChange={(checked) => updateField('useLabeledItems', checked)}
-            />
-          </div>
-
-          {data.useLabeledItems && (
-            <LabeledItemsList
-              items={data.labeledItems}
-              onAdd={addLabeledItem}
-              onUpdate={updateLabeledItem}
-              onRemove={removeLabeledItem}
-            />
-          )}
-        </>
+        <PlateEditorComponent
+          label="Conteúdo"
+          content={slateContent}
+          onChange={(value) => updateField('content', value)}
+          placeholder="Conteúdo da seção..."
+        />
       )}
     </div>
   )

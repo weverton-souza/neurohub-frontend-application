@@ -217,6 +217,24 @@ export default function OutlineTree({
     return groups
   }, [sortedBlocks, blockMetas])
 
+  // Find the last block ID in a section group (for inserting at end)
+  function getLastBlockIdInSection(group: SectionGroup): string {
+    const subs = group.subsections
+    if (subs.length > 0) {
+      const lastSub = subs[subs.length - 1]
+      if (lastSub.children.length > 0) return lastSub.children[lastSub.children.length - 1].id
+      return lastSub.subsectionBlock.id
+    }
+    if (group.directChildren.length > 0) return group.directChildren[group.directChildren.length - 1].id
+    return group.sectionBlockId
+  }
+
+  // Find the last block ID in a subsection group (for inserting at end)
+  function getLastBlockIdInSubsection(sub: SubsectionGroup): string {
+    if (sub.children.length > 0) return sub.children[sub.children.length - 1].id
+    return sub.subsectionBlock.id
+  }
+
   // Count all children (direct + subsections + their children)
   function countSectionChildren(group: SectionGroup): number {
     let count = group.directChildren.length
@@ -393,7 +411,7 @@ export default function OutlineTree({
                     {!isRestrictedSection && (
                       <button
                         type="button"
-                        onClick={() => onRequestAddBlock(group.sectionBlock!.id)}
+                        onClick={() => onRequestAddBlock(getLastBlockIdInSection(group))}
                         className="p-1 rounded-md text-gray-300 hover:text-brand-600 hover:bg-white/60 transition-all shrink-0 opacity-0 group-hover/section:opacity-100"
                         title="Adicionar bloco na seção"
                       >
@@ -428,6 +446,7 @@ export default function OutlineTree({
                     {group.directChildren.map((block) => (
                       <div key={block.id} className="tree-node">
                         <div className="flex items-center">
+                          <span className="w-6 shrink-0" />
                           <span className="w-6 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <OutlineRow
@@ -468,7 +487,7 @@ export default function OutlineTree({
                             {/* Add block inside subsection */}
                             <button
                               type="button"
-                              onClick={() => onRequestAddBlock(sub.subsectionBlock.id)}
+                              onClick={() => onRequestAddBlock(getLastBlockIdInSubsection(sub))}
                               className="p-1 rounded-md text-gray-300 hover:text-brand-600 hover:bg-white/60 transition-all shrink-0 opacity-0 group-hover/sub:opacity-100"
                               title="Adicionar bloco na subseção"
                             >

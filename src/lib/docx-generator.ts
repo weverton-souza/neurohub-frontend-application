@@ -28,6 +28,9 @@ import {
   ChartData,
   ReferencesData,
   ClosingPageData,
+  SlateContent,
+  SlateNode,
+  isSlateContent,
 } from '@/types'
 import { Chart as ChartJS } from 'chart.js'
 import '@/lib/chart-setup'
@@ -458,6 +461,87 @@ function extractRunsFromNode(
   return runs
 }
 
+// ========== Slate JSON → docx ==========
+
+const ALIGNMENT_MAP: Record<string, (typeof AlignmentType)[keyof typeof AlignmentType]> = {
+  left: AlignmentType.LEFT,
+  center: AlignmentType.CENTER,
+  right: AlignmentType.RIGHT,
+  justify: AlignmentType.JUSTIFIED,
+}
+
+function slateLeafToTextRun(
+  node: SlateNode,
+): TextRun {
+  return new TextRun({
+    text: node.text ?? '',
+    size: 22,
+    font: 'Calibri',
+    bold: node.bold || undefined,
+    italics: node.italic || undefined,
+    underline: node.underline ? {} : undefined,
+    strike: node.strikethrough || undefined,
+  })
+}
+
+function parseSlateToDocxParagraphs(content: SlateContent): Paragraph[] {
+  const paragraphs: Paragraph[] = []
+
+  for (const node of content) {
+    if (node.type === 'p' && Array.isArray(node.children)) {
+      const alignment = ALIGNMENT_MAP[node.align as string] ?? AlignmentType.JUSTIFIED
+      const runs: TextRun[] = []
+
+      for (const child of node.children) {
+        if (typeof child.text === 'string') {
+          runs.push(slateLeafToTextRun(child))
+        }
+      }
+
+      // Lista com indentação
+      const indent = typeof node.indent === 'number' ? node.indent : 0
+      const listStyleType = node.listStyleType as string | undefined
+
+      if (listStyleType === 'disc') {
+        paragraphs.push(
+          new Paragraph({
+            spacing: { after: 80 },
+            alignment,
+            bullet: { level: Math.max(0, indent - 1) },
+            children: runs.length > 0 ? runs : [new TextRun({ text: '', size: 22, font: 'Calibri' })],
+          })
+        )
+      } else if (listStyleType === 'decimal') {
+        paragraphs.push(
+          new Paragraph({
+            spacing: { after: 80 },
+            alignment,
+            numbering: { reference: 'default-numbering', level: Math.max(0, indent - 1) },
+            children: runs.length > 0 ? runs : [new TextRun({ text: '', size: 22, font: 'Calibri' })],
+          })
+        )
+      } else {
+        paragraphs.push(
+          new Paragraph({
+            spacing: { after: 120 },
+            alignment,
+            indent: indent > 0 ? { left: indent * 720 } : undefined,
+            children: runs.length > 0 ? runs : [new TextRun({ text: '', size: 22, font: 'Calibri' })],
+          })
+        )
+      }
+    }
+  }
+
+  return paragraphs
+}
+
+/** Converte conteúdo (HTML legado ou Slate JSON) para docx paragraphs */
+function contentToDocxParagraphs(content: string | SlateContent): Paragraph[] {
+  if (isSlateContent(content)) return parseSlateToDocxParagraphs(content)
+  return parseHtmlToDocxParagraphs(content)
+}
+
 function renderText(data: TextBlockData): Paragraph[] {
   const elements: Paragraph[] = []
 
@@ -483,8 +567,8 @@ function renderText(data: TextBlockData): Paragraph[] {
     )
   }
 
-  if (data.content) {
-    const contentParagraphs = parseHtmlToDocxParagraphs(data.content)
+  if (data.content && (typeof data.content === 'string' ? data.content.trim() : true)) {
+    const contentParagraphs = contentToDocxParagraphs(data.content)
     elements.push(...contentParagraphs)
   }
 
@@ -1497,6 +1581,18 @@ export async function generateDocx(laudo: Laudo): Promise<void> {
   }
 
   const doc = new Document({
+    numbering: {
+      config: [
+        {
+          reference: 'default-numbering',
+          levels: [
+            { level: 0, format: NumberFormat.DECIMAL, text: '%1.', alignment: AlignmentType.START, style: { paragraph: { indent: { left: 720, hanging: 360 } } } },
+            { level: 1, format: NumberFormat.LOWER_LETTER, text: '%2)', alignment: AlignmentType.START, style: { paragraph: { indent: { left: 1440, hanging: 360 } } } },
+            { level: 2, format: NumberFormat.LOWER_ROMAN, text: '%3.', alignment: AlignmentType.START, style: { paragraph: { indent: { left: 2160, hanging: 360 } } } },
+          ],
+        },
+      ],
+    },
     styles: {
       default: {
         document: {

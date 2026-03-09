@@ -116,7 +116,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md', accent }: ModalP
   return createPortal(
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
+      onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >

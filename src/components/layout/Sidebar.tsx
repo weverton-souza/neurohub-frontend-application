@@ -1,18 +1,19 @@
+import React from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   DocumentIcon,
   UsersIcon,
   ClipboardListIcon,
   SettingsIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
 } from '@/components/icons'
-import { IconProps } from '@/components/icons'
+import type { IconProps } from '@/components/icons'
+import logoDoxMark from '@/assets/logo-dox-mark.svg'
+import logoDoxText from '@/assets/logo-dox-text.svg'
 
 interface NavItemConfig {
   to: string
   label: string
-  icon: (props: IconProps) => JSX.Element
+  icon: (props: IconProps) => React.ReactNode
   matchPaths?: string[]
 }
 
@@ -63,16 +64,32 @@ export default function Sidebar({ isCollapsed, onToggle, onOpenProfessionalModal
       aria-label="Menu principal"
     >
       {/* Brand */}
-      <div className="h-16 flex items-center border-b border-gray-200 px-4 shrink-0 overflow-hidden">
-        {isCollapsed ? (
-          <span className="text-brand-700 font-bold text-lg mx-auto">NH</span>
-        ) : (
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-brand-700 whitespace-nowrap">NeuroHub</h1>
-            <p className="text-xs text-gray-400 whitespace-nowrap">Laudos neuropsicológicos</p>
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="h-16 w-full flex flex-col justify-center border-b border-gray-200 px-4 shrink-0 overflow-hidden cursor-pointer"
+      >
+        <div className="flex items-center w-full">
+          {/* Mark (bars) — stays in place */}
+          <img src={logoDoxMark} alt="DOX" className="h-7 w-auto shrink-0" />
+          {/* "Dox" text — fades out */}
+          <img
+            src={logoDoxText}
+            alt="Dox"
+            className={`h-7 w-auto ml-1 transition-opacity duration-300 ${
+              isCollapsed ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
+          {/* Collapse hint */}
+          <span
+            className={`ml-auto text-[#1B3A5C]/30 text-2xl font-medium tracking-tight transition-opacity duration-300 ${
+              isCollapsed ? 'opacity-0' : 'opacity-100'
+            }`}
+          >
+            «
+          </span>
+        </div>
+      </button>
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
@@ -85,7 +102,7 @@ export default function Sidebar({ isCollapsed, onToggle, onOpenProfessionalModal
               <NavLink
                 to={item.to}
                 end={item.to === '/'}
-                className={`flex items-center gap-3 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 rounded-lg transition-all duration-300 ${
                   isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'
                 } ${
                   active
@@ -98,10 +115,14 @@ export default function Sidebar({ isCollapsed, onToggle, onOpenProfessionalModal
                   void e
                 }}
               >
-                <Icon size={20} />
-                {!isCollapsed && (
-                  <span className="text-sm whitespace-nowrap">{item.label}</span>
-                )}
+                <Icon size={20} className="shrink-0" />
+                <span
+                  className={`text-sm whitespace-nowrap transition-opacity duration-300 ${
+                    isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+                  }`}
+                >
+                  {item.label}
+                </span>
               </NavLink>
 
               {/* Tooltip when collapsed */}
@@ -122,14 +143,18 @@ export default function Sidebar({ isCollapsed, onToggle, onOpenProfessionalModal
           <button
             type="button"
             onClick={onOpenProfessionalModal}
-            className={`w-full flex items-center gap-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors ${
+            className={`w-full flex items-center gap-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-300 ${
               isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'
             }`}
           >
-            <SettingsIcon size={20} />
-            {!isCollapsed && (
-              <span className="text-sm whitespace-nowrap">Profissional</span>
-            )}
+            <SettingsIcon size={20} className="shrink-0" />
+            <span
+              className={`text-sm whitespace-nowrap transition-opacity duration-300 ${
+                isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+              }`}
+            >
+              Profissional
+            </span>
           </button>
           {isCollapsed && (
             <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
@@ -138,21 +163,14 @@ export default function Sidebar({ isCollapsed, onToggle, onOpenProfessionalModal
           )}
         </div>
 
-        {/* Collapse toggle */}
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={!isCollapsed}
-          aria-label={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
-          className={`w-full flex items-center gap-3 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors ${
-            isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'
+        {/* Slogan */}
+        <p
+          className={`text-xs text-gray-400 whitespace-nowrap text-left pl-3 transition-opacity duration-300 py-1 ${
+            isCollapsed ? 'opacity-0' : 'opacity-100'
           }`}
         >
-          {isCollapsed ? <ChevronRightIcon size={20} /> : <ChevronLeftIcon size={20} />}
-          {!isCollapsed && (
-            <span className="text-sm whitespace-nowrap">Recolher</span>
-          )}
-        </button>
+          Pense diferente. Crie melhor
+        </p>
       </div>
     </aside>
   )

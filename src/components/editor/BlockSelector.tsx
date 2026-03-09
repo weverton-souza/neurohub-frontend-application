@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import type { BlockType } from '@/types'
 import { BLOCK_TYPE_LABELS, BLOCK_TYPE_DESCRIPTIONS, BLOCK_TYPE_COLORS, getBlockTypeIcon } from '@/lib/block-constants'
 import Modal from '@/components/ui/Modal'
 import ScoreTableTemplatePicker from '@/components/editor/ScoreTableTemplatePicker'
+import ChartTemplatePicker from '@/components/editor/ChartTemplatePicker'
 
 export type BlockVariant = 'subtitle'
 
@@ -25,7 +26,7 @@ interface BlockOption {
   variant?: BlockVariant
   label: string
   description: string
-  icon: JSX.Element
+  icon: React.ReactNode
   colorClass: string
 }
 
@@ -39,12 +40,15 @@ const blockOptions: BlockOption[] = [
 ]
 
 export default function BlockSelector({ isOpen, onClose, onSelect }: BlockSelectorProps) {
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [showTemplatePicker, setShowTemplatePicker] = useState<'score-table' | 'chart' | null>(null)
 
   const handleSelect = (option: BlockOption) => {
     if (option.type === 'score-table') {
-      // Score table: abrir template picker
-      setShowTemplatePicker(true)
+      setShowTemplatePicker('score-table')
+      return
+    }
+    if (option.type === 'chart') {
+      setShowTemplatePicker('chart')
       return
     }
     onSelect(option.type, option.variant)
@@ -52,27 +56,43 @@ export default function BlockSelector({ isOpen, onClose, onSelect }: BlockSelect
   }
 
   const handleClose = () => {
-    setShowTemplatePicker(false)
+    setShowTemplatePicker(null)
     onClose()
   }
 
-  const handleSelectTemplate = (templateId: string) => {
+  const handleSelectScoreTemplate = (templateId: string) => {
     onSelect('score-table', undefined, templateId)
     handleClose()
   }
 
-  const handleSelectEmpty = () => {
+  const handleSelectEmptyScoreTable = () => {
     onSelect('score-table')
+    handleClose()
+  }
+
+  const handleSelectChartTemplate = (templateId: string) => {
+    onSelect('chart', undefined, templateId)
+    handleClose()
+  }
+
+  const handleSelectEmptyChart = () => {
+    onSelect('chart')
     handleClose()
   }
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Adicionar Bloco" size="md">
-      {showTemplatePicker ? (
+      {showTemplatePicker === 'score-table' ? (
         <ScoreTableTemplatePicker
-          onSelectTemplate={handleSelectTemplate}
-          onSelectEmpty={handleSelectEmpty}
-          onBack={() => setShowTemplatePicker(false)}
+          onSelectTemplate={handleSelectScoreTemplate}
+          onSelectEmpty={handleSelectEmptyScoreTable}
+          onBack={() => setShowTemplatePicker(null)}
+        />
+      ) : showTemplatePicker === 'chart' ? (
+        <ChartTemplatePicker
+          onSelectTemplate={handleSelectChartTemplate}
+          onSelectEmpty={handleSelectEmptyChart}
+          onBack={() => setShowTemplatePicker(null)}
         />
       ) : (
         <div className="grid grid-cols-2 gap-3 p-4">

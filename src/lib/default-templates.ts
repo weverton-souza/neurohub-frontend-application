@@ -57,7 +57,7 @@ function closingPageBlock(order: number): TemplateBlock {
 const TEMPLATE_ADULTO: LaudoTemplate = {
   id: 'default-adulto',
   name: 'Laudo Padrão Adulto',
-  description: 'Estrutura completa para avaliação neuropsicológica de adultos',
+  description: 'Estrutura completa para avaliação de adultos',
   isDefault: true,
   blocks: [
     identificationBlock(0),

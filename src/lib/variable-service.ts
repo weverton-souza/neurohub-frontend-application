@@ -8,7 +8,10 @@ import type {
   Block,
   TextBlockData,
   InfoBoxData,
+  SlateContent,
+  SlateNode,
 } from '@/types'
+import { isSlateContent } from '@/types'
 
 // ========== Regex ==========
 
@@ -176,6 +179,34 @@ function resolveVariables(text: string, variables: VariableMap): string {
 }
 
 /**
+ * Resolves {{key}} variables in Slate JSON content.
+ * Walks recursively through text nodes replacing placeholders.
+ */
+function resolveSlateVariables(content: SlateContent, variables: VariableMap): SlateContent {
+  function resolveNode(node: SlateNode): SlateNode {
+    if (typeof node.text === 'string') {
+      return { ...node, text: resolveVariables(node.text, variables) }
+    }
+    if (Array.isArray(node.children)) {
+      return { ...node, children: node.children.map(resolveNode) }
+    }
+    return node
+  }
+  return content.map(resolveNode)
+}
+
+/**
+ * Resolves variables in content (string or SlateContent).
+ */
+function resolveContentVariables(
+  content: string | SlateContent,
+  variables: VariableMap,
+): string | SlateContent {
+  if (isSlateContent(content)) return resolveSlateVariables(content, variables)
+  return resolveVariables(content, variables)
+}
+
+/**
  * Applies variable resolution to all text and info-box blocks.
  * Returns a new Block[] with resolved content.
  * Other block types are returned unchanged.
@@ -191,7 +222,7 @@ export function resolveBlockVariables(blocks: Block[], variables: VariableMap): 
             ...data,
             title: resolveVariables(data.title, variables),
             subtitle: resolveVariables(data.subtitle, variables),
-            content: resolveVariables(data.content, variables),
+            content: resolveContentVariables(data.content, variables),
             labeledItems: data.labeledItems.map((item) => ({
               ...item,
               label: resolveVariables(item.label, variables),

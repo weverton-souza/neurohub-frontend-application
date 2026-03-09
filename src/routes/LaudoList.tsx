@@ -120,7 +120,7 @@ export default function LaudoList() {
     <>
       <PageHeader
         title="Laudos"
-        subtitle="Montagem de laudos neuropsicológicos"
+        subtitle="Montagem de laudos"
         actions={
           <Button onClick={() => setShowNewModal(true)}>+ Novo Laudo</Button>
         }

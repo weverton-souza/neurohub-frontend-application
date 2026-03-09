@@ -9,10 +9,10 @@
 
 ## Stack e Versões
 
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - Tailwind CSS **v3** (não v4)
 - Chart.js 4 direto com canvas refs (nunca usar `react-chartjs-2`)
-- TipTap para rich text (bold/italic apenas)
+- Plate.js (platejs) para rich text WYSIWYG (bold, itálico, sublinhado, riscado, listas, alinhamento)
 - `docx` 9 para geração de .docx in-browser
 
 ## Features do Projeto
@@ -27,7 +27,11 @@
 - Status com transições: rascunho → em_revisão → finalizado
 - Exportação .docx in-browser com header profissional, logo, rodapé com ícones sociais e paginação
 - Gráficos Chart.js (bar/line) com modos grouped/separated, linhas e regiões de referência, exportados como PNG no .docx
-- Rich text (TipTap) com bold/italic nos blocos de texto
+- Templates de gráfico pré-configurados (10 padrões): WAIS-III Subtestes, WAIS-III Índices, RAVLT Curva, FDT, BDI-II, BAI, SRS-2, ToL-BR, Perfil Cognitivo, TMT
+- Seleção de template ao criar gráfico via BlockSelector (flow em 2 steps)
+- Salvar gráfico como template customizado com nome, instrumento e categoria
+- Rich text WYSIWYG (Plate.js) com bold, itálico, sublinhado, riscado, listas (bullet/numerada), alinhamento (L/C/R/J) nos blocos de texto
+- Conteúdo armazenado em Slate JSON (array de nós), com backward compat para HTML legado (auto-conversão no load)
 - Itens rotulados (key-value) nos blocos de texto
 - Tabelas dinâmicas com colunas nomeadas pelo usuário (score-table)
 - Engine de fórmulas v2: classificação por faixa, operações matemáticas (soma, subtração, média), agregações por coluna e linha
@@ -89,7 +93,7 @@
 - Dados usados no header do .docx e no bloco de identificação
 
 ### Persistência (localStorage)
-- Chaves: neurohub_laudos, neurohub_patients, neurohub_patient_notes, neurohub_patient_events, neurohub_professional, neurohub_templates, neurohub_forms, neurohub_form_responses, neurohub_versions_{laudoId}, neurohub_score_table_templates
+- Chaves: neurohub_laudos, neurohub_patients, neurohub_patient_notes, neurohub_patient_events, neurohub_professional, neurohub_templates, neurohub_forms, neurohub_form_responses, neurohub_versions_{laudoId}, neurohub_score_table_templates, neurohub_chart_templates
 - CRUD genérico via storage-utils.ts (readFromStorage, writeToStorage, upsertInStorage, deleteFromStorage)
 - Sem backend — tudo local
 

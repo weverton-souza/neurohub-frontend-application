@@ -27,7 +27,7 @@ export default function FormFill() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set())
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const responseIdParam = searchParams.get('response')
   const patientIdParam = searchParams.get('patient')
 
