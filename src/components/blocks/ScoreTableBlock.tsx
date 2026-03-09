@@ -995,16 +995,19 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
                     style={{ backgroundColor: adjustedColor! }}
                     onMouseDown={(e) => {
                       e.preventDefault()
+                      const isEditingExisting = cpEditIndex !== null
                       handleColorSelect(adjustedColor!)
-                      const currentLightness = cpBaseHsl[2]
-                      const others = findAllTableColors(editingCellId ?? undefined)
-                      const withDiffLightness = others.filter(oc => {
-                        const [, , l] = hexToHsl(oc.color)
-                        return Math.abs(l - currentLightness) > 0.02
-                      })
-                      if (withDiffLightness.length > 0) {
-                        modalOpenRef.current = true
-                        setApplyAllPrompt({ lightness: currentLightness, otherColors: withDiffLightness })
+                      if (isEditingExisting) {
+                        const currentLightness = cpBaseHsl[2]
+                        const others = findAllTableColors(editingCellId ?? undefined)
+                        const withDiffLightness = others.filter(oc => {
+                          const [, , l] = hexToHsl(oc.color)
+                          return Math.abs(l - currentLightness) > 0.02
+                        })
+                        if (withDiffLightness.length > 0) {
+                          modalOpenRef.current = true
+                          setApplyAllPrompt({ lightness: currentLightness, otherColors: withDiffLightness })
+                        }
                       }
                       setCpBaseHsl(null)
                     }}
