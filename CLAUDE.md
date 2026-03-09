@@ -194,8 +194,17 @@ chore: descrição curta em português
 - Mensagem descritiva no corpo quando necessário
 - Branch naming: `feat/nome-curto`, `fix/nome-curto`, `refactor/nome-curto`
 
+## Fluxo Git
+
+- **Nunca usar git worktree** — editar sempre no repo principal
+- Antes de começar: `git pull origin main`
+- Criar branch local: `git checkout -b feat/nome-curto`
+- Trabalhar, commitar, push, PR, merge
+- O dev server roda no repo principal — worktrees causam descompasso entre código editado e código servido
+
 ## Coisas para Nunca Fazer
 
+- Nunca usar git worktree
 - Nunca usar `react-chartjs-2`
 - Nunca registrar plugins do Chart.js globalmente no ChartBlock (usar array `plugins` inline)
 - Nunca esquecer `columnWidths` ao criar `new Table()` no docx
