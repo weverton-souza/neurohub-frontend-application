@@ -47,7 +47,7 @@ export default function FormBuilder() {
   const [showSectionReorderModal, setShowSectionReorderModal] = useState(false)
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null)
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const templates = useMemo(() => getAllTemplates(getCustomTemplates()), [])
 
   // Load form

@@ -11,6 +11,8 @@ import {
   InfoBoxData,
   ReferencesData,
   ClosingPageData,
+  isSlateContent,
+  slateContentToPlainText,
 } from '@/types'
 import { BLOCK_TYPE_BORDER_COLORS } from '@/lib/block-constants'
 import { BlockMeta } from '@/lib/utils'
@@ -104,8 +106,13 @@ function getBlockDisplayTitle(block: Block): string {
   }
 }
 
+function getContentPlainText(data: TextBlockData): string {
+  if (isSlateContent(data.content)) return slateContentToPlainText(data.content)
+  return typeof data.content === 'string' ? data.content : ''
+}
+
 function textBlockHasContent(data: TextBlockData): boolean {
-  return !!(data.content.trim() || (data.useLabeledItems && data.labeledItems.length > 0))
+  return !!getContentPlainText(data).trim()
 }
 
 export default function OutlineRow({
@@ -258,15 +265,20 @@ export default function OutlineRow({
                 className={`w-full bg-transparent border-0 p-0 ${titleClass} ${placeholderClass} focus:outline-none focus:ring-0`}
               />
             ) : (
-              <span
-                className="text-sm text-gray-500 italic truncate block cursor-pointer"
-                onDoubleClick={() => onEdit(block.id)}
-                title={textData.content}
-              >
-                {textData.content
-                  ? textData.content.slice(0, 80) + (textData.content.length > 80 ? '…' : '')
-                  : 'Texto vazio'}
-              </span>
+              (() => {
+                const plainText = getContentPlainText(textData)
+                return (
+                  <span
+                    className="text-sm text-gray-500 italic truncate block cursor-pointer"
+                    onDoubleClick={() => onEdit(block.id)}
+                    title={plainText}
+                  >
+                    {plainText
+                      ? plainText.slice(0, 80) + (plainText.length > 80 ? '…' : '')
+                      : 'Texto vazio'}
+                  </span>
+                )
+              })()
             )}
           </div>
         ) : (

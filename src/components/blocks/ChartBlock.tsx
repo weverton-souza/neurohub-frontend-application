@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   ChartData,
   ChartSeries,
@@ -7,12 +7,16 @@ import {
   ChartReferenceRegion,
   ChartType,
   ChartDisplayMode,
+  ChartTemplate,
 } from '@/types'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
+import Modal from '@/components/ui/Modal'
 import { CloseIcon } from '@/components/icons'
+import ColorPicker from '@/components/ui/ColorPicker'
 import { Chart as ChartJS } from 'chart.js'
+import { saveChartTemplate, getChartTemplateCategories } from '@/lib/chart-template-service'
 import '@/lib/chart-setup'
 
 interface ChartBlockProps {
@@ -44,6 +48,55 @@ interface GroupBound {
 export default function ChartBlock({ data, onChange }: ChartBlockProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<ChartJS | null>(null)
+
+  // Save as template state
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+  const [templateDescription, setTemplateDescription] = useState('')
+  const [templateInstrument, setTemplateInstrument] = useState('')
+  const [templateCategory, setTemplateCategory] = useState('')
+  const [savedFeedback, setSavedFeedback] = useState(false)
+
+  const openSaveTemplateModal = () => {
+    setTemplateName(data.title || '')
+    setTemplateDescription('')
+    setTemplateInstrument('')
+    setTemplateCategory('')
+    setShowSaveTemplate(true)
+  }
+
+  const handleSaveTemplate = () => {
+    const template: ChartTemplate = {
+      id: `chart-tpl-custom-${crypto.randomUUID()}`,
+      name: templateName.trim(),
+      description: templateDescription.trim(),
+      instrumentName: templateInstrument.trim(),
+      category: templateCategory.trim(),
+      chartType: data.chartType,
+      displayMode: data.displayMode,
+      series: data.series.map(s => ({ ...s })),
+      categories: data.categories.map(c => ({
+        ...c,
+        values: { ...c.values },
+      })),
+      referenceLines: data.referenceLines.map(r => ({ ...r })),
+      referenceRegions: data.referenceRegions.map(r => ({ ...r })),
+      yAxisLabel: data.yAxisLabel,
+      showValues: data.showValues,
+      showLegend: data.showLegend,
+      showRegionLegend: data.showRegionLegend ?? true,
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    saveChartTemplate(template)
+    setShowSaveTemplate(false)
+    setSavedFeedback(true)
+    setTimeout(() => setSavedFeedback(false), 2000)
+  }
+
+  const canSaveTemplate = templateName.trim() && templateInstrument.trim() && templateCategory.trim()
+  const existingCategories = showSaveTemplate ? getChartTemplateCategories() : []
 
   // Backwards-compatible defaults for new fields
   const showRegionLegend = data.showRegionLegend ?? true
@@ -553,13 +606,9 @@ export default function ChartBlock({ data, onChange }: ChartBlockProps) {
         </div>
         {data.series.map((series) => (
           <div key={series.id} className="flex items-center gap-2">
-            <input
-              type="color"
+            <ColorPicker
               value={series.color}
-              onChange={(e) =>
-                updateSeries(series.id, { color: e.target.value })
-              }
-              className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
+              onChange={(color) => updateSeries(series.id, { color })}
             />
             <input
               type="text"
@@ -690,13 +739,9 @@ export default function ChartBlock({ data, onChange }: ChartBlockProps) {
         </div>
         {data.referenceLines.map((line) => (
           <div key={line.id} className="flex items-center gap-2">
-            <input
-              type="color"
+            <ColorPicker
               value={line.color}
-              onChange={(e) =>
-                updateReferenceLine(line.id, { color: e.target.value })
-              }
-              className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
+              onChange={(color) => updateReferenceLine(line.id, { color })}
             />
             <input
               type="text"
@@ -743,16 +788,12 @@ export default function ChartBlock({ data, onChange }: ChartBlockProps) {
         </div>
         {data.referenceRegions.map((region) => (
           <div key={region.id} className="flex items-center gap-2">
-            <input
-              type="color"
+            <ColorPicker
               value={region.borderColor}
-              onChange={(e) => {
-                const borderColor = e.target.value
+              onChange={(borderColor) => {
                 const color = borderColor + '33' // 20% opacity
                 updateReferenceRegion(region.id, { borderColor, color })
               }}
-              className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
-              title="Cor"
             />
             <input
               type="text"
@@ -863,6 +904,78 @@ export default function ChartBlock({ data, onChange }: ChartBlockProps) {
           rows={3}
         />
       </div>
+
+      {/* Save as template */}
+      <div className="flex justify-end">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={openSaveTemplateModal}
+          disabled={data.series.length === 0}
+          className="whitespace-nowrap"
+        >
+          {savedFeedback ? 'Template salvo!' : 'Salvar como Template'}
+        </Button>
+      </div>
+
+      {/* Modal salvar como template */}
+      <Modal
+        isOpen={showSaveTemplate}
+        onClose={() => setShowSaveTemplate(false)}
+        title="Salvar como Template"
+        size="md"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Nome *"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            placeholder="Ex: WAIS-III — Perfil de Subtestes"
+          />
+          <Input
+            label="Instrumento *"
+            value={templateInstrument}
+            onChange={(e) => setTemplateInstrument(e.target.value)}
+            placeholder="Ex: WAIS-III, RAVLT"
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Categoria *
+            </label>
+            <input
+              type="text"
+              list="chart-template-categories"
+              value={templateCategory}
+              onChange={(e) => setTemplateCategory(e.target.value)}
+              placeholder="Ex: Inteligência, Memória, Atenção"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+            <datalist id="chart-template-categories">
+              {existingCategories.map((cat) => (
+                <option key={cat} value={cat} />
+              ))}
+            </datalist>
+          </div>
+          <Input
+            label="Descrição"
+            value={templateDescription}
+            onChange={(e) => setTemplateDescription(e.target.value)}
+            placeholder="Breve descrição do template (opcional)"
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowSaveTemplate(false)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveTemplate}
+              disabled={!canSaveTemplate}
+            >
+              Salvar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

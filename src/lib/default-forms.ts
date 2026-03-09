@@ -33,8 +33,8 @@ function sectionHeader(order: number, label: string): FormField {
 
 const FORM_ADULTO: AnamnesisForm = {
   id: 'default-anamnese-adulto',
-  title: 'Anamnese Neuropsicológica — Adulto',
-  description: 'Formulário padrão de anamnese para avaliação neuropsicológica de adultos.',
+  title: 'Anamnese — Adulto',
+  description: 'Formulário padrão de anamnese para avaliação de adultos.',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-adulto',
@@ -52,7 +52,7 @@ const FORM_ADULTO: AnamnesisForm = {
 
     // Queixa principal
     sectionHeader(6, 'Queixa Principal'),
-    field(7, 'long-text', 'Qual o motivo da avaliação neuropsicológica?', { required: true }),
+    field(7, 'long-text', 'Qual o motivo da avaliação?', { required: true }),
     field(8, 'short-text', 'Quem encaminhou para a avaliação?'),
     field(9, 'long-text', 'Quando os sintomas começaram? Descreva como evoluíram.'),
 
@@ -124,8 +124,8 @@ const FORM_ADULTO: AnamnesisForm = {
 
 const FORM_INFANTIL: AnamnesisForm = {
   id: 'default-anamnese-infantil',
-  title: 'Anamnese Neuropsicológica — Infantil',
-  description: 'Formulário de anamnese para avaliação neuropsicológica de crianças e adolescentes. Preenchido pelo responsável.',
+  title: 'Anamnese — Infantil',
+  description: 'Formulário de anamnese para avaliação de crianças e adolescentes. Preenchido pelo responsável.',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-adulto',

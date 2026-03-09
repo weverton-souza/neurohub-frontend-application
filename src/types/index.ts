@@ -138,12 +138,102 @@ export interface LabeledItem {
   text: string
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SlateNode = Record<string, any>
+export type SlateContent = SlateNode[]
+
 export interface TextBlockData {
   title: string
   subtitle: string
-  content: string
+  content: string | SlateContent  // HTML (legado) ou Slate JSON (novo)
   labeledItems: LabeledItem[]
   useLabeledItems: boolean
+}
+
+/** Verifica se o conteúdo é Slate JSON (novo formato) */
+export function isSlateContent(content: string | SlateContent): content is SlateContent {
+  return Array.isArray(content)
+}
+
+/** Extrai texto puro de um SlateContent (para preview, busca, etc.) */
+export function slateContentToPlainText(content: SlateContent): string {
+  function extractText(nodes: SlateNode[]): string {
+    return nodes
+      .map((node) => {
+        if (typeof node.text === 'string') return node.text
+        if (Array.isArray(node.children)) return extractText(node.children)
+        return ''
+      })
+      .join('')
+  }
+  return extractText(content)
+}
+
+/** Converte HTML legado para SlateContent (backward compat) */
+export function htmlToSlateContent(html: string): SlateContent {
+  if (!html || !html.trim()) return [{ type: 'p', children: [{ text: '' }] }]
+
+  // Se não tem tags HTML, tratar como texto simples
+  if (!/<[a-z][\s\S]*>/i.test(html)) {
+    const lines = html.split('\n').filter((l) => l.trim())
+    if (lines.length === 0) return [{ type: 'p', children: [{ text: '' }] }]
+    return lines.map((line) => ({ type: 'p', children: [{ text: line }] }))
+  }
+
+  // Parse HTML
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  const nodes: SlateNode[] = []
+
+  for (const child of Array.from(doc.body.childNodes)) {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      const el = child as HTMLElement
+      const children = htmlElementToSlateChildren(el)
+      nodes.push({ type: 'p', children: children.length > 0 ? children : [{ text: '' }] })
+    } else if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
+      nodes.push({ type: 'p', children: [{ text: child.textContent }] })
+    }
+  }
+
+  return nodes.length > 0 ? nodes : [{ type: 'p', children: [{ text: '' }] }]
+}
+
+/** Helper: converte filhos de um elemento HTML em Slate text nodes */
+function htmlElementToSlateChildren(
+  node: Node,
+  marks: { bold?: true; italic?: true; underline?: true; strikethrough?: true } = {},
+): SlateNode[] {
+  const result: SlateNode[] = []
+
+  for (const child of Array.from(node.childNodes)) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      const text = child.textContent || ''
+      if (text) {
+        const leaf: SlateNode = { text }
+        if (marks.bold) leaf.bold = true
+        if (marks.italic) leaf.italic = true
+        if (marks.underline) leaf.underline = true
+        if (marks.strikethrough) leaf.strikethrough = true
+        result.push(leaf)
+      }
+    } else if (child.nodeType === Node.ELEMENT_NODE) {
+      const el = child as HTMLElement
+      const tag = el.tagName.toLowerCase()
+      const newMarks = { ...marks }
+      if (tag === 'strong' || tag === 'b') newMarks.bold = true
+      if (tag === 'em' || tag === 'i') newMarks.italic = true
+      if (tag === 'u') newMarks.underline = true
+      if (tag === 's' || tag === 'del' || tag === 'strike') newMarks.strikethrough = true
+      result.push(...htmlElementToSlateChildren(el, newMarks))
+    }
+  }
+
+  return result
+}
+
+/** Verifica se um SlateContent está efetivamente vazio */
+export function isSlateContentEmpty(content: SlateContent): boolean {
+  return slateContentToPlainText(content).trim() === ''
 }
 
 // ========== Score Table ==========
@@ -190,6 +280,29 @@ export interface ScoreTableTemplate {
   category: string
   columns: ScoreTableTemplateColumn[]
   rows: ScoreTableTemplateRow[]
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// ========== Chart Templates ==========
+
+export interface ChartTemplate {
+  id: string
+  name: string
+  description: string
+  instrumentName: string
+  category: string
+  chartType: ChartType
+  displayMode: ChartDisplayMode
+  series: ChartSeries[]
+  categories: ChartCategory[]
+  referenceLines: ChartReferenceLine[]
+  referenceRegions: ChartReferenceRegion[]
+  yAxisLabel: string
+  showValues: boolean
+  showLegend: boolean
+  showRegionLegend: boolean
   isDefault: boolean
   createdAt: string
   updatedAt: string
@@ -481,7 +594,7 @@ export function createEmptyChartData(): ChartData {
 }
 
 export const DEFAULT_CLOSING_PAGE_TEXT =
-  'Declaro que recebi o presente documento, contendo os resultados da avaliação neuropsicológica realizada, e que fui orientado(a) sobre o conteúdo do mesmo. Estou ciente de que este relatório é de caráter confidencial e que as informações aqui contidas são de uso exclusivo para os fins a que se destina.'
+  'Declaro que recebi o presente documento, contendo os resultados da avaliação realizada, e que fui orientado(a) sobre o conteúdo do mesmo. Estou ciente de que este relatório é de caráter confidencial e que as informações aqui contidas são de uso exclusivo para os fins a que se destina.'
 
 export function createEmptyReferencesData(): ReferencesData {
   return {
@@ -540,6 +653,40 @@ export function createScoreTableFromTemplate(template: ScoreTableTemplate): Scor
     rows,
     footnote: '',
     templateId: template.id,
+  }
+}
+
+export function createChartFromTemplate(template: ChartTemplate): ChartData {
+  // Gerar novos UUIDs para as séries e mapear old→new
+  const seriesIdMap = new Map<string, string>()
+  const newSeries = template.series.map(s => {
+    const newId = crypto.randomUUID()
+    seriesIdMap.set(s.id, newId)
+    return { ...s, id: newId }
+  })
+
+  const newCategories = template.categories.map(c => {
+    const newValues: Record<string, number> = {}
+    for (const [oldSeriesId, value] of Object.entries(c.values)) {
+      const newSeriesId = seriesIdMap.get(oldSeriesId) ?? oldSeriesId
+      newValues[newSeriesId] = value
+    }
+    return { id: crypto.randomUUID(), label: c.label, values: newValues }
+  })
+
+  return {
+    title: template.name,
+    chartType: template.chartType,
+    displayMode: template.displayMode,
+    series: newSeries,
+    categories: newCategories,
+    referenceLines: template.referenceLines.map(r => ({ ...r, id: crypto.randomUUID() })),
+    referenceRegions: template.referenceRegions.map(r => ({ ...r, id: crypto.randomUUID() })),
+    yAxisLabel: template.yAxisLabel,
+    showValues: template.showValues,
+    showLegend: template.showLegend,
+    showRegionLegend: template.showRegionLegend,
+    description: '',
   }
 }
 

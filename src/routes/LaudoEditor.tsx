@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoTemplate, LaudoVersion, TextBlockData, Patient, createScoreTableFromTemplate } from '@/types'
+import { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoTemplate, LaudoVersion, TextBlockData, Patient, createScoreTableFromTemplate, createChartFromTemplate } from '@/types'
 import { getLaudo, saveLaudo, saveCustomTemplate, getPatients } from '@/lib/storage'
 import { getFormById, getFormResponseById } from '@/lib/form-service'
 import { getScoreTableTemplate } from '@/lib/score-table-template-service'
+import { getChartTemplate } from '@/lib/chart-template-service'
 import { createBlock, computeBlockMetas } from '@/lib/utils'
 import { useVersioning } from '@/hooks/useVersioning'
 import OutlineTree from '@/components/editor/OutlineTree'
@@ -147,6 +148,14 @@ export default function LaudoEditor() {
         }
       }
 
+      // Chart com template: preencher dados do template
+      if (type === 'chart' && templateId) {
+        const template = getChartTemplate(templateId)
+        if (template) {
+          newBlock.data = createChartFromTemplate(template)
+        }
+      }
+
       // Subtitle variant: set subtitle field so it's recognized as a subsection
       if (type === 'text' && variant === 'subtitle') {
         ;(newBlock.data as TextBlockData).subtitle = 'Novo Subtítulo'
@@ -167,6 +176,11 @@ export default function LaudoEditor() {
 
       setInsertAfterBlockId(null)
       updateLaudo({ blocks: newBlocks })
+
+      // Abrir edição automaticamente para tabelas e gráficos
+      if (type === 'score-table' || type === 'chart') {
+        setEditingBlockId(newBlock.id)
+      }
     },
     [laudo, updateLaudo, insertAfterBlockId]
   )

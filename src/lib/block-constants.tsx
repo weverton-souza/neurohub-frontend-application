@@ -1,3 +1,4 @@
+import React from 'react'
 import { BlockType, TextBlockData, ScoreTableData, ChartData, InfoBoxData, ReferencesData, ClosingPageData } from '@/types'
 
 // ========== Labels & Descriptions ==========
@@ -29,7 +30,7 @@ export const BLOCK_TYPE_COLORS: Record<BlockType, string> = {
   text: 'bg-emerald-100 text-emerald-600',
   'score-table': 'bg-amber-100 text-amber-600',
   'info-box': 'bg-violet-100 text-violet-600',
-  chart: 'bg-rose-100 text-rose-600',
+  chart: 'bg-amber-100 text-amber-600',
   references: 'bg-cyan-100 text-cyan-600',
   'closing-page': 'bg-gray-100 text-gray-600',
 }
@@ -39,7 +40,7 @@ export const BLOCK_TYPE_BORDER_COLORS: Record<BlockType, string> = {
   text: 'border-l-emerald-500',
   'score-table': 'border-l-amber-500',
   'info-box': 'border-l-violet-500',
-  chart: 'border-l-rose-500',
+  chart: 'border-l-amber-500',
   references: 'border-l-cyan-500',
   'closing-page': 'border-l-gray-400',
 }
@@ -73,7 +74,7 @@ function blockIcon(size: number, children: React.ReactNode) {
   )
 }
 
-export function getBlockTypeIcon(type: BlockType, size: number = 24): JSX.Element {
+export function getBlockTypeIcon(type: BlockType, size: number = 24): React.ReactNode {
   switch (type) {
     case 'identification':
       return blockIcon(size, <>

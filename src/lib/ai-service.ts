@@ -83,7 +83,7 @@ export function buildPrompt(request: LaudoGenerationRequest): string {
     .map(b => getBlockTitle(b))
     .join(', ')
 
-  return `Você é um assistente especializado em relatórios neuropsicológicos (laudos).
+  return `Você é um assistente especializado em relatórios de avaliação (laudos).
 Sua tarefa é preencher os blocos de texto de um laudo com base nas respostas de um formulário de anamnese.
 
 ## Estrutura do Template de Laudo
