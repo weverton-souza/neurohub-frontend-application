@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LaudoVersion } from '@/types'
+import type { LaudoVersion } from '@/types'
 import { formatDateTime } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'

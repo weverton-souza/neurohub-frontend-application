@@ -1,10 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AnamnesisForm, createEmptyAnamnesisForm } from '@/types'
+import type { AnamnesisForm } from '@/types'
+import { createEmptyAnamnesisForm } from '@/types'
 import { listForms, createForm, deleteForm, countAllFormResponses, isDefaultForm } from '@/lib/form-service'
 import { getAllTemplates } from '@/lib/default-templates'
 import { getCustomTemplates } from '@/lib/storage'
-import { paginate, formatDateTime } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
+import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
+import { usePagination } from '@/lib/hooks/use-pagination'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
@@ -15,9 +18,6 @@ export default function FormList() {
 
   const [forms, setForms] = useState<AnamnesisForm[]>([])
   const [responseCounts, setResponseCounts] = useState<Record<string, number>>({})
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
 
   const templates = useMemo(() => getAllTemplates(getCustomTemplates()), [])
 
@@ -41,11 +41,12 @@ export default function FormList() {
     navigate(`/formulario/${created.id}/editar`)
   }, [navigate])
 
-  const handleDelete = useCallback(async (id: string) => {
+  const handleDeleteForm = useCallback(async (id: string) => {
     await deleteForm(id)
     await loadData()
-    setConfirmDeleteId(null)
   }, [loadData])
+
+  const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteForm)
 
   const handleDuplicate = useCallback(async (form: AnamnesisForm) => {
     const dup = createEmptyAnamnesisForm()
@@ -67,10 +68,7 @@ export default function FormList() {
     return templates.find(t => t.id === templateId)?.name ?? null
   }
 
-  const paginatedPage = useMemo(
-    () => paginate(forms, currentPage, pageSize),
-    [forms, currentPage, pageSize]
-  )
+  const { page: paginatedPage, setCurrentPage, pageSize, changePageSize } = usePagination(forms)
 
   return (
     <>
@@ -93,10 +91,7 @@ export default function FormList() {
               <select
                 id="page-size-forms"
                 value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value))
-                  setCurrentPage(0)
-                }}
+                onChange={(e) => changePageSize(Number(e.target.value))}
                 className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
               >
                 {[10, 25, 50].map((opt) => (
@@ -259,7 +254,7 @@ export default function FormList() {
       {/* Delete Confirm Modal */}
       <Modal
         isOpen={!!confirmDeleteId}
-        onClose={() => setConfirmDeleteId(null)}
+        onClose={cancelDelete}
         title="Confirmar exclusão"
         size="sm"
       >
@@ -268,13 +263,10 @@ export default function FormList() {
             Tem certeza de que deseja excluir este formulário e todas as suas respostas? Esta ação não pode ser desfeita.
           </p>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirmDeleteId(null)}>
+            <Button variant="ghost" onClick={cancelDelete}>
               Cancelar
             </Button>
-            <Button
-              variant="danger"
-              onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
-            >
+            <Button variant="danger" onClick={confirmDelete}>
               Excluir
             </Button>
           </div>

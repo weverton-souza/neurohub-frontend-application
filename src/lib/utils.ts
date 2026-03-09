@@ -9,7 +9,6 @@ import {
   ClosingPageData,
   Page,
   FormField,
-  FormFieldMeta,
   FormSectionGroup,
   createEmptyIdentificationData,
   createEmptyTextBlockData,
@@ -198,36 +197,6 @@ export function computeBlockMetas(sortedBlocks: Block[]): Record<string, BlockMe
 }
 
 // ========== Form Field Sections ==========
-
-/**
- * Computes section metadata for sorted form fields.
- * section-header fields define sections; all other fields inherit the most recent section.
- */
-export function computeFormFieldMetas(sortedFields: FormField[]): Record<string, FormFieldMeta> {
-  let currentSectionTitle = ''
-  let currentSectionFieldId = '__orphan__'
-  const result: Record<string, FormFieldMeta> = {}
-
-  for (const field of sortedFields) {
-    if (field.type === 'section-header') {
-      currentSectionTitle = field.label || 'Seção sem título'
-      currentSectionFieldId = field.id
-      result[field.id] = {
-        sectionTitle: currentSectionTitle,
-        sectionFieldId: field.id,
-        isSection: true,
-      }
-    } else {
-      result[field.id] = {
-        sectionTitle: currentSectionTitle,
-        sectionFieldId: currentSectionFieldId,
-        isSection: false,
-      }
-    }
-  }
-
-  return result
-}
 
 /**
  * Groups sorted form fields into section groups for rendering.

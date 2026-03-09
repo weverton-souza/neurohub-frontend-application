@@ -1,8 +1,7 @@
-import {
+import type {
   Block,
   BlockData,
   BlockType,
-  BLOCK_TYPE_LABELS,
   IdentificationData,
   TextBlockData,
   ScoreTableData,
@@ -12,6 +11,7 @@ import {
   ClosingPageData,
   Patient,
 } from '@/types'
+import { BLOCK_TYPE_LABELS } from '@/types'
 import { BLOCK_TYPE_COLORS, getBlockTypeIcon } from '@/lib/block-constants'
 import Modal from '@/components/ui/Modal'
 import IdentificationBlock from '@/components/blocks/IdentificationBlock'

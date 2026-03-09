@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { TextBlockData, SlateContent, isSlateContent, htmlToSlateContent } from '@/types'
+import type { TextBlockData, SlateContent } from '@/types'
+import { isSlateContent, htmlToSlateContent } from '@/types'
 import PlateEditorComponent, { EMPTY_SLATE_CONTENT } from '@/components/ui/PlateEditor'
 
 interface TextBlockModalProps {

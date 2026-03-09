@@ -1,4 +1,4 @@
-import { ClosingPageData } from '@/types'
+import type { ClosingPageData } from '@/types'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import Toggle from '@/components/ui/Toggle'

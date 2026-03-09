@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 
 interface SectionItem {
@@ -23,9 +23,11 @@ export default function SectionReorderModal({
   const [sections, setSections] = useState<SectionItem[]>(initialSections)
 
   // Reset when modal opens with new sections
-  if (isOpen && sections.length !== initialSections.length) {
-    setSections(initialSections)
-  }
+  useEffect(() => {
+    if (isOpen) {
+      setSections(initialSections)
+    }
+  }, [isOpen, initialSections])
 
   const moveUp = (index: number) => {
     if (index <= 0) return

@@ -1,22 +1,17 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Patient,
-  PatientData,
-  Laudo,
-  createEmptyPatientRecord,
-  createEmptyIdentificationData,
-} from '@/types'
+import type { Patient, PatientData, Laudo } from '@/types'
+import { createEmptyPatientRecord } from '@/types'
 import {
   getPatients,
   savePatient,
   deletePatient,
   getLaudos,
-  saveLaudo,
-  getProfessional,
 } from '@/lib/storage'
-import { createBlock, paginate } from '@/lib/utils'
 import { formatDateTime } from '@/lib/utils'
+import { createLaudoFromPatient } from '@/lib/laudo-utils'
+import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
+import { usePagination } from '@/lib/hooks/use-pagination'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
@@ -31,10 +26,7 @@ export default function PatientList() {
   const [search, setSearch] = useState('')
   const [showFormModal, setShowFormModal] = useState(false)
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => {
     setPatients(getPatients())
@@ -66,15 +58,12 @@ export default function PatientList() {
     )
   }, [patients, search])
 
+  const { page: paginatedPage, setCurrentPage, pageSize, changePageSize, resetPage } = usePagination(filteredPatients)
+
   // Reset page when search changes
   useEffect(() => {
-    setCurrentPage(0)
-  }, [search])
-
-  const paginatedPage = useMemo(
-    () => paginate(filteredPatients, currentPage, pageSize),
-    [filteredPatients, currentPage, pageSize]
-  )
+    resetPage()
+  }, [search, resetPage])
 
   const handleOpenNew = useCallback(() => {
     setEditingPatient(createEmptyPatientRecord())
@@ -94,36 +83,17 @@ export default function PatientList() {
     setEditingPatient(null)
   }, [editingPatient])
 
-  const handleDelete = useCallback((id: string) => {
+  const handleDeletePatient = useCallback((id: string) => {
     deletePatient(id)
     setPatients(getPatients())
-    setConfirmDeleteId(null)
   }, [])
+
+  const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeletePatient)
 
   const handleCreateLaudo = useCallback(
     (patient: Patient) => {
-      const id = crypto.randomUUID()
-      const now = new Date().toISOString()
-      const identificationBlock = createBlock('identification', 0)
-
-      // Pre-fill patient data
-      const professional = getProfessional()
-      const identData = createEmptyIdentificationData(professional)
-      identData.patient = { ...patient.data }
-      identificationBlock.data = identData
-
-      const laudo: Laudo = {
-        id,
-        createdAt: now,
-        updatedAt: now,
-        status: 'rascunho',
-        patientName: patient.data.name,
-        patientId: patient.id,
-        blocks: [identificationBlock],
-      }
-
-      saveLaudo(laudo)
-      navigate(`/laudo/${id}`)
+      const laudo = createLaudoFromPatient(patient)
+      navigate(`/laudo/${laudo.id}`)
     },
     [navigate]
   )
@@ -167,10 +137,7 @@ export default function PatientList() {
               <select
                 id="page-size"
                 value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value))
-                  setCurrentPage(0)
-                }}
+                onChange={(e) => changePageSize(Number(e.target.value))}
                 className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
               >
                 {[10, 25, 50].map((opt) => (
@@ -441,7 +408,7 @@ export default function PatientList() {
       {/* Delete Confirm Modal */}
       <Modal
         isOpen={!!confirmDeleteId}
-        onClose={() => setConfirmDeleteId(null)}
+        onClose={cancelDelete}
         title="Confirmar exclusão"
         size="sm"
       >
@@ -450,13 +417,10 @@ export default function PatientList() {
             Tem certeza de que deseja excluir este paciente? Esta ação não pode ser desfeita.
           </p>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirmDeleteId(null)}>
+            <Button variant="ghost" onClick={cancelDelete}>
               Cancelar
             </Button>
-            <Button
-              variant="danger"
-              onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
-            >
+            <Button variant="danger" onClick={confirmDelete}>
               Excluir
             </Button>
           </div>

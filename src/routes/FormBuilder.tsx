@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   DndContext,
@@ -14,14 +14,15 @@ import {
   verticalListSortingStrategy,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
-import {
+import type {
   AnamnesisForm,
   FormField,
   FormFieldType,
   FormSectionGroup,
-  createEmptyFormField,
 } from '@/types'
+import { createEmptyFormField } from '@/types'
 import { getFormById, updateForm } from '@/lib/form-service'
+import { useAutoSave } from '@/lib/hooks/use-auto-save'
 import { getAllTemplates } from '@/lib/default-templates'
 import { getCustomTemplates } from '@/lib/storage'
 import { buildFormSectionGroups } from '@/lib/utils'
@@ -41,13 +42,13 @@ export default function FormBuilder() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState<AnamnesisForm | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [showTemplateLinkModal, setShowTemplateLinkModal] = useState(false)
   const [showSectionReorderModal, setShowSectionReorderModal] = useState(false)
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null)
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const updateFormFn = useCallback((data: AnamnesisForm) => updateForm(data), [])
+  const { saveStatus, scheduleSave, forceSave } = useAutoSave<AnamnesisForm>(updateFormFn)
   const templates = useMemo(() => getAllTemplates(getCustomTemplates()), [])
 
   // Load form
@@ -59,36 +60,20 @@ export default function FormBuilder() {
     })
   }, [id, navigate])
 
-  // Auto-save
-  const scheduleAutoSave = useCallback((updatedForm: AnamnesisForm) => {
-    setSaveStatus('unsaved')
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    saveTimeoutRef.current = setTimeout(async () => {
-      setSaveStatus('saving')
-      await updateForm(updatedForm)
-      setSaveStatus('saved')
-    }, 1000)
-  }, [])
-
   const updateFormState = useCallback((patch: Partial<AnamnesisForm>) => {
     setForm((prev) => {
       if (!prev) return prev
       const updated = { ...prev, ...patch }
-      scheduleAutoSave(updated)
+      scheduleSave(updated)
       return updated
     })
-  }, [scheduleAutoSave])
+  }, [scheduleSave])
 
   // Force save on navigation
   const handleBack = useCallback(async () => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    if (form) {
-      setSaveStatus('saving')
-      await updateForm(form)
-      setSaveStatus('saved')
-    }
+    if (form) await forceSave(form)
     navigate('/formularios')
-  }, [form, navigate])
+  }, [form, navigate, forceSave])
 
   // DnD
   const sensors = useSensors(

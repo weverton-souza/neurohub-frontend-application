@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { FormField } from '@/types'
+import type { FormField } from '@/types'
 import { buildFormSectionGroups } from '@/lib/utils'
 
 interface FormPreviewProps {
