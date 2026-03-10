@@ -1,4 +1,4 @@
-import type { LaudoTemplate } from '@/types'
+import type { ReportTemplate } from '@/types'
 import { getBlockTitle } from '@/lib/block-constants'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button'
 interface TemplateLinkModalProps {
   isOpen: boolean
   onClose: () => void
-  templates: LaudoTemplate[]
+  templates: ReportTemplate[]
   currentTemplateId: string | null
   onSelect: (templateId: string | null) => void
 }

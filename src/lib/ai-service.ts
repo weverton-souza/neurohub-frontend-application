@@ -1,9 +1,9 @@
 import type {
-  AnamnesisForm,
+  Form,
   FormResponse,
   FormFieldAnswer,
   Block,
-  LaudoTemplate,
+  ReportTemplate,
   Professional,
   TextBlockData,
   InfoBoxData,
@@ -14,21 +14,21 @@ import { resolveAnswerDisplay } from '@/lib/variable-service'
 
 // ========== Interfaces (contratos para o backend) ==========
 
-export interface LaudoGenerationRequest {
-  form: AnamnesisForm
+export interface ReportGenerationRequest {
+  form: Form
   response: FormResponse
-  template: LaudoTemplate
+  template: ReportTemplate
   professional: Professional
 }
 
-export interface LaudoGenerationResult {
+export interface ReportGenerationResult {
   blocks: Block[]
-  patientName: string
+  customerName: string
 }
 
 // ========== Prompt Builder ==========
 
-function formatAnswer(field: AnamnesisForm['fields'][0], answer: FormFieldAnswer): string {
+function formatAnswer(field: Form['fields'][0], answer: FormFieldAnswer): string {
   const value = resolveAnswerDisplay(field, answer)
   return value || '(não respondido)'
 }
@@ -37,7 +37,7 @@ function formatAnswer(field: AnamnesisForm['fields'][0], answer: FormFieldAnswer
  * Constrói o prompt que será enviado à IA via backend.
  * Retorna o texto completo do prompt em português.
  */
-export function buildPrompt(request: LaudoGenerationRequest): string {
+export function buildPrompt(request: ReportGenerationRequest): string {
   const { form, response, template } = request
 
   // Estrutura do template
@@ -92,7 +92,7 @@ ${templateStructure}
 
 ## Respostas do Formulário de Anamnese
 
-Nome do paciente: ${response.patientName}
+Nome do paciente: ${response.customerName}
 
 ${answersText}
 
@@ -118,7 +118,7 @@ ${variablesText}
 Responda APENAS com um JSON válido no seguinte formato:
 
 {
-  "patientName": "${response.patientName}",
+  "patientName": "${response.customerName}",
   "blocks": [
     {
       "type": "text",
@@ -154,7 +154,7 @@ interface AIRawOutput {
  * Faz o parse da resposta JSON da IA e retorna os blocos estruturados.
  * Lida com markdown code fences e JSON malformado.
  */
-export function parseAIResponse(raw: string, template: LaudoTemplate): LaudoGenerationResult {
+export function parseAIResponse(raw: string, template: ReportTemplate): ReportGenerationResult {
   // Remove markdown code fences se existirem
   let cleaned = raw.trim()
   if (cleaned.startsWith('```json')) {
@@ -173,7 +173,7 @@ export function parseAIResponse(raw: string, template: LaudoTemplate): LaudoGene
   } catch {
     // Fallback: retorna resultado vazio
     return {
-      patientName: '',
+      customerName: '',
       blocks: template.blocks.map((tb, i) => ({
         id: crypto.randomUUID(),
         type: tb.type,
@@ -218,7 +218,7 @@ export function parseAIResponse(raw: string, template: LaudoTemplate): LaudoGene
   })
 
   return {
-    patientName: parsed.patientName || '',
+    customerName: parsed.patientName || '',
     blocks,
   }
 }
@@ -239,9 +239,9 @@ export function parseAIResponse(raw: string, template: LaudoTemplate): LaudoGene
  *   })
  *   return await res.json()
  */
-export async function generateLaudoFromResponse(
-  request: LaudoGenerationRequest
-): Promise<LaudoGenerationResult> {
+export async function generateReportFromResponse(
+  request: ReportGenerationRequest
+): Promise<ReportGenerationResult> {
   // O prompt está pronto — basta enviá-lo ao backend
   // buildPrompt(request) gera o texto completo
   void request

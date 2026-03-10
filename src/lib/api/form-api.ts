@@ -1,25 +1,25 @@
-import type { AnamnesisForm, FormResponse } from '@/types'
+import type { Form, FormResponse } from '@/types'
 import { api } from '@/lib/api/api-client'
 
 // ========== Forms CRUD ==========
 
-export async function listForms(): Promise<AnamnesisForm[]> {
-  const { data } = await api.get<AnamnesisForm[]>('/forms')
+export async function listForms(): Promise<Form[]> {
+  const { data } = await api.get<Form[]>('/forms')
   return data
 }
 
-export async function getFormById(id: string): Promise<AnamnesisForm> {
-  const { data } = await api.get<AnamnesisForm>(`/forms/${id}`)
+export async function getFormById(id: string): Promise<Form> {
+  const { data } = await api.get<Form>(`/forms/${id}`)
   return data
 }
 
-export async function createForm(form: Partial<AnamnesisForm>): Promise<AnamnesisForm> {
-  const { data } = await api.post<AnamnesisForm>('/forms', form)
+export async function createForm(form: Partial<Form>): Promise<Form> {
+  const { data } = await api.post<Form>('/forms', form)
   return data
 }
 
-export async function updateForm(form: AnamnesisForm): Promise<AnamnesisForm> {
-  const { data } = await api.put<AnamnesisForm>(`/forms/${form.id}`, form)
+export async function updateForm(form: Form): Promise<Form> {
+  const { data } = await api.put<Form>(`/forms/${form.id}`, form)
   return data
 }
 

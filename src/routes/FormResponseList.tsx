@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import type { AnamnesisForm, FormResponse, LaudoTemplate } from '@/types'
+import type { Form, FormResponse, ReportTemplate } from '@/types'
 import { FORM_RESPONSE_STATUS_LABELS, FORM_RESPONSE_STATUS_COLORS } from '@/types'
 import { getFormById, listFormResponses, deleteFormResponse } from '@/lib/api/form-api'
 import { getAllTemplates } from '@/lib/default-templates'
@@ -13,19 +13,19 @@ import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
-import GenerateLaudoModal from '@/components/form-builder/GenerateLaudoModal'
+import GenerateReportModal from '@/components/form-builder/GenerateReportModal'
 
 export default function FormResponseList() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showError } = useError()
 
-  const [form, setForm] = useState<AnamnesisForm | null>(null)
+  const [form, setForm] = useState<Form | null>(null)
   const [responses, setResponses] = useState<FormResponse[]>([])
   const [generateForResponse, setGenerateForResponse] = useState<FormResponse | null>(null)
   const [allTemplates, setAllTemplates] = useState(() => getAllTemplates([]))
 
-  const linkedTemplate = useMemo((): LaudoTemplate | null => {
+  const linkedTemplate = useMemo((): ReportTemplate | null => {
     if (!form?.linkedTemplateId) return null
     return allTemplates.find((t) => t.id === form.linkedTemplateId) ?? null
   }, [form, allTemplates])
@@ -133,7 +133,7 @@ export default function FormResponseList() {
               Nenhuma resposta ainda
             </h2>
             <p className="text-sm text-gray-500 mb-6">
-              Inicie o preenchimento do formulário para um paciente
+              Inicie o preenchimento do formulário para um cliente
             </p>
             <Button onClick={handleNewResponse} size="lg">
               + Nova Resposta
@@ -150,7 +150,7 @@ export default function FormResponseList() {
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-gray-900 truncate">
-                      {resp.patientName || 'Paciente sem nome'}
+                      {resp.customerName || 'Cliente sem nome'}
                     </h3>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-gray-500">
@@ -170,17 +170,17 @@ export default function FormResponseList() {
                     {FORM_RESPONSE_STATUS_LABELS[resp.status]}
                   </span>
 
-                  {/* Generated laudo indicator or generate button */}
-                  {resp.generatedLaudoId ? (
+                  {/* Generated report indicator or generate button */}
+                  {resp.generatedReportId ? (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/laudo/${resp.generatedLaudoId}`)
+                        navigate(`/relatorio/${resp.generatedReportId}`)
                       }}
                       className="text-xs text-brand-600 hover:text-brand-700 font-medium shrink-0"
                     >
-                      Ver Laudo
+                      Ver Relatório
                     </button>
                   ) : resp.status === 'concluido' ? (
                     <button
@@ -194,7 +194,7 @@ export default function FormResponseList() {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                       </svg>
-                      Gerar Laudo
+                      Gerar Relatório
                     </button>
                   ) : null}
 
@@ -242,16 +242,16 @@ export default function FormResponseList() {
         </div>
       </Modal>
 
-      {/* Generate Laudo Modal */}
-      <GenerateLaudoModal
+      {/* Generate Report Modal */}
+      <GenerateReportModal
         isOpen={!!generateForResponse}
         onClose={() => setGenerateForResponse(null)}
         form={form}
         response={generateForResponse}
         template={linkedTemplate}
-        onLaudoGenerated={(laudoId) => {
+        onReportGenerated={(reportId) => {
           setGenerateForResponse(null)
-          navigate(`/laudo/${laudoId}`)
+          navigate(`/relatorio/${reportId}`)
         }}
       />
     </>

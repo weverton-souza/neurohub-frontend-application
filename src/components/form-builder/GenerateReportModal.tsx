@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { AnamnesisForm, FormResponse, LaudoTemplate } from '@/types'
-import { generateLaudoFromResponse } from '@/lib/ai-service'
+import type { Form, FormResponse, ReportTemplate } from '@/types'
+import { generateReportFromResponse } from '@/lib/ai-service'
 import { getProfessional } from '@/lib/api/professional-api'
 import { createReport } from '@/lib/api/report-api'
 import { getCustomer } from '@/lib/api/customer-api'
@@ -9,25 +9,25 @@ import { buildVariableMap, resolveBlockVariables } from '@/lib/variable-service'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 
-interface GenerateLaudoModalProps {
+interface GenerateReportModalProps {
   isOpen: boolean
   onClose: () => void
-  form: AnamnesisForm | null
+  form: Form | null
   response: FormResponse | null
-  template: LaudoTemplate | null
-  onLaudoGenerated: (laudoId: string) => void
+  template: ReportTemplate | null
+  onReportGenerated: (reportId: string) => void
 }
 
 type GenerationState = 'confirm' | 'loading' | 'error' | 'no-template'
 
-export default function GenerateLaudoModal({
+export default function GenerateReportModal({
   isOpen,
   onClose,
   form,
   response,
   template,
-  onLaudoGenerated,
-}: GenerateLaudoModalProps) {
+  onReportGenerated,
+}: GenerateReportModalProps) {
   const [state, setState] = useState<GenerationState>('confirm')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -39,7 +39,7 @@ export default function GenerateLaudoModal({
 
     try {
       const professional = await getProfessional()
-      const result = await generateLaudoFromResponse({
+      const result = await generateReportFromResponse({
         form,
         response,
         template,
@@ -47,45 +47,45 @@ export default function GenerateLaudoModal({
       })
 
       // Resolve template variables on result blocks
-      let patientData = null
-      if (response.patientId) {
+      let customerData = null
+      if (response.customerId) {
         try {
-          const patient = await getCustomer(response.patientId)
-          patientData = patient?.data ?? null
+          const customer = await getCustomer(response.customerId)
+          customerData = customer?.data ?? null
         } catch {
-          // patient not found
+          // customer not found
         }
       }
       const variableMap = buildVariableMap(
-        patientData,
+        customerData,
         form,
         response,
       )
       const resolvedBlocks = resolveBlockVariables(result.blocks, variableMap)
 
-      // Criar laudo via API
-      const laudo = await createReport({
+      // Criar relatório via API
+      const report = await createReport({
         status: 'rascunho',
-        patientName: result.patientName || response.patientName,
-        patientId: response.patientId ?? undefined,
+        customerName: result.customerName || response.customerName,
+        customerId: response.customerId ?? undefined,
         formResponseId: response.id,
         formId: form.id,
         blocks: resolvedBlocks,
       })
 
-      // Atualizar resposta com link para o laudo
+      // Atualizar resposta com link para o relatório
       await updateFormResponse(form.id, {
         ...response,
-        generatedLaudoId: laudo.id,
+        generatedReportId: report.id,
       })
 
-      onLaudoGenerated(laudo.id)
+      onReportGenerated(report.id)
     } catch (err) {
       setState('error')
       setErrorMessage(
         err instanceof Error
           ? err.message
-          : 'Erro desconhecido ao gerar o laudo.'
+          : 'Erro desconhecido ao gerar o relatório.'
       )
     }
   }
@@ -103,7 +103,7 @@ export default function GenerateLaudoModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Gerar Laudo com IA"
+      title="Gerar Relatório com IA"
       size="md"
     >
       <div className="p-4 space-y-4">
@@ -118,7 +118,7 @@ export default function GenerateLaudoModal({
               </svg>
             </div>
             <p className="text-sm text-gray-600">
-              Este formulário não tem um template de laudo vinculado.
+              Este formulário não tem um template de relatório vinculado.
               Vincule um template no editor do formulário para usar a geração automática.
             </p>
             <div className="flex justify-center mt-4">
@@ -132,8 +132,8 @@ export default function GenerateLaudoModal({
               <h3 className="text-sm font-medium text-brand-800 mb-2">Resumo da geração</h3>
               <dl className="space-y-1 text-sm">
                 <div className="flex gap-2">
-                  <dt className="text-brand-600 font-medium">Paciente:</dt>
-                  <dd className="text-brand-800">{response?.patientName || '(sem nome)'}</dd>
+                  <dt className="text-brand-600 font-medium">Cliente:</dt>
+                  <dd className="text-brand-800">{response?.customerName || '(sem nome)'}</dd>
                 </div>
                 <div className="flex gap-2">
                   <dt className="text-brand-600 font-medium">Formulário:</dt>
@@ -146,19 +146,19 @@ export default function GenerateLaudoModal({
               </dl>
             </div>
             <p className="text-sm text-gray-500">
-              A IA irá preencher automaticamente as seções de texto do laudo com base nas respostas do formulário.
+              A IA irá preencher automaticamente as seções de texto do relatório com base nas respostas do formulário.
               Você poderá revisar e ajustar tudo antes de finalizar.
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
-              <Button onClick={handleGenerate}>Gerar Laudo</Button>
+              <Button onClick={handleGenerate}>Gerar Relatório</Button>
             </div>
           </>
         ) : state === 'loading' ? (
           /* Loading */
           <div className="text-center py-8">
             <div className="mx-auto animate-spin w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full mb-4" />
-            <p className="text-sm text-gray-600">Gerando laudo com IA...</p>
+            <p className="text-sm text-gray-600">Gerando relatório com IA...</p>
             <p className="text-xs text-gray-400 mt-1">Isso pode levar alguns segundos</p>
           </div>
         ) : (
@@ -171,7 +171,7 @@ export default function GenerateLaudoModal({
                 <line x1="9" y1="9" x2="15" y2="15" />
               </svg>
             </div>
-            <p className="text-sm text-gray-700 font-medium mb-1">Erro ao gerar laudo</p>
+            <p className="text-sm text-gray-700 font-medium mb-1">Erro ao gerar relatório</p>
             <p className="text-xs text-gray-500 mb-4">{errorMessage}</p>
             <div className="flex justify-center gap-2">
               <Button variant="ghost" onClick={handleClose}>Fechar</Button>

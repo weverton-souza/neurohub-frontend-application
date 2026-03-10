@@ -1,5 +1,5 @@
 import {
-  LaudoTemplate,
+  ReportTemplate,
   TemplateBlock,
   createEmptyIdentificationData,
   createEmptyTextBlockData,
@@ -54,7 +54,7 @@ function closingPageBlock(order: number): TemplateBlock {
 
 // ========== Default Templates ==========
 
-const TEMPLATE_ADULTO: LaudoTemplate = {
+const TEMPLATE_ADULTO: ReportTemplate = {
   id: 'default-adulto',
   name: 'Laudo Padrão Adulto',
   description: 'Estrutura completa para avaliação de adultos',
@@ -77,7 +77,7 @@ const TEMPLATE_ADULTO: LaudoTemplate = {
   ],
 }
 
-const TEMPLATE_BREVE: LaudoTemplate = {
+const TEMPLATE_BREVE: ReportTemplate = {
   id: 'default-breve',
   name: 'Laudo Breve',
   description: 'Estrutura resumida para laudos mais curtos',
@@ -93,13 +93,13 @@ const TEMPLATE_BREVE: LaudoTemplate = {
   ],
 }
 
-export const DEFAULT_TEMPLATES: LaudoTemplate[] = [
+export const DEFAULT_TEMPLATES: ReportTemplate[] = [
   TEMPLATE_ADULTO,
   TEMPLATE_BREVE,
 ]
 
 // ========== Merge helper ==========
 
-export function getAllTemplates(customTemplates: LaudoTemplate[]): LaudoTemplate[] {
+export function getAllTemplates(customTemplates: ReportTemplate[]): ReportTemplate[] {
   return [...DEFAULT_TEMPLATES, ...customTemplates]
 }

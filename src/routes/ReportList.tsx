@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Laudo, LaudoTemplate, Block } from '@/types'
+import type { Report, ReportTemplate, Block } from '@/types'
 import { getReports, createReport, deleteReport } from '@/lib/api/report-api'
 import { getReportTemplates, deleteReportTemplate } from '@/lib/api/template-api'
 import { getAllTemplates } from '@/lib/default-templates'
 import { formatDateTime } from '@/lib/utils'
-import { createEmptyLaudo } from '@/lib/laudo-utils'
+import { createEmptyReport } from '@/lib/report-utils'
 import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
 import { useError } from '@/contexts/ErrorContext'
@@ -15,12 +15,12 @@ import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
 import StatusBadge from '@/components/ui/StatusBadge'
 
-export default function LaudoList() {
+export default function ReportList() {
   const navigate = useNavigate()
   const { showError } = useError()
 
-  const [laudos, setLaudos] = useState<Laudo[]>([])
-  const [customTemplates, setCustomTemplates] = useState<LaudoTemplate[]>([])
+  const [reports, setReports] = useState<Report[]>([])
+  const [customTemplates, setCustomTemplates] = useState<ReportTemplate[]>([])
   const [showNewModal, setShowNewModal] = useState(false)
 
   const loadData = useCallback(async () => {
@@ -29,7 +29,7 @@ export default function LaudoList() {
         getReports(0, 100),
         getReportTemplates(),
       ])
-      setLaudos(reportsPage.content)
+      setReports(reportsPage.content)
       setCustomTemplates(templates)
     } catch (err) {
       showError(err)
@@ -42,16 +42,16 @@ export default function LaudoList() {
 
   const handleCreateFromScratch = useCallback(async () => {
     try {
-      const laudo = await createEmptyLaudo()
+      const report = await createEmptyReport()
       setShowNewModal(false)
-      navigate(`/laudo/${laudo.id}`)
+      navigate(`/relatorio/${report.id}`)
     } catch (err) {
       showError(err)
     }
   }, [navigate, showError])
 
   const handleCreateFromTemplate = useCallback(
-    async (template: LaudoTemplate) => {
+    async (template: ReportTemplate) => {
       try {
         const blocks: Block[] = template.blocks.map((tb) => ({
           id: crypto.randomUUID(),
@@ -61,14 +61,14 @@ export default function LaudoList() {
           collapsed: false,
         }))
 
-        const laudo = await createReport({
+        const report = await createReport({
           status: 'rascunho',
-          patientName: '',
+          customerName: '',
           blocks,
         })
 
         setShowNewModal(false)
-        navigate(`/laudo/${laudo.id}`)
+        navigate(`/relatorio/${report.id}`)
       } catch (err) {
         showError(err)
       }
@@ -76,7 +76,7 @@ export default function LaudoList() {
     [navigate, showError]
   )
 
-  const handleDeleteLaudo = useCallback(async (id: string) => {
+  const handleDeleteReport = useCallback(async (id: string) => {
     try {
       await deleteReport(id)
       await loadData()
@@ -85,7 +85,7 @@ export default function LaudoList() {
     }
   }, [loadData, showError])
 
-  const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteLaudo)
+  const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteReport)
 
   const handleDeleteTemplate = useCallback(
     async (id: string) => {
@@ -100,35 +100,35 @@ export default function LaudoList() {
     [showError]
   )
 
-  const sortedLaudos = useMemo(
-    () => [...laudos].sort(
+  const sortedReports = useMemo(
+    () => [...reports].sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     ),
-    [laudos]
+    [reports]
   )
 
-  const { page: paginatedPage, setCurrentPage, pageSize, changePageSize } = usePagination(sortedLaudos)
+  const { page: paginatedPage, setCurrentPage, pageSize, changePageSize } = usePagination(sortedReports)
 
   return (
     <>
       <PageHeader
-        title="Laudos"
-        subtitle="Montagem de laudos"
+        title="Relatórios"
+        subtitle="Montagem de relatórios"
         actions={
-          <Button onClick={() => setShowNewModal(true)}>+ Novo Laudo</Button>
+          <Button onClick={() => setShowNewModal(true)}>+ Novo Relatório</Button>
         }
       />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* Filters */}
-        {laudos.length > 0 && (
+        {reports.length > 0 && (
           <div className="mb-6 flex items-center justify-end">
             <div className="flex items-center gap-1.5">
-              <label htmlFor="page-size-laudos" className="text-sm text-gray-400">
+              <label htmlFor="page-size-reports" className="text-sm text-gray-400">
                 Por página:
               </label>
               <select
-                id="page-size-laudos"
+                id="page-size-reports"
                 value={pageSize}
                 onChange={(e) => changePageSize(Number(e.target.value))}
                 className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
@@ -143,7 +143,7 @@ export default function LaudoList() {
           </div>
         )}
 
-        {laudos.length === 0 ? (
+        {reports.length === 0 ? (
           /* Empty state */
           <div className="text-center py-20">
             <div className="mx-auto w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center mb-4">
@@ -155,52 +155,52 @@ export default function LaudoList() {
               </svg>
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              Nenhum laudo ainda
+              Nenhum relatório ainda
             </h2>
             <p className="text-sm text-gray-500 mb-6">
-              Crie seu primeiro laudo para começar
+              Crie seu primeiro relatório para começar
             </p>
             <Button onClick={() => setShowNewModal(true)} size="lg">
-              + Novo Laudo
+              + Novo Relatório
             </Button>
           </div>
         ) : (
-          /* Laudo list */
+          /* Report list */
           <>
           <div className="space-y-3">
-            {paginatedPage.content.map((laudo) => (
+            {paginatedPage.content.map((report) => (
               <div
-                key={laudo.id}
+                key={report.id}
                 className="bg-white rounded-xl border border-gray-200 hover:border-brand-300 hover:shadow-md transition-all p-4 flex items-center gap-4 cursor-pointer"
-                onClick={() => navigate(`/laudo/${laudo.id}`)}
+                onClick={() => navigate(`/relatorio/${report.id}`)}
               >
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-gray-900 truncate">
-                    {laudo.patientName || 'Paciente sem nome'}
+                    {report.customerName || 'Cliente sem nome'}
                   </h3>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-gray-500">
-                      {formatDateTime(laudo.updatedAt)}
+                      {formatDateTime(report.updatedAt)}
                     </span>
                     <span className="text-xs text-gray-400">•</span>
                     <span className="text-xs text-gray-500">
-                      {laudo.blocks.length} {laudo.blocks.length === 1 ? 'bloco' : 'blocos'}
+                      {report.blocks.length} {report.blocks.length === 1 ? 'bloco' : 'blocos'}
                     </span>
                   </div>
                 </div>
 
                 <div className="shrink-0">
-                  <StatusBadge status={laudo.status} />
+                  <StatusBadge status={report.status} />
                 </div>
 
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setConfirmDeleteId(laudo.id)
+                    setConfirmDeleteId(report.id)
                   }}
                   className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0"
-                  title="Excluir laudo"
+                  title="Excluir relatório"
                 >
                   <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
@@ -217,11 +217,11 @@ export default function LaudoList() {
         )}
       </main>
 
-      {/* New Laudo Modal */}
+      {/* New Report Modal */}
       <Modal
         isOpen={showNewModal}
         onClose={() => setShowNewModal(false)}
-        title="Novo Laudo"
+        title="Novo Relatório"
         size="md"
       >
         <div className="p-4 space-y-4">
@@ -240,7 +240,7 @@ export default function LaudoList() {
             <div>
               <p className="font-medium text-gray-900">Começar do zero</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Laudo vazio com bloco de identificação
+                Relatório vazio com bloco de identificação
               </p>
             </div>
           </button>
@@ -309,7 +309,7 @@ export default function LaudoList() {
       >
         <div className="p-4 space-y-4">
           <p className="text-sm text-gray-600">
-            Tem certeza de que deseja excluir este laudo? Esta ação não pode ser desfeita.
+            Tem certeza de que deseja excluir este relatório? Esta ação não pode ser desfeita.
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={cancelDelete}>

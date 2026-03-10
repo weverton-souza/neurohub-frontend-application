@@ -9,7 +9,7 @@ import type {
   ChartData,
   ReferencesData,
   ClosingPageData,
-  Patient,
+  Customer,
 } from '@/types'
 import { BLOCK_TYPE_LABELS } from '@/types'
 import { BLOCK_TYPE_COLORS, getBlockTypeIcon } from '@/lib/block-constants'
@@ -26,8 +26,8 @@ interface BlockEditModalProps {
   block: Block | null
   onClose: () => void
   onChange: (blockId: string, data: BlockData) => void
-  patients?: Patient[]
-  onPatientSelected?: (patientId: string) => void
+  customers?: Customer[]
+  onCustomerSelected?: (customerId: string) => void
 }
 
 const MODAL_SIZES: Record<BlockType, 'sm' | 'md' | 'lg' | 'xl' | '2xl'> = {
@@ -74,7 +74,7 @@ function getModalTitle(block: Block): string {
   }
 }
 
-export default function BlockEditModal({ block, onClose, onChange, patients, onPatientSelected }: BlockEditModalProps) {
+export default function BlockEditModal({ block, onClose, onChange, customers, onCustomerSelected }: BlockEditModalProps) {
   if (!block) return null
 
   const handleChange = (data: BlockData) => {
@@ -88,8 +88,8 @@ export default function BlockEditModal({ block, onClose, onChange, patients, onP
           <IdentificationBlock
             data={block.data as IdentificationData}
             onChange={handleChange}
-            patients={patients}
-            onPatientSelected={onPatientSelected}
+            customers={customers}
+            onCustomerSelected={onCustomerSelected}
           />
         )
       case 'text':

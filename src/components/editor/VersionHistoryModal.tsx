@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { LaudoVersion } from '@/types'
+import type { ReportVersion } from '@/types'
 import { formatDateTime } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -8,8 +8,8 @@ import StatusBadge from '@/components/ui/StatusBadge'
 interface VersionHistoryModalProps {
   isOpen: boolean
   onClose: () => void
-  versions: LaudoVersion[]
-  onRestore: (version: LaudoVersion) => void
+  versions: ReportVersion[]
+  onRestore: (version: ReportVersion) => void
 }
 
 export default function VersionHistoryModal({
@@ -20,7 +20,7 @@ export default function VersionHistoryModal({
 }: VersionHistoryModalProps) {
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null)
 
-  const handleRestore = (version: LaudoVersion) => {
+  const handleRestore = (version: ReportVersion) => {
     onRestore(version)
     setConfirmRestoreId(null)
     onClose()
@@ -66,9 +66,9 @@ export default function VersionHistoryModal({
                     </span>
                     <StatusBadge status={version.status} />
                   </div>
-                  {version.patientName && (
+                  {version.customerName && (
                     <p className="text-xs text-gray-400 mt-1 truncate">
-                      Paciente: {version.patientName}
+                      Cliente: {version.customerName}
                     </p>
                   )}
                   <p className="text-xs text-gray-400 mt-0.5">

@@ -1,4 +1,4 @@
-# CLAUDE.md — Regras do Projeto NeuroHub Frontend
+# CLAUDE.md — Regras do Projeto Dox Frontend
 
 ## Idioma
 
@@ -17,13 +17,13 @@
 
 ## Features do Projeto
 
-### Laudos (Relatórios Neuropsicológicos)
-- Editor de blocos com drag-and-drop (dnd-kit) e auto-save para localStorage
+### Relatórios (Reports)
+- Editor de blocos com drag-and-drop (dnd-kit) e auto-save via API
 - 7 tipos de bloco: identification, text, score-table, info-box, chart, references, closing-page
 - Sistema de seções derivado dos blocos (não armazenado) com collapse/expand
 - Sidebar com árvore de navegação (OutlineTree) e IntersectionObserver para destaque ativo
 - Criação a partir de templates (2 padrões: Adulto e Breve) ou do zero
-- Versionamento com snapshots manuais e automáticos (máx. 20 por laudo)
+- Versionamento com snapshots manuais e automáticos (máx. 20 por relatório)
 - Status com transições: rascunho → em_revisão → finalizado
 - Exportação .docx in-browser com header profissional, logo, rodapé com ícones sociais e paginação
 - Gráficos Chart.js (bar/line) com modos grouped/separated, linhas e regiões de referência, exportados como PNG no .docx
@@ -54,24 +54,24 @@
 - Reordenar linhas com drag-and-drop (grip handle no número da linha)
 - Reordenar colunas com drag-and-drop (grip handle no header da coluna)
 - Fórmulas com referências posicionais (A1, B2, A1:A4, A:A) são remapeadas automaticamente ao reordenar
-- Página de encerramento com assinaturas configuráveis (profissional, paciente, mãe, pai, responsável)
+- Página de encerramento com assinaturas configuráveis (profissional, cliente, mãe, pai, responsável)
 
-### Pacientes
+### Clientes (Customers)
 - Cadastro completo: dados pessoais, contato, dados clínicos
 - Busca por nome ou CPF com paginação
-- Perfil com 6 abas: Dados Pessoais, Contato, Dados Clínicos, Laudos, Notas, Histórico
+- Perfil com 6 abas: Dados Pessoais, Contato, Dados Clínicos, Relatórios, Notas, Histórico
 - Notas clínicas com timestamp
-- Timeline de eventos (consulta, retorno, avaliação, laudo, observação) agrupados por mês/ano
-- Vínculo com laudos via patientId — criar laudo a partir do paciente pré-preenche o bloco de identificação
-- Dados do paciente são copiados para o laudo (não vinculados — edição no laudo não altera o cadastro)
+- Timeline de eventos (consulta, retorno, avaliação, relatório, observação) agrupados por mês/ano
+- Vínculo com relatórios via customerId — criar relatório a partir do cliente pré-preenche o bloco de identificação
+- Dados do cliente são copiados para o relatório (não vinculados — edição no relatório não altera o cadastro)
 
-### Formulários de Anamnese
+### Formulários (Forms)
 - Construtor de formulários com 8 tipos de campo: short-text, long-text, single-choice, multiple-choice, scale, yes-no, date, section-header
 - 3 formulários padrão: Adulto (32 campos), Infantil (29 campos), Breve (7 campos)
 - Drag-and-drop para reordenação de campos
 - Preview do formulário como o usuário final vê
-- Mapeamento de campos para seções de template de laudo (FieldMappingEditor)
-- Vínculo com template de laudo (TemplateLinkModal)
+- Mapeamento de campos para seções de template de relatório (FieldMappingEditor)
+- Vínculo com template de relatório (TemplateLinkModal)
 - Duplicação de formulários
 
 ### Preenchimento de Formulários
@@ -79,11 +79,11 @@
 - Validação de campos obrigatórios
 - Auto-save com debounce
 - Status: em_andamento → concluído
-- Suporte a pré-preenchimento via paciente
+- Suporte a pré-preenchimento via cliente
 
-### Geração de Laudo a partir de Respostas
-- Pipeline de geração via IA: buildPrompt → generateLaudoFromResponse → parseAIResponse
-- Sistema de variáveis com sintaxe {{chave}} resolvidas de dados do paciente e respostas do formulário
+### Geração de Relatório a partir de Respostas
+- Pipeline de geração via IA: buildPrompt → generateReportFromResponse → parseAIResponse
+- Sistema de variáveis com sintaxe {{chave}} resolvidas de dados do cliente e respostas do formulário
 - Mapeamento campo→seção com hints para a IA
 - Resolução de variáveis (variable-service) em blocos text e info-box
 
@@ -100,23 +100,33 @@
 - API services em `src/lib/api/`: customer-api, report-api, form-api, template-api, professional-api, workspace-api
 - Contextos: AuthContext (auth state + session), ErrorContext (error modal global)
 - Rotas protegidas via ProtectedRoute (redirect para /login se não autenticado)
-- Nomes: Patient→Customer, Laudo→Report, AnamnesisForm→Form, LaudoTemplate→ReportTemplate
+
+## Nomenclatura Frontend ↔ Backend
+
+| Frontend | Backend | Nota |
+|----------|---------|------|
+| Customer | Customer | `data` field é JSONB no backend |
+| Report | Report | `customerName`, `customerId` |
+| Form | Form | Estrutura similar |
+| FormResponse | FormResponse | `customerId`, `customerName`, `generatedReportId` |
+| ReportTemplate | ReportTemplate | - |
+| ReportVersion | ReportVersion | `reportId`, `customerName` |
+| Professional | ProfessionalSettings | Campos top-level (não nested) |
 
 ## Próximas Features (roadmap até abril/2026)
-
 
 ### Templates Locked/Unlocked
 - Modo template (locked): estrutura fixa, profissional só preenche dados
 - Modo livre (unlocked): edição completa como hoje
 
 ### Preview e Download em PDF
-- Preview do laudo: conversão .docx → PDF via LibreOffice headless no backend
+- Preview do relatório: conversão .docx → PDF via LibreOffice headless no backend
 - Download em PDF além do .docx atual
 
-### Acompanhamento do Paciente
-- Perguntas configuráveis por paciente (profissional define quais perguntas acompanhar)
-- Tela PWA/webview para o paciente: formulário diário com layout limpo
-- Rota separada para o paciente (`/p/:id`) com layout sem sidebar/menu do profissional
+### Acompanhamento do Cliente
+- Perguntas configuráveis por cliente (profissional define quais perguntas acompanhar)
+- Tela PWA/webview para o cliente: formulário diário com layout limpo
+- Rota separada para o cliente (`/p/:id`) com layout sem sidebar/menu do profissional
 - Painel da profissional: timeline de respostas + gráficos de evolução
 - Resumo por IA: chamada à API Claude para sintetizar dados de acompanhamento
 
@@ -134,7 +144,7 @@ src/
   lib/                     → lógica de negócio, utilitários, serviços
   lib/api/                 → API services (api-client, auth-service, error-handler, *-api.ts)
   lib/block-constants.tsx  → labels, cores, ícones e getBlockTitle()
-  lib/laudo-utils.ts       → criação de laudos (createEmptyLaudo, createLaudoFromPatient)
+  lib/report-utils.ts      → criação de relatórios (createEmptyReport, createReportFromCustomer)
   lib/hooks/               → custom hooks reutilizáveis (useAutoSave, useConfirmDelete, usePagination, useClickOutside)
   components/blocks/       → um componente por tipo de bloco
   components/editor/       → componentes do editor (BlockList, BlockSelector, OutlineTree)
@@ -161,7 +171,7 @@ src/
 - `getBlockTitle()` fica em `block-constants.tsx` — nunca recriar localmente
 - `resolveAnswerDisplay()` fica em `variable-service.ts` — fonte única para exibição de respostas
 - API calls: usar os serviços em `lib/api/*-api.ts` — nunca chamar axios diretamente
-- Criação de laudos: usar `createEmptyLaudo()` e `createLaudoFromPatient()` de `laudo-utils.ts` (async)
+- Criação de relatórios: usar `createEmptyReport()` e `createReportFromCustomer()` de `report-utils.ts` (async)
 - Custom hooks reutilizáveis em `lib/hooks/`: `useAutoSave`, `useConfirmDelete`, `usePagination`, `useClickOutside`
 - Error handling: usar `useError()` de `ErrorContext` — nunca `alert()` para erros de API
 

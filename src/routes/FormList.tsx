@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { AnamnesisForm } from '@/types'
-import { createEmptyAnamnesisForm } from '@/types'
+import type { Form } from '@/types'
+import { createEmptyForm } from '@/types'
 import { listForms, createForm, deleteForm, listFormResponses } from '@/lib/api/form-api'
 import { getAllTemplates } from '@/lib/default-templates'
 import { getReportTemplates } from '@/lib/api/template-api'
@@ -18,7 +18,7 @@ export default function FormList() {
   const navigate = useNavigate()
   const { showError } = useError()
 
-  const [forms, setForms] = useState<AnamnesisForm[]>([])
+  const [forms, setForms] = useState<Form[]>([])
   const [responseCounts, setResponseCounts] = useState<Record<string, number>>({})
   const [templates, setTemplates] = useState(() => getAllTemplates([]))
 
@@ -54,7 +54,7 @@ export default function FormList() {
 
   const handleCreate = useCallback(async () => {
     try {
-      const form = createEmptyAnamnesisForm()
+      const form = createEmptyForm()
       form.title = 'Novo Formulário'
       const created = await createForm(form)
       navigate(`/formulario/${created.id}/editar`)
@@ -74,9 +74,9 @@ export default function FormList() {
 
   const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteForm)
 
-  const handleDuplicate = useCallback(async (form: AnamnesisForm) => {
+  const handleDuplicate = useCallback(async (form: Form) => {
     try {
-      const dup = createEmptyAnamnesisForm()
+      const dup = createEmptyForm()
       dup.title = `${form.title} (cópia)`
       dup.description = form.description
       dup.fields = form.fields.map(f => ({
@@ -104,7 +104,7 @@ export default function FormList() {
     <>
       <PageHeader
         title="Formulários"
-        subtitle="Anamnese e questionários para pacientes"
+        subtitle="Anamnese e questionários para clientes"
         actions={
           <Button onClick={handleCreate}>+ Novo Formulário</Button>
         }

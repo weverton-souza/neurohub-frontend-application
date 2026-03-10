@@ -1,36 +1,36 @@
-import type { Laudo, Patient } from '@/types'
+import type { Report, Customer } from '@/types'
 import { createEmptyIdentificationData } from '@/types'
 import { createReport } from '@/lib/api/report-api'
 import { getProfessional } from '@/lib/api/professional-api'
 import { createBlock } from '@/lib/utils'
 
-export async function createLaudoFromPatient(patient: Patient): Promise<Laudo> {
+export async function createReportFromCustomer(customer: Customer): Promise<Report> {
   const professional = await getProfessional()
   const identificationBlock = createBlock('identification', 0, professional)
 
   const identData = createEmptyIdentificationData(professional)
-  identData.patient = { ...patient.data }
+  identData.customer = { ...customer.data }
   identificationBlock.data = identData
 
-  const laudo: Partial<Laudo> = {
+  const report: Partial<Report> = {
     status: 'rascunho',
-    patientName: patient.data.name,
-    patientId: patient.id,
+    customerName: customer.data.name,
+    customerId: customer.id,
     blocks: [identificationBlock],
   }
 
-  return createReport(laudo)
+  return createReport(report)
 }
 
-export async function createEmptyLaudo(): Promise<Laudo> {
+export async function createEmptyReport(): Promise<Report> {
   const professional = await getProfessional()
   const identificationBlock = createBlock('identification', 0, professional)
 
-  const laudo: Partial<Laudo> = {
+  const report: Partial<Report> = {
     status: 'rascunho',
-    patientName: '',
+    customerName: '',
     blocks: [identificationBlock],
   }
 
-  return createReport(laudo)
+  return createReport(report)
 }

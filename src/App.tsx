@@ -3,10 +3,10 @@ import AppLayout from '@/components/layout/AppLayout'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import Login from '@/routes/Login'
 import Register from '@/routes/Register'
-import LaudoList from '@/routes/LaudoList'
-import LaudoEditor from '@/routes/LaudoEditor'
-import PatientList from '@/routes/PatientList'
-import PatientProfile from '@/routes/PatientProfile'
+import ReportList from '@/routes/ReportList'
+import ReportEditor from '@/routes/ReportEditor'
+import CustomerList from '@/routes/CustomerList'
+import CustomerProfile from '@/routes/CustomerProfile'
 import FormList from '@/routes/FormList'
 import FormBuilder from '@/routes/FormBuilder'
 import FormFill from '@/routes/FormFill'
@@ -20,10 +20,10 @@ export default function App() {
       <Route path="/cadastro" element={<Register />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/" element={<LaudoList />} />
-          <Route path="/laudo/:id" element={<LaudoEditor />} />
-          <Route path="/pacientes" element={<PatientList />} />
-          <Route path="/pacientes/:id" element={<PatientProfile />} />
+          <Route path="/" element={<ReportList />} />
+          <Route path="/relatorio/:id" element={<ReportEditor />} />
+          <Route path="/clientes" element={<CustomerList />} />
+          <Route path="/clientes/:id" element={<CustomerProfile />} />
           <Route path="/formularios" element={<FormList />} />
           <Route path="/formulario/:id/editar" element={<FormBuilder />} />
           <Route path="/formulario/:id/preencher" element={<FormFill />} />

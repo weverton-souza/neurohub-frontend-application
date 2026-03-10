@@ -6,7 +6,7 @@ import type { ProblemDetail, RefreshRequest } from '@/types'
 
 let accessToken: string | null = null
 
-const REFRESH_TOKEN_KEY = 'neurohub_refresh_token'
+const REFRESH_TOKEN_KEY = 'dox_refresh_token'
 
 export function getAccessToken(): string | null {
   return accessToken

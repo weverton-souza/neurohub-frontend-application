@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import type { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoVersion, TextBlockData, Patient, ScoreTableTemplate, ChartTemplate } from '@/types'
+import type { Block, BlockType, BlockData, Report, ReportStatus, ReportVersion, TextBlockData, Customer, ScoreTableTemplate, ChartTemplate } from '@/types'
 import { createScoreTableFromTemplate, createChartFromTemplate } from '@/types'
 import { getReport, updateReport } from '@/lib/api/report-api'
 import { getCustomers } from '@/lib/api/customer-api'
@@ -21,12 +21,12 @@ import Input from '@/components/ui/Input'
 import StatusSelector from '@/components/editor/StatusSelector'
 import { HistoryIcon, SaveIcon } from '@/components/icons'
 
-export default function LaudoEditor() {
+export default function ReportEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showError } = useError()
 
-  const [laudo, setLaudo] = useState<Laudo | null>(null)
+  const [report, setReport] = useState<Report | null>(null)
   const [showBlockSelector, setShowBlockSelector] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
@@ -35,7 +35,7 @@ export default function LaudoEditor() {
   const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | null>(null)
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [showSectionSelector, setShowSectionSelector] = useState(false)
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [formProvenanceLabel, setFormProvenanceLabel] = useState<string | null>(null)
   const [formProvenanceId, setFormProvenanceId] = useState<string | null>(null)
@@ -43,10 +43,10 @@ export default function LaudoEditor() {
   const [chartTemplatesState, setChartTemplatesState] = useState<ChartTemplate[]>([])
   const sectionSelectorRef = useRef<HTMLDivElement>(null)
 
-  const saveLaudoFn = useCallback((data: Laudo) => updateReport(data), [])
-  const { saveStatus, scheduleSave, forceSave } = useAutoSave<Laudo>(saveLaudoFn)
+  const saveReportFn = useCallback((data: Report) => updateReport(data), [])
+  const { saveStatus, scheduleSave, forceSave } = useAutoSave<Report>(saveReportFn)
 
-  // Load laudo, patients, and templates
+  // Load report, customers, and templates
   useEffect(() => {
     if (!id) return
     async function load() {
@@ -57,12 +57,12 @@ export default function LaudoEditor() {
           getScoreTableTemplates(),
           getChartTemplates(),
         ])
-        setLaudo(loaded)
-        setPatients(customersPage.content)
+        setReport(loaded)
+        setCustomers(customersPage.content)
         setScoreTableTemplates(stTemplates)
         setChartTemplatesState(cTemplates)
 
-        // Load provenance info if laudo was generated from a form response
+        // Load provenance info if report was generated from a form response
         if (loaded.formResponseId && loaded.formId) {
           try {
             const resp = await getFormResponseById(loaded.formId, loaded.formResponseId)
@@ -90,48 +90,48 @@ export default function LaudoEditor() {
     createExportSnapshot,
     createManualSnapshot,
     createSnapshot,
-  } = useVersioning(laudo)
+  } = useVersioning(report)
 
-  const updateLaudo = useCallback(
-    (updates: Partial<Laudo>) => {
-      if (!laudo) return
-      const updated = { ...laudo, ...updates }
-      setLaudo(updated)
+  const handleUpdateReport = useCallback(
+    (updates: Partial<Report>) => {
+      if (!report) return
+      const updated = { ...report, ...updates }
+      setReport(updated)
       scheduleSave(updated)
     },
-    [laudo, scheduleSave]
+    [report, scheduleSave]
   )
 
   const handleBlocksChange = useCallback(
     (blocks: Block[]) => {
-      updateLaudo({ blocks })
+      handleUpdateReport({ blocks })
     },
-    [updateLaudo]
+    [handleUpdateReport]
   )
 
   const handleBlockDataChange = useCallback(
     (blockId: string, data: BlockData) => {
-      if (!laudo) return
-      const updated = laudo.blocks.map((b) =>
+      if (!report) return
+      const updated = report.blocks.map((b) =>
         b.id === blockId ? { ...b, data } : b
       )
-      updateLaudo({ blocks: updated })
+      handleUpdateReport({ blocks: updated })
     },
-    [laudo, updateLaudo]
+    [report, handleUpdateReport]
   )
 
-  const handlePatientSelected = useCallback(
-    (patientId: string) => {
-      updateLaudo({ patientId })
+  const handleCustomerSelected = useCallback(
+    (customerId: string) => {
+      handleUpdateReport({ customerId })
     },
-    [updateLaudo]
+    [handleUpdateReport]
   )
 
   const handleAddBlock = useCallback(
     (type: BlockType, variant?: BlockVariant, templateId?: string) => {
-      if (!laudo) return
+      if (!report) return
 
-      const sorted = [...laudo.blocks].sort((a, b) => a.order - b.order)
+      const sorted = [...report.blocks].sort((a, b) => a.order - b.order)
       const newBlock = createBlock(type, 0)
 
       // Score table com template: preencher dados do template
@@ -169,14 +169,14 @@ export default function LaudoEditor() {
       }
 
       setInsertAfterBlockId(null)
-      updateLaudo({ blocks: newBlocks })
+      handleUpdateReport({ blocks: newBlocks })
 
       // Abrir edição automaticamente para tabelas e gráficos
       if (type === 'score-table' || type === 'chart') {
         setEditingBlockId(newBlock.id)
       }
     },
-    [laudo, updateLaudo, insertAfterBlockId, scoreTableTemplates, chartTemplatesState]
+    [report, handleUpdateReport, insertAfterBlockId, scoreTableTemplates, chartTemplatesState]
   )
 
   const handleRequestAddBlock = useCallback(
@@ -188,9 +188,9 @@ export default function LaudoEditor() {
   )
 
   const handleAddTextSection = useCallback(() => {
-    if (!laudo) return
+    if (!report) return
 
-    const sorted = [...laudo.blocks].sort((a, b) => a.order - b.order)
+    const sorted = [...report.blocks].sort((a, b) => a.order - b.order)
     const newBlock = createBlock('text', 0)
     ;(newBlock.data as TextBlockData).title = 'Nova Seção'
 
@@ -202,29 +202,29 @@ export default function LaudoEditor() {
       sorted.push(newBlock)
     }
     const newBlocks = sorted.map((b, i) => ({ ...b, order: i }))
-    updateLaudo({ blocks: newBlocks })
+    handleUpdateReport({ blocks: newBlocks })
     setShowSectionSelector(false)
-  }, [laudo, updateLaudo])
+  }, [report, handleUpdateReport])
 
   const handleAddClosingPage = useCallback(() => {
-    if (!laudo) return
+    if (!report) return
 
-    const sorted = [...laudo.blocks].sort((a, b) => a.order - b.order)
+    const sorted = [...report.blocks].sort((a, b) => a.order - b.order)
     const newBlock = createBlock('closing-page', 0)
     const newBlocks = [...sorted, newBlock].map((b, i) => ({ ...b, order: i }))
-    updateLaudo({ blocks: newBlocks })
+    handleUpdateReport({ blocks: newBlocks })
     setShowSectionSelector(false)
-  }, [laudo, updateLaudo])
+  }, [report, handleUpdateReport])
 
   const handleSaveTemplate = useCallback(async () => {
-    if (!laudo || !templateName.trim()) return
+    if (!report || !templateName.trim()) return
 
     try {
       await createReportTemplate({
         name: templateName.trim(),
         description: templateDesc.trim(),
         isDefault: false,
-        blocks: laudo.blocks.map((b) => ({
+        blocks: report.blocks.map((b) => ({
           type: b.type,
           order: b.order,
           data: JSON.parse(JSON.stringify(b.data)),
@@ -236,15 +236,15 @@ export default function LaudoEditor() {
     } catch (err) {
       showError(err)
     }
-  }, [laudo, templateName, templateDesc, showError])
+  }, [report, templateName, templateDesc, showError])
 
   const handleGenerateDocx = useCallback(async () => {
-    if (!laudo) return
+    if (!report) return
 
     try {
       createExportSnapshot('DOCX')
-      const finalized = { ...laudo, status: 'finalizado' as const }
-      setLaudo(finalized)
+      const finalized = { ...report, status: 'finalizado' as const }
+      setReport(finalized)
       await updateReport(finalized)
 
       const { generateDocx } = await import('@/lib/docx-generator')
@@ -252,30 +252,30 @@ export default function LaudoEditor() {
     } catch (err) {
       showError(err)
     }
-  }, [laudo, createExportSnapshot, showError])
+  }, [report, createExportSnapshot, showError])
 
   const handleForceSave = useCallback(() => {
-    if (!laudo) return
-    forceSave(laudo)
-  }, [laudo, forceSave])
+    if (!report) return
+    forceSave(report)
+  }, [report, forceSave])
 
   const handleStatusChange = useCallback(
-    (newStatus: LaudoStatus) => {
-      if (laudo) createStatusChangeSnapshot(laudo.status)
-      updateLaudo({ status: newStatus })
+    (newStatus: ReportStatus) => {
+      if (report) createStatusChangeSnapshot(report.status)
+      handleUpdateReport({ status: newStatus })
     },
-    [laudo, updateLaudo, createStatusChangeSnapshot]
+    [report, handleUpdateReport, createStatusChangeSnapshot]
   )
 
   const handleRestoreVersion = useCallback(
-    (version: LaudoVersion) => {
+    (version: ReportVersion) => {
       createSnapshot('Estado antes de restaurar versão')
-      updateLaudo({
-        patientName: version.patientName,
+      handleUpdateReport({
+        customerName: version.customerName,
         blocks: JSON.parse(JSON.stringify(version.blocks)),
       })
     },
-    [createSnapshot, updateLaudo]
+    [createSnapshot, handleUpdateReport]
   )
 
   const handleOpenVersionHistory = useCallback(() => {
@@ -298,9 +298,9 @@ export default function LaudoEditor() {
 
   // Sorted blocks + metas (memoized)
   const sortedBlocks = useMemo(() => {
-    if (!laudo) return []
-    return [...laudo.blocks].sort((a, b) => a.order - b.order)
-  }, [laudo])
+    if (!report) return []
+    return [...report.blocks].sort((a, b) => a.order - b.order)
+  }, [report])
 
   const blockMetas = useMemo(() => computeBlockMetas(sortedBlocks), [sortedBlocks])
 
@@ -333,21 +333,21 @@ export default function LaudoEditor() {
 
   // Find the block being edited
   const editingBlock = useMemo(() => {
-    if (!editingBlockId || !laudo) return null
-    return laudo.blocks.find((b) => b.id === editingBlockId) ?? null
-  }, [editingBlockId, laudo])
+    if (!editingBlockId || !report) return null
+    return report.blocks.find((b) => b.id === editingBlockId) ?? null
+  }, [editingBlockId, report])
 
   // Check if closing-page already exists (only allow one)
   const hasClosingPage = useMemo(() => {
-    if (!laudo) return false
-    return laudo.blocks.some((b) => b.type === 'closing-page')
-  }, [laudo])
+    if (!report) return false
+    return report.blocks.some((b) => b.type === 'closing-page')
+  }, [report])
 
   // Close section selector on outside click
   const closeSectionSelector = useCallback(() => setShowSectionSelector(false), [])
   useClickOutside(sectionSelectorRef, closeSectionSelector, showSectionSelector)
 
-  if (!laudo) {
+  if (!report) {
     return (
       <div className="flex items-center justify-center py-20">
         <p className="text-gray-500">Carregando...</p>
@@ -377,9 +377,9 @@ export default function LaudoEditor() {
           <div className="flex-1 min-w-0">
             <input
               type="text"
-              value={laudo.patientName || ''}
-              onChange={(e) => updateLaudo({ patientName: e.target.value })}
-              placeholder="Nome do paciente"
+              value={report.customerName || ''}
+              onChange={(e) => handleUpdateReport({ customerName: e.target.value })}
+              placeholder="Nome do cliente"
               className="text-lg font-semibold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 w-full truncate placeholder:text-gray-400"
             />
           </div>
@@ -406,7 +406,7 @@ export default function LaudoEditor() {
             )}
           </div>
 
-          <StatusSelector status={laudo.status} onChange={handleStatusChange} />
+          <StatusSelector status={report.status} onChange={handleStatusChange} />
 
           <button
             type="button"
@@ -467,7 +467,7 @@ export default function LaudoEditor() {
       <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 pt-4 pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">{laudo.blocks.length} blocos</span>
+            <span className="text-xs text-gray-400">{report.blocks.length} blocos</span>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -499,7 +499,7 @@ export default function LaudoEditor() {
       {/* Outline Tree */}
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 pb-6">
         <OutlineTree
-          blocks={laudo.blocks}
+          blocks={report.blocks}
           onBlocksChange={handleBlocksChange}
           collapsedSections={collapsedSections}
           onToggleSectionCollapse={toggleSectionCollapse}
@@ -576,8 +576,8 @@ export default function LaudoEditor() {
         block={editingBlock}
         onClose={() => setEditingBlockId(null)}
         onChange={handleBlockDataChange}
-        patients={patients}
-        onPatientSelected={handlePatientSelected}
+        customers={customers}
+        onCustomerSelected={handleCustomerSelected}
       />
 
       {/* Block Selector Modal */}
@@ -602,7 +602,7 @@ export default function LaudoEditor() {
             label="Nome do template"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
-            placeholder="Ex: Laudo Infantil"
+            placeholder="Ex: Relatório Infantil"
           />
           <Input
             label="Descrição (opcional)"
