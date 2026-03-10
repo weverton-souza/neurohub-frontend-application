@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Patient, PatientData, Laudo } from '@/types'
-import { createEmptyPatientRecord } from '@/types'
+import type { Customer, CustomerData, Report } from '@/types'
+import { createEmptyCustomer } from '@/types'
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from '@/lib/api/customer-api'
 import { getReports } from '@/lib/api/report-api'
 import { formatDateTime } from '@/lib/utils'
-import { createLaudoFromPatient } from '@/lib/laudo-utils'
+import { createReportFromCustomer } from '@/lib/report-utils'
 import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
 import { useError } from '@/contexts/ErrorContext'
@@ -15,15 +15,15 @@ import Input from '@/components/ui/Input'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
 
-export default function PatientList() {
+export default function CustomerList() {
   const navigate = useNavigate()
   const { showError } = useError()
 
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [laudos, setLaudos] = useState<Laudo[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [reports, setReports] = useState<Report[]>([])
   const [search, setSearch] = useState('')
   const [showFormModal, setShowFormModal] = useState(false)
-  const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
@@ -32,8 +32,8 @@ export default function PatientList() {
         getCustomers(0, 200),
         getReports(0, 200),
       ])
-      setPatients(customersPage.content)
-      setLaudos(reportsPage.content)
+      setCustomers(customersPage.content)
+      setReports(reportsPage.content)
     } catch (err) {
       showError(err)
     }
@@ -41,20 +41,20 @@ export default function PatientList() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Count laudos per patient
-  const laudoCountMap = useMemo(() => {
-    const map: Record<string, Laudo[]> = {}
-    for (const laudo of laudos) {
-      if (laudo.patientId) {
-        if (!map[laudo.patientId]) map[laudo.patientId] = []
-        map[laudo.patientId].push(laudo)
+  // Count reports per customer
+  const reportCountMap = useMemo(() => {
+    const map: Record<string, Report[]> = {}
+    for (const report of reports) {
+      if (report.customerId) {
+        if (!map[report.customerId]) map[report.customerId] = []
+        map[report.customerId].push(report)
       }
     }
     return map
-  }, [laudos])
+  }, [reports])
 
-  const filteredPatients = useMemo(() => {
-    const sorted = [...patients].sort(
+  const filteredCustomers = useMemo(() => {
+    const sorted = [...customers].sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     )
     if (!search.trim()) return sorted
@@ -64,9 +64,9 @@ export default function PatientList() {
         p.data.name.toLowerCase().includes(term) ||
         p.data.cpf.includes(term)
     )
-  }, [patients, search])
+  }, [customers, search])
 
-  const { page: paginatedPage, setCurrentPage, pageSize, changePageSize, resetPage } = usePagination(filteredPatients)
+  const { page: paginatedPage, setCurrentPage, pageSize, changePageSize, resetPage } = usePagination(filteredCustomers)
 
   // Reset page when search changes
   useEffect(() => {
@@ -74,33 +74,33 @@ export default function PatientList() {
   }, [search, resetPage])
 
   const handleOpenNew = useCallback(() => {
-    setEditingPatient(createEmptyPatientRecord())
+    setEditingCustomer(createEmptyCustomer())
     setShowFormModal(true)
   }, [])
 
-  const handleOpenEdit = useCallback((patient: Patient) => {
-    setEditingPatient({ ...patient, data: { ...patient.data } })
+  const handleOpenEdit = useCallback((customer: Customer) => {
+    setEditingCustomer({ ...customer, data: { ...customer.data } })
     setShowFormModal(true)
   }, [])
 
   const handleSave = useCallback(async () => {
-    if (!editingPatient) return
+    if (!editingCustomer) return
     try {
-      const isNew = !patients.find((p) => p.id === editingPatient.id)
+      const isNew = !customers.find((p) => p.id === editingCustomer.id)
       if (isNew) {
-        await createCustomer(editingPatient)
+        await createCustomer(editingCustomer)
       } else {
-        await updateCustomer(editingPatient)
+        await updateCustomer(editingCustomer)
       }
       await loadData()
       setShowFormModal(false)
-      setEditingPatient(null)
+      setEditingCustomer(null)
     } catch (err) {
       showError(err)
     }
-  }, [editingPatient, patients, loadData, showError])
+  }, [editingCustomer, customers, loadData, showError])
 
-  const handleDeletePatient = useCallback(async (id: string) => {
+  const handleDeleteCustomer = useCallback(async (id: string) => {
     try {
       await deleteCustomer(id)
       await loadData()
@@ -109,13 +109,13 @@ export default function PatientList() {
     }
   }, [loadData, showError])
 
-  const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeletePatient)
+  const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteCustomer)
 
-  const handleCreateLaudo = useCallback(
-    async (patient: Patient) => {
+  const handleCreateReport = useCallback(
+    async (customer: Customer) => {
       try {
-        const laudo = await createLaudoFromPatient(patient)
-        navigate(`/laudo/${laudo.id}`)
+        const report = await createReportFromCustomer(customer)
+        navigate(`/relatorio/${report.id}`)
       } catch (err) {
         showError(err)
       }
@@ -124,29 +124,29 @@ export default function PatientList() {
   )
 
   const updateEditingField = useCallback(
-    (field: keyof PatientData, value: string) => {
-      if (!editingPatient) return
-      setEditingPatient({
-        ...editingPatient,
-        data: { ...editingPatient.data, [field]: value },
+    (field: keyof CustomerData, value: string) => {
+      if (!editingCustomer) return
+      setEditingCustomer({
+        ...editingCustomer,
+        data: { ...editingCustomer.data, [field]: value },
       })
     },
-    [editingPatient]
+    [editingCustomer]
   )
 
   return (
     <>
       <PageHeader
-        title="Pacientes"
-        subtitle="Cadastro de pacientes"
+        title="Clientes"
+        subtitle="Cadastro de clientes"
         actions={
-          <Button onClick={handleOpenNew}>+ Novo Paciente</Button>
+          <Button onClick={handleOpenNew}>+ Novo Cliente</Button>
         }
       />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* Search + filters */}
-        {patients.length > 0 && (
+        {customers.length > 0 && (
           <div className="mb-6 flex items-center gap-3">
             <div className="flex-1">
               <Input
@@ -175,7 +175,7 @@ export default function PatientList() {
           </div>
         )}
 
-        {patients.length === 0 ? (
+        {customers.length === 0 ? (
           /* Empty state */
           <div className="text-center py-20">
             <div className="mx-auto w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center mb-4">
@@ -187,83 +187,83 @@ export default function PatientList() {
               </svg>
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              Nenhum paciente cadastrado
+              Nenhum cliente cadastrado
             </h2>
             <p className="text-sm text-gray-500 mb-6">
-              Cadastre seu primeiro paciente para começar
+              Cadastre seu primeiro cliente para começar
             </p>
             <Button onClick={handleOpenNew} size="lg">
-              + Novo Paciente
+              + Novo Cliente
             </Button>
           </div>
-        ) : filteredPatients.length === 0 ? (
+        ) : filteredCustomers.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-gray-500">Nenhum paciente encontrado para "{search}"</p>
+            <p className="text-sm text-gray-500">Nenhum cliente encontrado para "{search}"</p>
           </div>
         ) : (
-          /* Patient list */
+          /* Customer list */
           <>
           <div className="space-y-3">
-            {paginatedPage.content.map((patient) => {
-              const patientLaudos = laudoCountMap[patient.id] ?? []
-              const isExpanded = expandedId === patient.id
+            {paginatedPage.content.map((customer) => {
+              const customerReports = reportCountMap[customer.id] ?? []
+              const isExpanded = expandedId === customer.id
 
               return (
-                <div key={patient.id} className="bg-white rounded-xl border border-gray-200 transition-all hover:border-brand-300 hover:shadow-sm cursor-pointer" onClick={() => navigate(`/pacientes/${patient.id}`)}>
+                <div key={customer.id} className="bg-white rounded-xl border border-gray-200 transition-all hover:border-brand-300 hover:shadow-sm cursor-pointer" onClick={() => navigate(`/clientes/${customer.id}`)}>
                   {/* Card row */}
                   <div className="p-4 flex items-center gap-4">
                     {/* Avatar */}
                     <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
                       <span className="text-sm font-semibold text-brand-700">
-                        {patient.data.name ? patient.data.name.charAt(0).toUpperCase() : '?'}
+                        {customer.data.name ? customer.data.name.charAt(0).toUpperCase() : '?'}
                       </span>
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-gray-900 truncate">
-                        {patient.data.name || 'Paciente sem nome'}
+                        {customer.data.name || 'Cliente sem nome'}
                       </h3>
                       <div className="flex items-center gap-3 mt-0.5">
-                        {patient.data.cpf && (
+                        {customer.data.cpf && (
                           <>
-                            <span className="text-xs text-gray-500">{patient.data.cpf}</span>
+                            <span className="text-xs text-gray-500">{customer.data.cpf}</span>
                             <span className="text-xs text-gray-400">·</span>
                           </>
                         )}
-                        {patient.data.birthDate && (
+                        {customer.data.birthDate && (
                           <>
-                            <span className="text-xs text-gray-500">{patient.data.age || patient.data.birthDate}</span>
+                            <span className="text-xs text-gray-500">{customer.data.age || customer.data.birthDate}</span>
                             <span className="text-xs text-gray-400">·</span>
                           </>
                         )}
                         <span className="text-xs text-gray-400">
-                          Atualizado {formatDateTime(patient.updatedAt)}
+                          Atualizado {formatDateTime(customer.updatedAt)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Laudos badge */}
+                    {/* Reports badge */}
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : patient.id) }}
+                      onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : customer.id) }}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
-                        patientLaudos.length > 0
+                        customerReports.length > 0
                           ? 'bg-brand-100 text-brand-700 hover:bg-brand-200'
                           : 'bg-gray-100 text-gray-500'
                       }`}
-                      title={patientLaudos.length > 0 ? 'Ver laudos vinculados' : 'Nenhum laudo vinculado'}
+                      title={customerReports.length > 0 ? 'Ver relatórios vinculados' : 'Nenhum relatório vinculado'}
                     >
-                      {patientLaudos.length} {patientLaudos.length === 1 ? 'laudo' : 'laudos'}
+                      {customerReports.length} {customerReports.length === 1 ? 'relatório' : 'relatórios'}
                     </button>
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleCreateLaudo(patient) }}
+                        onClick={(e) => { e.stopPropagation(); handleCreateReport(customer) }}
                         className="p-2 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition-colors"
-                        title="Novo laudo para este paciente"
+                        title="Novo relatório para este cliente"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -274,9 +274,9 @@ export default function PatientList() {
                       </button>
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleOpenEdit(patient) }}
+                        onClick={(e) => { e.stopPropagation(); handleOpenEdit(customer) }}
                         className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="Editar paciente"
+                        title="Editar cliente"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -287,10 +287,10 @@ export default function PatientList() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setConfirmDeleteId(patient.id)
+                          setConfirmDeleteId(customer.id)
                         }}
                         className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Excluir paciente"
+                        title="Excluir cliente"
                       >
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
@@ -299,20 +299,20 @@ export default function PatientList() {
                     </div>
                   </div>
 
-                  {/* Expanded laudos list */}
-                  {isExpanded && patientLaudos.length > 0 && (
+                  {/* Expanded reports list */}
+                  {isExpanded && customerReports.length > 0 && (
                     <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/50 rounded-b-xl">
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                        Laudos vinculados
+                        Relatórios vinculados
                       </p>
                       <div className="space-y-1.5">
-                        {patientLaudos
+                        {customerReports
                           .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                          .map((laudo) => (
+                          .map((report) => (
                             <button
-                              key={laudo.id}
+                              key={report.id}
                               type="button"
-                              onClick={() => navigate(`/laudo/${laudo.id}`)}
+                              onClick={() => navigate(`/relatorio/${report.id}`)}
                               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-left"
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">
@@ -320,17 +320,17 @@ export default function PatientList() {
                                 <polyline points="14 2 14 8 20 8" />
                               </svg>
                               <span className="text-sm text-gray-700 flex-1 truncate">
-                                {laudo.patientName || 'Sem nome'}
+                                {report.customerName || 'Sem nome'}
                               </span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                laudo.status === 'finalizado'
+                                report.status === 'finalizado'
                                   ? 'bg-green-100 text-green-700'
                                   : 'bg-yellow-100 text-yellow-700'
                               }`}>
-                                {laudo.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
+                                {report.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
                               </span>
                               <span className="text-xs text-gray-400">
-                                {formatDateTime(laudo.updatedAt)}
+                                {formatDateTime(report.updatedAt)}
                               </span>
                             </button>
                           ))}
@@ -349,79 +349,79 @@ export default function PatientList() {
         )}
       </main>
 
-      {/* Patient Form Modal */}
+      {/* Customer Form Modal */}
       <Modal
         isOpen={showFormModal}
-        onClose={() => { setShowFormModal(false); setEditingPatient(null) }}
-        title={editingPatient?.createdAt === editingPatient?.updatedAt && !patients.find(p => p.id === editingPatient?.id) ? 'Novo Paciente' : 'Editar Paciente'}
+        onClose={() => { setShowFormModal(false); setEditingCustomer(null) }}
+        title={editingCustomer?.createdAt === editingCustomer?.updatedAt && !customers.find(p => p.id === editingCustomer?.id) ? 'Novo Cliente' : 'Editar Cliente'}
         size="lg"
       >
-        {editingPatient && (
+        {editingCustomer && (
           <div className="p-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Nome"
-                value={editingPatient.data.name}
+                value={editingCustomer.data.name}
                 onChange={(e) => updateEditingField('name', e.target.value)}
-                placeholder="Nome completo do paciente"
+                placeholder="Nome completo do cliente"
               />
               <Input
                 label="CPF"
-                value={editingPatient.data.cpf}
+                value={editingCustomer.data.cpf}
                 onChange={(e) => updateEditingField('cpf', e.target.value)}
                 placeholder="000.000.000-00"
               />
               <Input
                 label="Data de Nascimento"
                 type="date"
-                value={editingPatient.data.birthDate}
+                value={editingCustomer.data.birthDate}
                 onChange={(e) => updateEditingField('birthDate', e.target.value)}
               />
               <Input
                 label="Idade"
-                value={editingPatient.data.age}
+                value={editingCustomer.data.age}
                 onChange={(e) => updateEditingField('age', e.target.value)}
                 placeholder="Ex: 32 anos e 4 meses"
               />
               <Input
                 label="Escolaridade"
-                value={editingPatient.data.education}
+                value={editingCustomer.data.education}
                 onChange={(e) => updateEditingField('education', e.target.value)}
                 placeholder="Escolaridade"
               />
               <Input
                 label="Profissão"
-                value={editingPatient.data.profession}
+                value={editingCustomer.data.profession}
                 onChange={(e) => updateEditingField('profession', e.target.value)}
                 placeholder="Profissão"
               />
               <Input
                 label="Nome da Mãe"
-                value={editingPatient.data.motherName}
+                value={editingCustomer.data.motherName}
                 onChange={(e) => updateEditingField('motherName', e.target.value)}
                 placeholder="Nome da mãe"
               />
               <Input
                 label="Nome do Pai"
-                value={editingPatient.data.fatherName}
+                value={editingCustomer.data.fatherName}
                 onChange={(e) => updateEditingField('fatherName', e.target.value)}
                 placeholder="Nome do pai"
               />
               <Input
                 label="Responsável Legal (opcional)"
-                value={editingPatient.data.guardianName ?? ''}
+                value={editingCustomer.data.guardianName ?? ''}
                 onChange={(e) => updateEditingField('guardianName', e.target.value)}
                 placeholder="Nome do responsável"
               />
               <Input
                 label="Grau de Parentesco"
-                value={editingPatient.data.guardianRelationship ?? ''}
+                value={editingCustomer.data.guardianRelationship ?? ''}
                 onChange={(e) => updateEditingField('guardianRelationship', e.target.value)}
                 placeholder="Ex: Avó, Tio, Tutor"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-              <Button variant="ghost" onClick={() => { setShowFormModal(false); setEditingPatient(null) }}>
+              <Button variant="ghost" onClick={() => { setShowFormModal(false); setEditingCustomer(null) }}>
                 Cancelar
               </Button>
               <Button onClick={handleSave}>Salvar</Button>
@@ -439,7 +439,7 @@ export default function PatientList() {
       >
         <div className="p-4 space-y-4">
           <p className="text-sm text-gray-600">
-            Tem certeza de que deseja excluir este paciente? Esta ação não pode ser desfeita.
+            Tem certeza de que deseja excluir este cliente? Esta ação não pode ser desfeita.
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={cancelDelete}>

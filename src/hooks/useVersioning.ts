@@ -1,38 +1,38 @@
 import { useCallback, useState } from 'react'
-import type { Laudo, LaudoVersion } from '@/types'
-import { LAUDO_STATUS_LABELS } from '@/types'
+import type { Report, ReportVersion } from '@/types'
+import { REPORT_STATUS_LABELS } from '@/types'
 import { getReportVersions, createReportVersion } from '@/lib/api/report-api'
 
-export function useVersioning(laudo: Laudo | null) {
-  const [versions, setVersions] = useState<LaudoVersion[]>([])
+export function useVersioning(report: Report | null) {
+  const [versions, setVersions] = useState<ReportVersion[]>([])
 
   const refreshVersions = useCallback(async () => {
-    if (!laudo) return
+    if (!report) return
     try {
-      const v = await getReportVersions(laudo.id)
+      const v = await getReportVersions(report.id)
       setVersions(v)
     } catch {
       // ignore
     }
-  }, [laudo])
+  }, [report])
 
   const createSnapshot = useCallback(
     async (description: string) => {
-      if (!laudo) return
+      if (!report) return
       try {
-        await createReportVersion(laudo.id, { description })
-        const v = await getReportVersions(laudo.id)
+        await createReportVersion(report.id, { description })
+        const v = await getReportVersions(report.id)
         setVersions(v)
       } catch {
         // ignore
       }
     },
-    [laudo]
+    [report]
   )
 
   const createStatusChangeSnapshot = useCallback(
     (fromStatus: string) => {
-      createSnapshot(`Status alterado de ${LAUDO_STATUS_LABELS[fromStatus as keyof typeof LAUDO_STATUS_LABELS] ?? fromStatus}`)
+      createSnapshot(`Status alterado de ${REPORT_STATUS_LABELS[fromStatus as keyof typeof REPORT_STATUS_LABELS] ?? fromStatus}`)
     },
     [createSnapshot]
   )

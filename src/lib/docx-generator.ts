@@ -20,7 +20,7 @@ import {
 } from 'docx'
 import { saveAs } from 'file-saver'
 import {
-  Laudo,
+  Report,
   IdentificationData,
   TextBlockData,
   ScoreTableData,
@@ -340,23 +340,23 @@ function renderIdentification(data: IdentificationData): (Paragraph | Table)[] {
 
   // Section: Dados do Paciente
   elements.push(createSectionHeader('DADOS DO PACIENTE'))
-  const guardianLabel = data.patient.guardianRelationship
-    ? `Responsável Legal (${data.patient.guardianRelationship})`
+  const guardianLabel = data.customer.guardianRelationship
+    ? `Responsável Legal (${data.customer.guardianRelationship})`
     : 'Responsável Legal'
 
-  const patientRows = [
-    ['Nome', data.patient.name],
-    ['CPF', data.patient.cpf],
-    ['Data de Nascimento', formatDateBR(data.patient.birthDate)],
-    ['Idade', data.patient.age],
-    ['Escolaridade', data.patient.education],
-    ['Profissão', data.patient.profession],
-    ['Filiação (Mãe)', data.patient.motherName],
-    ['Filiação (Pai)', data.patient.fatherName],
-    [guardianLabel, data.patient.guardianName ?? ''],
+  const customerRows = [
+    ['Nome', data.customer.name],
+    ['CPF', data.customer.cpf],
+    ['Data de Nascimento', formatDateBR(data.customer.birthDate)],
+    ['Idade', data.customer.age],
+    ['Escolaridade', data.customer.education],
+    ['Profissão', data.customer.profession],
+    ['Filiação (Mãe)', data.customer.motherName],
+    ['Filiação (Pai)', data.customer.fatherName],
+    [guardianLabel, data.customer.guardianName ?? ''],
   ].filter(([, val]) => val)
 
-  elements.push(createKeyValueTable(patientRows))
+  elements.push(createKeyValueTable(customerRows))
 
   // Data e local
   elements.push(createSectionHeader('DADOS DO LAUDO'))
@@ -1194,12 +1194,12 @@ function renderReferences(data: ReferencesData): Paragraph[] {
 
 // ========== Closing Page ==========
 
-async function renderClosingPage(data: ClosingPageData, laudo: Laudo): Promise<(Paragraph | Table)[]> {
+async function renderClosingPage(data: ClosingPageData, report: Report): Promise<(Paragraph | Table)[]> {
   const elements: (Paragraph | Table)[] = []
   const prof = await getProfessional()
 
-  // Find identification block for patient info
-  const idBlock = laudo.blocks.find((b) => b.type === 'identification')
+  // Find identification block for customer info
+  const idBlock = report.blocks.find((b) => b.type === 'identification')
   const idData = idBlock?.data as IdentificationData | undefined
 
   // Backward compatibility: old laudos may have showSignatureLines instead of individual toggles
@@ -1282,26 +1282,26 @@ async function renderClosingPage(data: ClosingPageData, laudo: Laudo): Promise<(
 
   if (showPatient) {
     signatures.push({
-      name: idData?.patient?.name || 'Paciente',
+      name: idData?.customer?.name || 'Paciente',
       subtitle: 'Paciente',
     })
   }
   if (showMother) {
     signatures.push({
-      name: idData?.patient?.motherName || 'Mãe',
+      name: idData?.customer?.motherName || 'Mãe',
       subtitle: 'Mãe',
     })
   }
   if (showFather) {
     signatures.push({
-      name: idData?.patient?.fatherName || 'Pai',
+      name: idData?.customer?.fatherName || 'Pai',
       subtitle: 'Pai',
     })
   }
   if (showGuardian) {
-    const guardianRel = idData?.patient?.guardianRelationship
+    const guardianRel = idData?.customer?.guardianRelationship
     signatures.push({
-      name: idData?.patient?.guardianName || 'Responsável Legal',
+      name: idData?.customer?.guardianName || 'Responsável Legal',
       subtitle: guardianRel ? `Responsável Legal (${guardianRel})` : 'Responsável Legal',
     })
   }
@@ -1519,8 +1519,8 @@ function formatDateBR(dateStr: string): string {
 
 // ========== Main generator ==========
 
-export async function generateDocx(laudo: Laudo): Promise<void> {
-  const sortedBlocks = [...laudo.blocks].sort((a, b) => a.order - b.order)
+export async function generateDocx(report: Report): Promise<void> {
+  const sortedBlocks = [...report.blocks].sort((a, b) => a.order - b.order)
 
   const sectionChildren: (Paragraph | Table)[] = []
 
@@ -1546,7 +1546,7 @@ export async function generateDocx(laudo: Laudo): Promise<void> {
         sectionChildren.push(...renderReferences(block.data as ReferencesData))
         break
       case 'closing-page':
-        sectionChildren.push(...await renderClosingPage(block.data as ClosingPageData, laudo))
+        sectionChildren.push(...await renderClosingPage(block.data as ClosingPageData, report))
         break
     }
 
@@ -1608,8 +1608,8 @@ export async function generateDocx(laudo: Laudo): Promise<void> {
 
   const blob = await Packer.toBlob(doc)
 
-  const fileName = laudo.patientName
-    ? `Laudo - ${laudo.patientName}.docx`
+  const fileName = report.customerName
+    ? `Laudo - ${report.customerName}.docx`
     : `Laudo - ${new Date().toISOString().split('T')[0]}.docx`
 
   saveAs(blob, fileName)

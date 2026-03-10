@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import type { IdentificationData, Professional, PatientData, Solicitor, Patient } from '@/types'
+import type { IdentificationData, Professional, CustomerData, Solicitor, Customer } from '@/types'
 import Input from '@/components/ui/Input'
 import Toggle from '@/components/ui/Toggle'
 import Select from '@/components/ui/Select'
@@ -7,8 +7,8 @@ import Select from '@/components/ui/Select'
 interface IdentificationBlockProps {
   data: IdentificationData
   onChange: (data: IdentificationData) => void
-  patients?: Patient[]
-  onPatientSelected?: (patientId: string) => void
+  customers?: Customer[]
+  onCustomerSelected?: (customerId: string) => void
 }
 
 const sectionHeaderClass =
@@ -49,27 +49,27 @@ function calculateAge(birthDate: string, referenceDate: string): string {
   return `${years} ${years === 1 ? 'ano' : 'anos'} e ${months} ${months === 1 ? 'mes' : 'meses'}`
 }
 
-const IdentificationBlock = ({ data, onChange, patients, onPatientSelected }: IdentificationBlockProps) => {
+const IdentificationBlock = ({ data, onChange, customers, onCustomerSelected }: IdentificationBlockProps) => {
   const hasSolicitor = !!data.solicitor
 
-  const patientOptions = useMemo(() => {
-    if (!patients || patients.length === 0) return []
-    return patients.map((p) => ({
+  const customerOptions = useMemo(() => {
+    if (!customers || customers.length === 0) return []
+    return customers.map((p) => ({
       value: p.id,
-      label: p.data.name || 'Paciente sem nome',
+      label: p.data.name || 'Cliente sem nome',
     }))
-  }, [patients])
+  }, [customers])
 
-  const handleSelectPatient = useCallback(
-    (patientId: string) => {
-      if (!patientId || !patients) return
-      const patient = patients.find((p) => p.id === patientId)
-      if (!patient) return
-      // Copy patient data into the identification block
-      onChange({ ...data, patient: { ...patient.data } })
-      onPatientSelected?.(patientId)
+  const handleSelectCustomer = useCallback(
+    (customerId: string) => {
+      if (!customerId || !customers) return
+      const customer = customers.find((p) => p.id === customerId)
+      if (!customer) return
+      // Copy customer data into the identification block
+      onChange({ ...data, customer: { ...customer.data } })
+      onCustomerSelected?.(customerId)
     },
-    [data, onChange, patients, onPatientSelected]
+    [data, onChange, customers, onCustomerSelected]
   )
 
   const updateProfessional = useCallback(
@@ -82,16 +82,16 @@ const IdentificationBlock = ({ data, onChange, patients, onPatientSelected }: Id
     [data, onChange]
   )
 
-  const updatePatient = useCallback(
-    (field: keyof PatientData, value: string) => {
-      const updatedPatient = { ...data.patient, [field]: value }
+  const updateCustomer = useCallback(
+    (field: keyof CustomerData, value: string) => {
+      const updatedCustomer = { ...data.customer, [field]: value }
 
       // Auto-calculate age when birthDate changes
       if (field === 'birthDate') {
-        updatedPatient.age = calculateAge(value, data.date)
+        updatedCustomer.age = calculateAge(value, data.date)
       }
 
-      onChange({ ...data, patient: updatedPatient })
+      onChange({ ...data, customer: updatedCustomer })
     },
     [data, onChange]
   )
@@ -123,11 +123,11 @@ const IdentificationBlock = ({ data, onChange, patients, onPatientSelected }: Id
     (field: 'date' | 'location', value: string) => {
       const updated = { ...data, [field]: value }
 
-      // Recalculate age when laudo date changes
-      if (field === 'date' && data.patient.birthDate) {
-        updated.patient = {
-          ...data.patient,
-          age: calculateAge(data.patient.birthDate, value),
+      // Recalculate age when report date changes
+      if (field === 'date' && data.customer.birthDate) {
+        updated.customer = {
+          ...data.customer,
+          age: calculateAge(data.customer.birthDate, value),
         }
       }
 
@@ -207,89 +207,89 @@ const IdentificationBlock = ({ data, onChange, patients, onPatientSelected }: Id
         )}
       </section>
 
-      {/* Dados do Paciente */}
+      {/* Dados do Cliente */}
       <section>
-        <h3 className={sectionHeaderClass}>Dados do Paciente</h3>
-        {patientOptions.length > 0 && (
+        <h3 className={sectionHeaderClass}>Dados do Cliente</h3>
+        {customerOptions.length > 0 && (
           <div className="mb-4">
             <Select
               value=""
-              onChange={handleSelectPatient}
-              options={patientOptions}
-              placeholder="Preencher com paciente cadastrado..."
+              onChange={handleSelectCustomer}
+              options={customerOptions}
+              placeholder="Preencher com cliente cadastrado..."
             />
           </div>
         )}
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="Nome"
-            value={data.patient.name}
-            onChange={(e) => updatePatient('name', e.target.value)}
-            placeholder="Nome completo do paciente"
+            value={data.customer.name}
+            onChange={(e) => updateCustomer('name', e.target.value)}
+            placeholder="Nome completo do cliente"
           />
           <Input
             label="CPF"
-            value={data.patient.cpf}
-            onChange={(e) => updatePatient('cpf', e.target.value)}
+            value={data.customer.cpf}
+            onChange={(e) => updateCustomer('cpf', e.target.value)}
             placeholder="000.000.000-00"
           />
           <Input
             label="Data de Nascimento"
             type="date"
-            value={data.patient.birthDate}
-            onChange={(e) => updatePatient('birthDate', e.target.value)}
+            value={data.customer.birthDate}
+            onChange={(e) => updateCustomer('birthDate', e.target.value)}
           />
           <Input
             label="Idade"
-            value={data.patient.age}
-            onChange={(e) => updatePatient('age', e.target.value)}
+            value={data.customer.age}
+            onChange={(e) => updateCustomer('age', e.target.value)}
             placeholder="Ex: 32 anos e 4 meses"
           />
           <Input
             label="Escolaridade"
-            value={data.patient.education}
-            onChange={(e) => updatePatient('education', e.target.value)}
+            value={data.customer.education}
+            onChange={(e) => updateCustomer('education', e.target.value)}
             placeholder="Escolaridade"
           />
           <Input
             label="Profissão"
-            value={data.patient.profession}
-            onChange={(e) => updatePatient('profession', e.target.value)}
+            value={data.customer.profession}
+            onChange={(e) => updateCustomer('profession', e.target.value)}
             placeholder="Profissão"
           />
           <Input
             label="Nome da Mãe"
-            value={data.patient.motherName}
-            onChange={(e) => updatePatient('motherName', e.target.value)}
+            value={data.customer.motherName}
+            onChange={(e) => updateCustomer('motherName', e.target.value)}
             placeholder="Nome da mãe"
           />
           <Input
             label="Nome do Pai"
-            value={data.patient.fatherName}
-            onChange={(e) => updatePatient('fatherName', e.target.value)}
+            value={data.customer.fatherName}
+            onChange={(e) => updateCustomer('fatherName', e.target.value)}
             placeholder="Nome do pai"
           />
           <Input
             label="Responsável Legal (opcional)"
-            value={data.patient.guardianName ?? ''}
-            onChange={(e) => updatePatient('guardianName', e.target.value)}
+            value={data.customer.guardianName ?? ''}
+            onChange={(e) => updateCustomer('guardianName', e.target.value)}
             placeholder="Nome do responsável"
           />
           <Input
             label="Grau de Parentesco"
-            value={data.patient.guardianRelationship ?? ''}
-            onChange={(e) => updatePatient('guardianRelationship', e.target.value)}
+            value={data.customer.guardianRelationship ?? ''}
+            onChange={(e) => updateCustomer('guardianRelationship', e.target.value)}
             placeholder="Ex: Avó, Tio, Tutor"
           />
         </div>
       </section>
 
-      {/* Dados do Laudo */}
+      {/* Dados do Relatório */}
       <section>
-        <h3 className={sectionHeaderClass}>Dados do Laudo</h3>
+        <h3 className={sectionHeaderClass}>Dados do Relatório</h3>
         <div className="grid grid-cols-2 gap-4">
           <Input
-            label="Data do Laudo"
+            label="Data do Relatório"
             type="date"
             value={data.date}
             onChange={(e) => updateField('date', e.target.value)}

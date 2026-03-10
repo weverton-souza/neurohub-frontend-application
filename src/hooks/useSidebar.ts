@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-const STORAGE_KEY = 'neurohub_sidebar_collapsed'
+const STORAGE_KEY = 'dox_sidebar_collapsed'
 
 export function useSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(

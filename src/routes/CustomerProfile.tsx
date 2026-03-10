@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type {
-  Patient,
-  PatientData,
-  PatientNote,
-  PatientEvent,
-  PatientEventType,
-  Laudo,
+  Customer,
+  CustomerData,
+  CustomerNote,
+  CustomerEvent,
+  CustomerEventType,
+  Report,
 } from '@/types'
 import {
-  createEmptyPatientEvent,
-  PATIENT_EVENT_TYPE_LABELS,
-  PATIENT_EVENT_TYPE_COLORS,
+  createEmptyCustomerEvent,
+  CUSTOMER_EVENT_TYPE_LABELS,
+  CUSTOMER_EVENT_TYPE_COLORS,
 } from '@/types'
 import {
   getCustomer,
@@ -25,7 +25,7 @@ import {
 } from '@/lib/api/customer-api'
 import { getReportsByCustomer } from '@/lib/api/report-api'
 import { formatDateTime, formatDate } from '@/lib/utils'
-import { createLaudoFromPatient } from '@/lib/laudo-utils'
+import { createReportFromCustomer } from '@/lib/report-utils'
 import { useError } from '@/contexts/ErrorContext'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
@@ -34,7 +34,7 @@ import StatusBadge from '@/components/ui/StatusBadge'
 
 // ========== Types ==========
 
-type ProfileSection = 'personal' | 'contact' | 'clinical' | 'laudos' | 'notes' | 'timeline'
+type ProfileSection = 'personal' | 'contact' | 'clinical' | 'reports' | 'notes' | 'timeline'
 
 interface TabItem {
   key: ProfileSection
@@ -69,12 +69,12 @@ const TABS: TabItem[] = [
   { key: 'personal', label: 'Dados Pessoais' },
   { key: 'contact', label: 'Contato' },
   { key: 'clinical', label: 'Dados Clínicos' },
-  { key: 'laudos', label: 'Laudos' },
+  { key: 'reports', label: 'Relatórios' },
   { key: 'notes', label: 'Notas' },
   { key: 'timeline', label: 'Histórico' },
 ]
 
-const EVENT_TYPE_OPTIONS: { value: PatientEventType; label: string }[] = [
+const EVENT_TYPE_OPTIONS: { value: CustomerEventType; label: string }[] = [
   { value: 'consulta', label: 'Consulta' },
   { value: 'retorno', label: 'Retorno' },
   { value: 'avaliacao', label: 'Avaliação' },
@@ -96,8 +96,8 @@ function InfoField({ label, value }: { label: string; value: string | undefined 
 // ========== Timeline helpers ==========
 
 /** Group events by month/year for visual separation */
-function groupEventsByMonth(events: PatientEvent[]): { label: string; events: PatientEvent[] }[] {
-  const groups: Map<string, PatientEvent[]> = new Map()
+function groupEventsByMonth(events: CustomerEvent[]): { label: string; events: CustomerEvent[] }[] {
+  const groups: Map<string, CustomerEvent[]> = new Map()
 
   for (const event of events) {
     const d = new Date(event.date)
@@ -116,44 +116,44 @@ function groupEventsByMonth(events: PatientEvent[]): { label: string; events: Pa
 
 // ========== Component ==========
 
-export default function PatientProfile() {
+export default function CustomerProfile() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showError } = useError()
 
-  const [patient, setPatient] = useState<Patient | null>(null)
-  const [editData, setEditData] = useState<PatientData | null>(null)
+  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [editData, setEditData] = useState<CustomerData | null>(null)
   const [activeSection, setActiveSection] = useState<ProfileSection>('personal')
   const [saving, setSaving] = useState(false)
 
-  // Laudos
-  const [laudos, setLaudos] = useState<Laudo[]>([])
+  // Reports
+  const [reports, setReports] = useState<Report[]>([])
 
   // Notes
-  const [notes, setNotes] = useState<PatientNote[]>([])
+  const [notes, setNotes] = useState<CustomerNote[]>([])
   const [newNoteContent, setNewNoteContent] = useState('')
 
   // Timeline
-  const [events, setEvents] = useState<PatientEvent[]>([])
+  const [events, setEvents] = useState<CustomerEvent[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
-  const [newEvent, setNewEvent] = useState<PatientEvent | null>(null)
+  const [newEvent, setNewEvent] = useState<CustomerEvent | null>(null)
 
-  // Load patient
+  // Load customer
   useEffect(() => {
     if (!id) return
     async function load() {
       try {
-        const [p, patientLaudos, patientNotes, patientEvents] = await Promise.all([
+        const [p, customerReports, customerNotes, customerEvents] = await Promise.all([
           getCustomer(id!),
           getReportsByCustomer(id!),
           getCustomerNotes(id!),
           getCustomerEvents(id!),
         ])
-        setPatient(p)
+        setCustomer(p)
         setEditData({ ...p.data })
-        setLaudos(patientLaudos)
-        setNotes(patientNotes)
-        setEvents(patientEvents)
+        setReports(customerReports)
+        setNotes(customerNotes)
+        setEvents(customerEvents)
       } catch (err) {
         showError(err)
       }
@@ -164,114 +164,114 @@ export default function PatientProfile() {
   // ========== Handlers ==========
 
   const updateField = useCallback(
-    (field: keyof PatientData, value: string) => {
+    (field: keyof CustomerData, value: string) => {
       setEditData((prev) => (prev ? { ...prev, [field]: value } : prev))
     },
     []
   )
 
   const handleSaveSection = useCallback(async () => {
-    if (!patient || !editData) return
+    if (!customer || !editData) return
     setSaving(true)
     try {
-      const updated: Patient = {
-        ...patient,
+      const updated: Customer = {
+        ...customer,
         data: { ...editData },
         updatedAt: new Date().toISOString(),
       }
       await updateCustomer(updated)
-      setPatient(updated)
+      setCustomer(updated)
     } catch (err) {
       showError(err)
     } finally {
       setSaving(false)
     }
-  }, [patient, editData, showError])
+  }, [customer, editData, showError])
 
-  const handleCreateLaudo = useCallback(async () => {
-    if (!patient) return
+  const handleCreateReport = useCallback(async () => {
+    if (!customer) return
     try {
-      const laudo = await createLaudoFromPatient(patient)
-      navigate(`/laudo/${laudo.id}`)
+      const report = await createReportFromCustomer(customer)
+      navigate(`/relatorio/${report.id}`)
     } catch (err) {
       showError(err)
     }
-  }, [patient, navigate, showError])
+  }, [customer, navigate, showError])
 
   const handleAddNote = useCallback(async () => {
-    if (!patient || !newNoteContent.trim()) return
+    if (!customer || !newNoteContent.trim()) return
     try {
-      await createCustomerNote(patient.id, { content: newNoteContent.trim() })
-      const updatedNotes = await getCustomerNotes(patient.id)
+      await createCustomerNote(customer.id, { content: newNoteContent.trim() })
+      const updatedNotes = await getCustomerNotes(customer.id)
       setNotes(updatedNotes)
       setNewNoteContent('')
     } catch (err) {
       showError(err)
     }
-  }, [patient, newNoteContent, showError])
+  }, [customer, newNoteContent, showError])
 
   const handleDeleteNote = useCallback(
     async (noteId: string) => {
-      if (!patient) return
+      if (!customer) return
       try {
-        await apiDeleteCustomerNote(patient.id, noteId)
-        const updatedNotes = await getCustomerNotes(patient.id)
+        await apiDeleteCustomerNote(customer.id, noteId)
+        const updatedNotes = await getCustomerNotes(customer.id)
         setNotes(updatedNotes)
       } catch (err) {
         showError(err)
       }
     },
-    [patient, showError]
+    [customer, showError]
   )
 
   // Timeline handlers
   const handleOpenEventForm = useCallback(() => {
-    if (!patient) return
-    setNewEvent(createEmptyPatientEvent(patient.id))
+    if (!customer) return
+    setNewEvent(createEmptyCustomerEvent(customer.id))
     setShowEventForm(true)
-  }, [patient])
+  }, [customer])
 
   const handleSaveEvent = useCallback(async () => {
-    if (!patient || !newEvent || !newEvent.title.trim()) return
+    if (!customer || !newEvent || !newEvent.title.trim()) return
     try {
-      await createCustomerEvent(patient.id, newEvent)
-      const updatedEvents = await getCustomerEvents(patient.id)
+      await createCustomerEvent(customer.id, newEvent)
+      const updatedEvents = await getCustomerEvents(customer.id)
       setEvents(updatedEvents)
       setShowEventForm(false)
       setNewEvent(null)
     } catch (err) {
       showError(err)
     }
-  }, [patient, newEvent, showError])
+  }, [customer, newEvent, showError])
 
   const handleDeleteEvent = useCallback(
     async (eventId: string) => {
-      if (!patient) return
+      if (!customer) return
       try {
-        await apiDeleteCustomerEvent(patient.id, eventId)
-        const updatedEvents = await getCustomerEvents(patient.id)
+        await apiDeleteCustomerEvent(customer.id, eventId)
+        const updatedEvents = await getCustomerEvents(customer.id)
         setEvents(updatedEvents)
       } catch (err) {
         showError(err)
       }
     },
-    [patient, showError]
+    [customer, showError]
   )
 
   // ========== Not found ==========
 
-  if (!patient || !editData) {
+  if (!customer || !editData) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 text-sm">Paciente não encontrado</p>
+          <p className="text-gray-500 text-sm">Cliente não encontrado</p>
           <Button
             variant="ghost"
             size="sm"
             className="mt-3"
-            onClick={() => navigate('/pacientes')}
+            onClick={() => navigate('/clientes')}
           >
-            Voltar para Pacientes
+            Voltar para Clientes
           </Button>
         </div>
       </div>
@@ -280,8 +280,8 @@ export default function PatientProfile() {
 
   // ========== Avatar initial ==========
 
-  const initial = patient.data.name
-    ? patient.data.name.charAt(0).toUpperCase()
+  const initial = customer.data.name
+    ? customer.data.name.charAt(0).toUpperCase()
     : '?'
 
   // ========== Render sections ==========
@@ -326,7 +326,7 @@ export default function PatientProfile() {
     return (
       <SectionCard title="Dados Clínicos" onSave={handleSaveSection} saving={saving}>
         <div className="space-y-4">
-          <TextArea label="Queixa Principal" value={editData!.chiefComplaint ?? ''} onChange={(e) => updateField('chiefComplaint', e.target.value)} placeholder="Descreva a queixa principal do paciente..." />
+          <TextArea label="Queixa Principal" value={editData!.chiefComplaint ?? ''} onChange={(e) => updateField('chiefComplaint', e.target.value)} placeholder="Descreva a queixa principal do cliente..." />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Diagnóstico" value={editData!.diagnosis ?? ''} onChange={(e) => updateField('diagnosis', e.target.value)} />
             <Input label="Médico Solicitante" value={editData!.referralDoctor ?? ''} onChange={(e) => updateField('referralDoctor', e.target.value)} />
@@ -337,31 +337,31 @@ export default function PatientProfile() {
     )
   }
 
-  function renderLaudosSection() {
+  function renderReportsSection() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Laudos</h2>
-          <Button size="sm" onClick={handleCreateLaudo}>+ Novo Laudo</Button>
+          <h2 className="text-lg font-semibold text-gray-900">Relatórios</h2>
+          <Button size="sm" onClick={handleCreateReport}>+ Novo Relatório</Button>
         </div>
-        {laudos.length === 0 ? (
+        {reports.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
             <div className="flex justify-center text-gray-400 mb-2"><FileTextIcon /></div>
-            <p className="text-sm text-gray-500">Nenhum laudo criado para este paciente</p>
-            <Button variant="ghost" size="sm" className="mt-3" onClick={handleCreateLaudo}>Criar primeiro laudo</Button>
+            <p className="text-sm text-gray-500">Nenhum relatório criado para este cliente</p>
+            <Button variant="ghost" size="sm" className="mt-3" onClick={handleCreateReport}>Criar primeiro relatório</Button>
           </div>
         ) : (
           <div className="space-y-2">
-            {laudos.map((laudo) => (
-              <button key={laudo.id} onClick={() => navigate(`/laudo/${laudo.id}`)} className="w-full text-left rounded-lg border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50/30 transition-colors">
+            {reports.map((report) => (
+              <button key={report.id} onClick={() => navigate(`/relatorio/${report.id}`)} className="w-full text-left rounded-lg border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50/30 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">{laudo.patientName || 'Sem nome'}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Criado em {formatDateTime(laudo.createdAt)}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{report.customerName || 'Sem nome'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Criado em {formatDateTime(report.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
-                    <span className="text-xs text-gray-400">{laudo.blocks.length} {laudo.blocks.length === 1 ? 'bloco' : 'blocos'}</span>
-                    <StatusBadge status={laudo.status} />
+                    <span className="text-xs text-gray-400">{report.blocks.length} {report.blocks.length === 1 ? 'bloco' : 'blocos'}</span>
+                    <StatusBadge status={report.status} />
                   </div>
                 </div>
               </button>
@@ -429,7 +429,7 @@ export default function PatientProfile() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                 <select
                   value={newEvent.type}
-                  onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as PatientEventType })}
+                  onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CustomerEventType })}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
                 >
                   {EVENT_TYPE_OPTIONS.map((opt) => (
@@ -502,8 +502,8 @@ export default function PatientProfile() {
                 {/* Vertical timeline */}
                 <ol className="relative border-l-2 border-gray-200 ml-3">
                   {group.events.map((event) => {
-                    const dotColor = PATIENT_EVENT_TYPE_COLORS[event.type]
-                    const typeLabel = PATIENT_EVENT_TYPE_LABELS[event.type]
+                    const dotColor = CUSTOMER_EVENT_TYPE_COLORS[event.type]
+                    const typeLabel = CUSTOMER_EVENT_TYPE_LABELS[event.type]
                     const eventDate = new Date(event.date)
                     const timeStr = eventDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                     const dateStr = eventDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -566,7 +566,7 @@ export default function PatientProfile() {
     personal: renderPersonalSection,
     contact: renderContactSection,
     clinical: renderClinicalSection,
-    laudos: renderLaudosSection,
+    reports: renderReportsSection,
     notes: renderNotesSection,
     timeline: renderTimelineSection,
   }
@@ -580,14 +580,14 @@ export default function PatientProfile() {
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-2 text-sm">
             <button
-              onClick={() => navigate('/pacientes')}
+              onClick={() => navigate('/clientes')}
               className="text-gray-500 hover:text-brand-700 transition-colors"
             >
-              Pacientes
+              Clientes
             </button>
             <span className="text-gray-400">/</span>
             <span className="text-gray-900 font-medium">
-              {patient.data.name || 'Sem nome'}
+              {customer.data.name || 'Sem nome'}
             </span>
           </div>
           <Button size="sm" variant="secondary" onClick={() => setActiveSection('personal')}>
@@ -610,20 +610,20 @@ export default function PatientProfile() {
             {/* Info grid */}
             <div className="flex-1 min-w-0">
               <div className="grid grid-cols-3 gap-x-8 gap-y-3">
-                <InfoField label="Nome" value={patient.data.name} />
-                <InfoField label="CPF" value={patient.data.cpf} />
-                <InfoField label="Idade" value={patient.data.age} />
+                <InfoField label="Nome" value={customer.data.name} />
+                <InfoField label="CPF" value={customer.data.cpf} />
+                <InfoField label="Idade" value={customer.data.age} />
 
-                <InfoField label="Telefone" value={patient.data.phone} />
+                <InfoField label="Telefone" value={customer.data.phone} />
                 <InfoField
                   label="Data de Nascimento"
-                  value={patient.data.birthDate ? formatDate(patient.data.birthDate) : undefined}
+                  value={customer.data.birthDate ? formatDate(customer.data.birthDate) : undefined}
                 />
-                <InfoField label="Escolaridade" value={patient.data.education} />
+                <InfoField label="Escolaridade" value={customer.data.education} />
 
-                <InfoField label="Profissão" value={patient.data.profession} />
-                <InfoField label="Cadastrado" value={formatDateTime(patient.createdAt)} />
-                <InfoField label="Atualizado" value={formatDateTime(patient.updatedAt)} />
+                <InfoField label="Profissão" value={customer.data.profession} />
+                <InfoField label="Cadastrado" value={formatDateTime(customer.createdAt)} />
+                <InfoField label="Atualizado" value={formatDateTime(customer.updatedAt)} />
               </div>
             </div>
           </div>

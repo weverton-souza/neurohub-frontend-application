@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { FormField, FormFieldMapping, LaudoTemplate } from '@/types'
+import type { FormField, FormFieldMapping, ReportTemplate } from '@/types'
 import { FORM_FIELD_TYPE_LABELS } from '@/types'
 import { getBlockTitle } from '@/lib/block-constants'
 import { buildFormSectionGroups } from '@/lib/utils'
@@ -7,11 +7,11 @@ import { buildFormSectionGroups } from '@/lib/utils'
 interface FieldMappingEditorProps {
   fields: FormField[]
   mappings: FormFieldMapping[]
-  template: LaudoTemplate | null
+  template: ReportTemplate | null
   onChange: (mappings: FormFieldMapping[]) => void
 }
 
-function getTemplateSections(template: LaudoTemplate): string[] {
+function getTemplateSections(template: ReportTemplate): string[] {
   const sections: string[] = []
   for (const block of template.blocks) {
     const title = getBlockTitle(block)

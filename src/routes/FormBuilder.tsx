@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import type {
-  AnamnesisForm,
+  Form,
   FormField,
   FormFieldType,
   FormSectionGroup,
@@ -41,14 +41,14 @@ export default function FormBuilder() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const [form, setForm] = useState<AnamnesisForm | null>(null)
+  const [form, setForm] = useState<Form | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [showTemplateLinkModal, setShowTemplateLinkModal] = useState(false)
   const [showSectionReorderModal, setShowSectionReorderModal] = useState(false)
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null)
 
-  const updateFormFn = useCallback((data: AnamnesisForm) => updateForm(data), [])
-  const { saveStatus, scheduleSave, forceSave } = useAutoSave<AnamnesisForm>(updateFormFn)
+  const updateFormFn = useCallback((data: Form) => updateForm(data), [])
+  const { saveStatus, scheduleSave, forceSave } = useAutoSave<Form>(updateFormFn)
   const [templates, setTemplates] = useState(() => getAllTemplates([]))
 
   // Load form and templates
@@ -63,7 +63,7 @@ export default function FormBuilder() {
       .catch(() => navigate('/formularios'))
   }, [id, navigate])
 
-  const updateFormState = useCallback((patch: Partial<AnamnesisForm>) => {
+  const updateFormState = useCallback((patch: Partial<Form>) => {
     setForm((prev) => {
       if (!prev) return prev
       const updated = { ...prev, ...patch }

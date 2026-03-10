@@ -1,15 +1,15 @@
-import type { LaudoTemplate, ScoreTableTemplate, ChartTemplate } from '@/types'
+import type { ReportTemplate, ScoreTableTemplate, ChartTemplate } from '@/types'
 import { api } from '@/lib/api/api-client'
 
 // ========== Report Templates ==========
 
-export async function getReportTemplates(): Promise<LaudoTemplate[]> {
-  const { data } = await api.get<LaudoTemplate[]>('/templates/reports')
+export async function getReportTemplates(): Promise<ReportTemplate[]> {
+  const { data } = await api.get<ReportTemplate[]>('/templates/reports')
   return data
 }
 
-export async function createReportTemplate(template: Partial<LaudoTemplate>): Promise<LaudoTemplate> {
-  const { data } = await api.post<LaudoTemplate>('/templates/reports', template)
+export async function createReportTemplate(template: Partial<ReportTemplate>): Promise<ReportTemplate> {
+  const { data } = await api.post<ReportTemplate>('/templates/reports', template)
   return data
 }
 

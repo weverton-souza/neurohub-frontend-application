@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import type { AnamnesisForm, FormResponse, FormFieldAnswer } from '@/types'
+import type { Form, FormResponse, FormFieldAnswer } from '@/types'
 import { createEmptyFormResponse, createEmptyFormFieldAnswer } from '@/types'
 import {
   getFormById,
@@ -18,7 +18,7 @@ export default function FormFill() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const [form, setForm] = useState<AnamnesisForm | null>(null)
+  const [form, setForm] = useState<Form | null>(null)
   const [response, setResponse] = useState<FormResponse | null>(null)
   const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set())
 
@@ -28,7 +28,7 @@ export default function FormFill() {
   )
   const { saveStatus, scheduleSave, forceSave } = useAutoSave<FormResponse>(updateResponseFn)
   const responseIdParam = searchParams.get('response')
-  const patientIdParam = searchParams.get('patient')
+  const customerIdParam = searchParams.get('customer')
 
   // Load form
   useEffect(() => {
@@ -57,16 +57,16 @@ export default function FormFill() {
       // Create new response
       const newResponse = createEmptyFormResponse(loadedForm.id)
 
-      // Pre-fill patient if param provided
-      if (patientIdParam) {
+      // Pre-fill customer if param provided
+      if (customerIdParam) {
         try {
-          const patient = await getCustomer(patientIdParam)
-          if (patient) {
-            newResponse.patientId = patient.id
-            newResponse.patientName = patient.data.name
+          const customer = await getCustomer(customerIdParam)
+          if (customer) {
+            newResponse.customerId = customer.id
+            newResponse.customerName = customer.data.name
           }
         } catch {
-          // patient not found
+          // customer not found
         }
       }
 
@@ -78,7 +78,7 @@ export default function FormFill() {
       const created = await createFormResponse(id, newResponse)
       setResponse(created)
     })
-  }, [id, navigate, responseIdParam, patientIdParam])
+  }, [id, navigate, responseIdParam, customerIdParam])
 
   const updateResponseState = useCallback((patch: Partial<FormResponse>) => {
     setResponse((prev) => {
@@ -110,8 +110,8 @@ export default function FormFill() {
     }
   }, [response, updateResponseState, validationErrors])
 
-  const handlePatientNameChange = useCallback((name: string) => {
-    updateResponseState({ patientName: name })
+  const handleCustomerNameChange = useCallback((name: string) => {
+    updateResponseState({ customerName: name })
   }, [updateResponseState])
 
   const validate = useCallback((): boolean => {
@@ -236,16 +236,16 @@ export default function FormFill() {
           </div>
         </div>
 
-        {/* Patient name */}
+        {/* Customer name */}
         <div className="bg-white rounded-lg shadow-sm px-6 py-5">
           <label className="block text-sm text-gray-900 mb-1">
-            Nome do paciente <span className="text-red-500">*</span>
+            Nome do cliente <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            value={response.patientName}
-            onChange={(e) => handlePatientNameChange(e.target.value)}
-            placeholder="Nome completo do paciente"
+            value={response.customerName}
+            onChange={(e) => handleCustomerNameChange(e.target.value)}
+            placeholder="Nome completo do cliente"
             className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors"
           />
         </div>

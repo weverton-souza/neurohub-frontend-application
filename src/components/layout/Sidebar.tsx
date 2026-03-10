@@ -21,15 +21,15 @@ interface NavItemConfig {
 const NAV_ITEMS: NavItemConfig[] = [
   {
     to: '/',
-    label: 'Laudos',
+    label: 'Relatórios',
     icon: DocumentIcon,
-    matchPaths: ['/laudo/'],
+    matchPaths: ['/relatorio/'],
   },
   {
-    to: '/pacientes',
-    label: 'Pacientes',
+    to: '/clientes',
+    label: 'Clientes',
     icon: UsersIcon,
-    matchPaths: ['/pacientes/'],
+    matchPaths: ['/clientes/'],
   },
   {
     to: '/formularios',

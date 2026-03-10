@@ -50,9 +50,9 @@ export interface Solicitor {
   specialty?: string
 }
 
-// ========== Patient ==========
+// ========== Customer ==========
 
-export interface PatientData {
+export interface CustomerData {
   name: string
   cpf: string
   birthDate: string // ISO date string
@@ -77,26 +77,26 @@ export interface PatientData {
   referralDoctor?: string      // médico solicitante
 }
 
-export interface Patient {
+export interface Customer {
   id: string
   createdAt: string
   updatedAt: string
-  data: PatientData
+  data: CustomerData
 }
 
-export interface PatientNote {
+export interface CustomerNote {
   id: string
-  patientId: string
+  customerId: string
   createdAt: string
   updatedAt: string
   content: string
 }
 
-// ========== Patient Timeline ==========
+// ========== Customer Timeline ==========
 
-export type PatientEventType = 'consulta' | 'retorno' | 'avaliacao' | 'laudo' | 'observacao'
+export type CustomerEventType = 'consulta' | 'retorno' | 'avaliacao' | 'laudo' | 'observacao'
 
-export const PATIENT_EVENT_TYPE_LABELS: Record<PatientEventType, string> = {
+export const CUSTOMER_EVENT_TYPE_LABELS: Record<CustomerEventType, string> = {
   consulta: 'Consulta',
   retorno: 'Retorno',
   avaliacao: 'Avaliação',
@@ -104,7 +104,7 @@ export const PATIENT_EVENT_TYPE_LABELS: Record<PatientEventType, string> = {
   observacao: 'Observação',
 }
 
-export const PATIENT_EVENT_TYPE_COLORS: Record<PatientEventType, string> = {
+export const CUSTOMER_EVENT_TYPE_COLORS: Record<CustomerEventType, string> = {
   consulta: 'bg-blue-500',
   retorno: 'bg-emerald-500',
   avaliacao: 'bg-purple-500',
@@ -112,10 +112,10 @@ export const PATIENT_EVENT_TYPE_COLORS: Record<PatientEventType, string> = {
   observacao: 'bg-gray-400',
 }
 
-export interface PatientEvent {
+export interface CustomerEvent {
   id: string
-  patientId: string
-  type: PatientEventType
+  customerId: string
+  type: CustomerEventType
   title: string
   description: string
   date: string       // ISO datetime — data/hora do evento
@@ -127,8 +127,8 @@ export interface PatientEvent {
 export interface IdentificationData {
   professional: Professional
   solicitor?: Solicitor
-  patient: PatientData
-  date: string // data do laudo
+  customer: CustomerData
+  date: string // data do relatório
   location: string // ex: "Belo Horizonte - MG"
 }
 
@@ -398,49 +398,49 @@ export interface Block {
   collapsed: boolean
 }
 
-// ========== Laudo ==========
+// ========== Report ==========
 
-export type LaudoStatus = 'rascunho' | 'em_revisao' | 'finalizado'
+export type ReportStatus = 'rascunho' | 'em_revisao' | 'finalizado'
 
-export const LAUDO_STATUS_LABELS: Record<LaudoStatus, string> = {
+export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
   rascunho: 'Rascunho',
   em_revisao: 'Em Revisão',
   finalizado: 'Finalizado',
 }
 
-export const LAUDO_STATUS_COLORS: Record<LaudoStatus, { bg: string; text: string }> = {
+export const REPORT_STATUS_COLORS: Record<ReportStatus, { bg: string; text: string }> = {
   rascunho: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
   em_revisao: { bg: 'bg-blue-100', text: 'text-blue-700' },
   finalizado: { bg: 'bg-green-100', text: 'text-green-700' },
 }
 
-export const LAUDO_STATUS_TRANSITIONS: Record<LaudoStatus, LaudoStatus[]> = {
+export const REPORT_STATUS_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
   rascunho: ['em_revisao', 'finalizado'],
   em_revisao: ['rascunho', 'finalizado'],
   finalizado: ['em_revisao'],
 }
 
-export interface Laudo {
+export interface Report {
   id: string
   createdAt: string
   updatedAt: string
-  status: LaudoStatus
-  patientName: string
-  patientId?: string
+  status: ReportStatus
+  customerName: string
+  customerId?: string
   formId?: string           // link para formulário de origem
-  formResponseId?: string   // link para resposta de formulário que gerou este laudo
+  formResponseId?: string   // link para resposta de formulário que gerou este relatório
   blocks: Block[]
 }
 
-// ========== Laudo Versioning ==========
+// ========== Report Versioning ==========
 
-export interface LaudoVersion {
+export interface ReportVersion {
   id: string
-  laudoId: string
+  reportId: string
   createdAt: string
-  status: LaudoStatus
+  status: ReportStatus
   description: string
-  patientName: string
+  customerName: string
   blocks: Block[]
 }
 
@@ -465,7 +465,7 @@ export interface TemplateBlock {
   data: BlockData
 }
 
-export interface LaudoTemplate {
+export interface ReportTemplate {
   id: string
   name: string
   description: string
@@ -487,7 +487,7 @@ export const DEFAULT_SCORE_COLUMNS: ScoreTableColumn[] = [
 
 // ========== Factory Functions ==========
 
-export function createEmptyPatient(): PatientData {
+export function createEmptyCustomerData(): CustomerData {
   return {
     name: '',
     cpf: '',
@@ -500,31 +500,31 @@ export function createEmptyPatient(): PatientData {
   }
 }
 
-export function createEmptyPatientRecord(): Patient {
+export function createEmptyCustomer(): Customer {
   return {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    data: createEmptyPatient(),
+    data: createEmptyCustomerData(),
   }
 }
 
-export function createEmptyPatientNote(patientId: string): PatientNote {
+export function createEmptyCustomerNote(customerId: string): CustomerNote {
   const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
-    patientId,
+    customerId,
     createdAt: now,
     updatedAt: now,
     content: '',
   }
 }
 
-export function createEmptyPatientEvent(patientId: string, type: PatientEventType = 'consulta'): PatientEvent {
+export function createEmptyCustomerEvent(customerId: string, type: CustomerEventType = 'consulta'): CustomerEvent {
   const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
-    patientId,
+    customerId,
     type,
     title: '',
     description: '',
@@ -544,7 +544,7 @@ export function createEmptyProfessional(): Professional {
 export function createEmptyIdentificationData(professional?: Professional): IdentificationData {
   return {
     professional: professional ?? createEmptyProfessional(),
-    patient: createEmptyPatient(),
+    customer: createEmptyCustomerData(),
     date: new Date().toISOString().split('T')[0],
     location: '',
   }
@@ -691,7 +691,7 @@ export function createChartFromTemplate(template: ChartTemplate): ChartData {
   }
 }
 
-// ========== Anamnesis Form ==========
+// ========== Form ==========
 
 export type FormFieldType =
   | 'short-text'
@@ -754,7 +754,7 @@ export type VariableMap = Record<string, string>
 export interface VariableInfo {
   key: string
   label: string
-  source: 'patient' | 'form' | 'backend'
+  source: 'customer' | 'form' | 'backend'
 }
 
 export interface FormFieldMapping {
@@ -763,14 +763,14 @@ export interface FormFieldMapping {
   hint: string                // dica livre para a IA, ex: "nível de escolaridade do paciente"
 }
 
-export interface AnamnesisForm {
+export interface Form {
   id: string
   title: string
   description: string
   createdAt: string
   updatedAt: string
   fields: FormField[]
-  linkedTemplateId: string | null  // link para LaudoTemplate.id
+  linkedTemplateId: string | null  // link para ReportTemplate.id
   fieldMappings: FormFieldMapping[]
   isDefault?: boolean
 }
@@ -797,13 +797,13 @@ export interface FormFieldAnswer {
 export interface FormResponse {
   id: string
   formId: string
-  patientId: string | null     // link opcional ao cadastro de pacientes
-  patientName: string          // sempre armazenado (pode não estar no cadastro)
+  customerId: string | null     // link opcional ao cadastro de clientes
+  customerName: string          // sempre armazenado (pode não estar no cadastro)
   status: FormResponseStatus
   answers: FormFieldAnswer[]
   createdAt: string
   updatedAt: string
-  generatedLaudoId: string | null  // preenchido após IA gerar o laudo
+  generatedReportId: string | null  // preenchido após IA gerar o relatório
 }
 
 // ========== Form Factory Functions ==========
@@ -835,7 +835,7 @@ export function createEmptyFormField(type: FormFieldType = 'short-text', order: 
   }
 }
 
-export function createEmptyAnamnesisForm(): AnamnesisForm {
+export function createEmptyForm(): Form {
   return {
     id: crypto.randomUUID(),
     title: '',
@@ -861,13 +861,13 @@ export function createEmptyFormResponse(formId: string): FormResponse {
   return {
     id: crypto.randomUUID(),
     formId,
-    patientId: null,
-    patientName: '',
+    customerId: null,
+    customerName: '',
     status: 'em_andamento',
     answers: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    generatedLaudoId: null,
+    generatedReportId: null,
   }
 }
 
