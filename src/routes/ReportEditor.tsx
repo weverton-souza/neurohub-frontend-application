@@ -15,7 +15,7 @@ import OutlineTree from '@/components/editor/OutlineTree'
 import BlockSelector, { BlockVariant } from '@/components/editor/BlockSelector'
 import BlockEditModal from '@/components/editor/BlockEditModal'
 import VersionHistoryModal from '@/components/editor/VersionHistoryModal'
-import DocxPreviewModal from '@/components/editor/DocxPreviewModal'
+import DocxPreviewPanel from '@/components/editor/DocxPreviewPanel'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
@@ -39,6 +39,7 @@ export default function ReportEditor() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [showDocxPreview, setShowDocxPreview] = useState(false)
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0)
   const [formProvenanceLabel, setFormProvenanceLabel] = useState<string | null>(null)
   const [formProvenanceId, setFormProvenanceId] = useState<string | null>(null)
   const [scoreTableTemplates, setScoreTableTemplates] = useState<ScoreTableTemplate[]>([])
@@ -118,6 +119,7 @@ export default function ReportEditor() {
         b.id === blockId ? { ...b, data } : b
       )
       handleUpdateReport({ blocks: updated })
+      setPreviewRefreshKey((k) => k + 1)
     },
     [report, handleUpdateReport]
   )
@@ -432,12 +434,18 @@ export default function ReportEditor() {
             Salvar como Template
           </Button>
 
-          <Button variant="secondary" size="md" onClick={() => setShowDocxPreview(true)}>
+          <Button variant="secondary" size="md" onClick={() => setShowDocxPreview((v) => !v)}>
             <span className="flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
-                <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-              </svg>
+              {showDocxPreview ? (
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1.651 1.651 0 000-1.186A10.004 10.004 0 0010 3c-1.67 0-3.248.41-4.631 1.13L3.28 2.22zM7.905 6.845l1.74 1.74a2.5 2.5 0 012.77 2.77l1.74 1.74a4 4 0 00-6.25-6.25zM9.553 12.894l-1.447-1.447a2.5 2.5 0 01-.007-2.894L6.382 6.836A10.018 10.018 0 00.664 10.59a1.651 1.651 0 000 1.186A10.004 10.004 0 0010 17c1.075 0 2.112-.168 3.088-.485l-1.747-1.747a4.002 4.002 0 01-1.788-1.874z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                  <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                </svg>
+              )}
               Preview
             </span>
           </Button>
@@ -454,134 +462,151 @@ export default function ReportEditor() {
         </div>
       </header>
 
-      {/* Form provenance banner */}
-      {formProvenanceLabel && (
-        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 pt-3">
-          <div className="flex items-center gap-2 bg-brand-50 rounded-lg px-3 py-2 text-xs text-brand-700">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            <span>
-              Gerado a partir do formulário{' '}
-              <button
-                type="button"
-                onClick={() => formProvenanceId && navigate(`/formulario/${formProvenanceId}/respostas`)}
-                className="font-medium underline hover:text-brand-800"
-              >
-                {formProvenanceLabel}
-              </button>
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Main content area */}
+      <div className={`flex-1 flex w-full px-4 sm:px-6 ${showDocxPreview ? 'gap-6' : 'max-w-3xl mx-auto'}`}>
+        {/* Left: blocks */}
+        <div className={`min-w-0 flex flex-col ${showDocxPreview ? 'flex-1' : 'flex-1'}`}>
+          {/* Form provenance banner */}
+          {formProvenanceLabel && (
+            <div className="pt-3">
+              <div className="flex items-center gap-2 bg-brand-50 rounded-lg px-3 py-2 text-xs text-brand-700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                <span>
+                  Gerado a partir do formulário{' '}
+                  <button
+                    type="button"
+                    onClick={() => formProvenanceId && navigate(`/formulario/${formProvenanceId}/respostas`)}
+                    className="font-medium underline hover:text-brand-800"
+                  >
+                    {formProvenanceLabel}
+                  </button>
+                </span>
+              </div>
+            </div>
+          )}
 
-      {/* Toolbar */}
-      <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 pt-4 pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">{report.blocks.length} blocos</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={collapseAll}
-              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Recolher todas as seções"
-            >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.23 15.79a.75.75 0 001.06-.02L10 11.832l3.71 3.938a.75.75 0 101.08-1.04l-4.25-4.5a.75.75 0 00-1.08 0l-4.25 4.5a.75.75 0 00.02 1.06z" clipRule="evenodd" />
-                <path fillRule="evenodd" d="M5.23 9.79a.75.75 0 001.06-.02L10 5.832l3.71 3.938a.75.75 0 101.08-1.04l-4.25-4.5a.75.75 0 00-1.08 0l-4.25 4.5a.75.75 0 00.02 1.06z" clipRule="evenodd" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={expandAll}
-              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Expandir todas as seções"
-            >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M14.77 4.21a.75.75 0 01-.02 1.06L10 9.168 6.29 5.23a.75.75 0 00-1.08 1.04l4.25 4.5a.75.75 0 001.08 0l4.25-4.5a.75.75 0 00-.02-1.06z" clipRule="evenodd" />
-                <path fillRule="evenodd" d="M14.77 10.21a.75.75 0 01-.02 1.06L10 15.168l-3.71-3.938a.75.75 0 00-1.08 1.04l4.25 4.5a.75.75 0 001.08 0l4.25-4.5a.75.75 0 00-.02-1.06z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Outline Tree */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 pb-6">
-        <OutlineTree
-          blocks={report.blocks}
-          onBlocksChange={handleBlocksChange}
-          collapsedSections={collapsedSections}
-          onToggleSectionCollapse={toggleSectionCollapse}
-          onRequestAddBlock={handleRequestAddBlock}
-          onEditBlock={setEditingBlockId}
-        />
-
-        <div className="mt-6 flex justify-center">
-          <div className="relative w-full max-w-md" ref={sectionSelectorRef}>
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={() => setShowSectionSelector(!showSectionSelector)}
-              className="border-2 border-dashed border-gray-300 hover:border-brand-400 hover:text-brand-700 w-full"
-            >
-              + Adicionar Seção
-            </Button>
-
-            {showSectionSelector && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+          {/* Toolbar */}
+          <div className="pt-4 pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">{report.blocks.length} blocos</span>
+              </div>
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={handleAddTextSection}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                  onClick={collapseAll}
+                  className="p-1.5 rounded-md hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Recolher todas as seções"
                 >
-                  <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="font-medium">Nova Seção</p>
-                    <p className="text-xs text-gray-400">Seção de texto com título</p>
-                  </div>
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.23 15.79a.75.75 0 001.06-.02L10 11.832l3.71 3.938a.75.75 0 101.08-1.04l-4.25-4.5a.75.75 0 00-1.08 0l-4.25 4.5a.75.75 0 00.02 1.06z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M5.23 9.79a.75.75 0 001.06-.02L10 5.832l3.71 3.938a.75.75 0 101.08-1.04l-4.25-4.5a.75.75 0 00-1.08 0l-4.25 4.5a.75.75 0 00.02 1.06z" clipRule="evenodd" />
+                  </svg>
                 </button>
-
                 <button
                   type="button"
-                  onClick={handleAddClosingPage}
-                  disabled={hasClosingPage}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left ${
-                    hasClosingPage
-                      ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  onClick={expandAll}
+                  className="p-1.5 rounded-md hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Expandir todas as seções"
                 >
-                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    hasClosingPage ? 'bg-gray-50 text-gray-300' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <path d="M9 15l2 2 4-4" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="font-medium">Termo de Entrega</p>
-                    <p className="text-xs text-gray-400">
-                      {hasClosingPage ? 'Já adicionado' : 'Página de encerramento e assinaturas'}
-                    </p>
-                  </div>
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M14.77 4.21a.75.75 0 01-.02 1.06L10 9.168 6.29 5.23a.75.75 0 00-1.08 1.04l4.25 4.5a.75.75 0 001.08 0l4.25-4.5a.75.75 0 00-.02-1.06z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M14.77 10.21a.75.75 0 01-.02 1.06L10 15.168l-3.71-3.938a.75.75 0 00-1.08 1.04l4.25 4.5a.75.75 0 001.08 0l4.25-4.5a.75.75 0 00-.02-1.06z" clipRule="evenodd" />
+                  </svg>
                 </button>
               </div>
-            )}
+            </div>
           </div>
+
+          {/* Outline Tree */}
+          <main className="flex-1 pb-6">
+            <OutlineTree
+              blocks={report.blocks}
+              onBlocksChange={handleBlocksChange}
+              collapsedSections={collapsedSections}
+              onToggleSectionCollapse={toggleSectionCollapse}
+              onRequestAddBlock={handleRequestAddBlock}
+              onEditBlock={setEditingBlockId}
+            />
+
+            <div className="mt-6 flex justify-center">
+              <div className="relative w-full max-w-md" ref={sectionSelectorRef}>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => setShowSectionSelector(!showSectionSelector)}
+                  className="border-2 border-dashed border-gray-300 hover:border-brand-400 hover:text-brand-700 w-full"
+                >
+                  + Adicionar Seção
+                </Button>
+
+                {showSectionSelector && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <button
+                      type="button"
+                      onClick={handleAddTextSection}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                    >
+                      <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      </span>
+                      <div>
+                        <p className="font-medium">Nova Seção</p>
+                        <p className="text-xs text-gray-400">Seção de texto com título</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleAddClosingPage}
+                      disabled={hasClosingPage}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left ${
+                        hasClosingPage
+                          ? 'text-gray-300 cursor-not-allowed'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        hasClosingPage ? 'bg-gray-50 text-gray-300' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <path d="M9 15l2 2 4-4" />
+                        </svg>
+                      </span>
+                      <div>
+                        <p className="font-medium">Termo de Entrega</p>
+                        <p className="text-xs text-gray-400">
+                          {hasClosingPage ? 'Já adicionado' : 'Página de encerramento e assinaturas'}
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
         </div>
-      </main>
+
+        {/* Right: preview panel */}
+        {showDocxPreview && (
+          <div className="flex-1 min-w-0 sticky top-16 h-[calc(100vh-4rem)] py-4">
+            <DocxPreviewPanel
+              report={report}
+              onClose={() => setShowDocxPreview(false)}
+              refreshKey={previewRefreshKey}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Block Edit Modal */}
       <BlockEditModal
@@ -641,13 +666,6 @@ export default function ReportEditor() {
         onRestore={handleRestoreVersion}
       />
 
-      {report && (
-        <DocxPreviewModal
-          isOpen={showDocxPreview}
-          onClose={() => setShowDocxPreview(false)}
-          report={report}
-        />
-      )}
     </div>
   )
 }
