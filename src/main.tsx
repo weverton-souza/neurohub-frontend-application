@@ -3,14 +3,17 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './styles/globals.css'
-import { seedMocks } from './mocks'
-
-seedMocks()
+import { ErrorProvider } from '@/contexts/ErrorContext'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <ErrorProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ErrorProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

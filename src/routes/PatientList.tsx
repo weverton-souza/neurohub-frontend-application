@@ -2,16 +2,13 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Patient, PatientData, Laudo } from '@/types'
 import { createEmptyPatientRecord } from '@/types'
-import {
-  getPatients,
-  savePatient,
-  deletePatient,
-  getLaudos,
-} from '@/lib/storage'
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from '@/lib/api/customer-api'
+import { getReports } from '@/lib/api/report-api'
 import { formatDateTime } from '@/lib/utils'
 import { createLaudoFromPatient } from '@/lib/laudo-utils'
 import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
+import { useError } from '@/contexts/ErrorContext'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
@@ -20,6 +17,7 @@ import PageHeader from '@/components/layout/PageHeader'
 
 export default function PatientList() {
   const navigate = useNavigate()
+  const { showError } = useError()
 
   const [patients, setPatients] = useState<Patient[]>([])
   const [laudos, setLaudos] = useState<Laudo[]>([])
@@ -28,10 +26,20 @@ export default function PatientList() {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  useEffect(() => {
-    setPatients(getPatients())
-    setLaudos(getLaudos())
-  }, [])
+  const loadData = useCallback(async () => {
+    try {
+      const [customersPage, reportsPage] = await Promise.all([
+        getCustomers(0, 200),
+        getReports(0, 200),
+      ])
+      setPatients(customersPage.content)
+      setLaudos(reportsPage.content)
+    } catch (err) {
+      showError(err)
+    }
+  }, [showError])
+
+  useEffect(() => { loadData() }, [loadData])
 
   // Count laudos per patient
   const laudoCountMap = useMemo(() => {
@@ -75,27 +83,44 @@ export default function PatientList() {
     setShowFormModal(true)
   }, [])
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!editingPatient) return
-    savePatient(editingPatient)
-    setPatients(getPatients())
-    setShowFormModal(false)
-    setEditingPatient(null)
-  }, [editingPatient])
+    try {
+      const isNew = !patients.find((p) => p.id === editingPatient.id)
+      if (isNew) {
+        await createCustomer(editingPatient)
+      } else {
+        await updateCustomer(editingPatient)
+      }
+      await loadData()
+      setShowFormModal(false)
+      setEditingPatient(null)
+    } catch (err) {
+      showError(err)
+    }
+  }, [editingPatient, patients, loadData, showError])
 
-  const handleDeletePatient = useCallback((id: string) => {
-    deletePatient(id)
-    setPatients(getPatients())
-  }, [])
+  const handleDeletePatient = useCallback(async (id: string) => {
+    try {
+      await deleteCustomer(id)
+      await loadData()
+    } catch (err) {
+      showError(err)
+    }
+  }, [loadData, showError])
 
   const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeletePatient)
 
   const handleCreateLaudo = useCallback(
-    (patient: Patient) => {
-      const laudo = createLaudoFromPatient(patient)
-      navigate(`/laudo/${laudo.id}`)
+    async (patient: Patient) => {
+      try {
+        const laudo = await createLaudoFromPatient(patient)
+        navigate(`/laudo/${laudo.id}`)
+      } catch (err) {
+        showError(err)
+      }
     },
-    [navigate]
+    [navigate, showError]
   )
 
   const updateEditingField = useCallback(
@@ -328,7 +353,7 @@ export default function PatientList() {
       <Modal
         isOpen={showFormModal}
         onClose={() => { setShowFormModal(false); setEditingPatient(null) }}
-        title={editingPatient?.createdAt === editingPatient?.updatedAt && !getPatients().find(p => p.id === editingPatient?.id) ? 'Novo Paciente' : 'Editar Paciente'}
+        title={editingPatient?.createdAt === editingPatient?.updatedAt && !patients.find(p => p.id === editingPatient?.id) ? 'Novo Paciente' : 'Editar Paciente'}
         size="lg"
       >
         {editingPatient && (

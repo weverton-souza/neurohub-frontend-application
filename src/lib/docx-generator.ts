@@ -34,7 +34,7 @@ import {
 } from '@/types'
 import { Chart as ChartJS } from 'chart.js'
 import '@/lib/chart-setup'
-import { getProfessional } from '@/lib/storage'
+import { getProfessional } from '@/lib/api/professional-api'
 import { generateSocialIcon, base64ToUint8Array } from '@/lib/social-icons'
 import { getImageDimensions } from '@/lib/image-utils'
 import { computeCellResult } from '@/lib/formula-engine'
@@ -69,7 +69,7 @@ const NO_BORDER = {
 // ========== Header / Footer ==========
 
 async function createDocHeader(): Promise<Header> {
-  const prof = getProfessional()
+  const prof = await getProfessional()
 
   const nameParagraph = new Paragraph({
     alignment: AlignmentType.RIGHT,
@@ -173,8 +173,8 @@ async function createDocHeader(): Promise<Header> {
   return new Header({ children })
 }
 
-function createDocFooter(): Footer {
-  const prof = getProfessional()
+async function createDocFooter(): Promise<Footer> {
+  const prof = await getProfessional()
   const contactItems = prof.contactItems ?? []
 
   const children: (Paragraph | Table)[] = []
@@ -1194,9 +1194,9 @@ function renderReferences(data: ReferencesData): Paragraph[] {
 
 // ========== Closing Page ==========
 
-function renderClosingPage(data: ClosingPageData, laudo: Laudo): (Paragraph | Table)[] {
+async function renderClosingPage(data: ClosingPageData, laudo: Laudo): Promise<(Paragraph | Table)[]> {
   const elements: (Paragraph | Table)[] = []
-  const prof = getProfessional()
+  const prof = await getProfessional()
 
   // Find identification block for patient info
   const idBlock = laudo.blocks.find((b) => b.type === 'identification')
@@ -1546,7 +1546,7 @@ export async function generateDocx(laudo: Laudo): Promise<void> {
         sectionChildren.push(...renderReferences(block.data as ReferencesData))
         break
       case 'closing-page':
-        sectionChildren.push(...renderClosingPage(block.data as ClosingPageData, laudo))
+        sectionChildren.push(...await renderClosingPage(block.data as ClosingPageData, laudo))
         break
     }
 
@@ -1575,7 +1575,7 @@ export async function generateDocx(laudo: Laudo): Promise<void> {
       default: await createDocHeader(),
     },
     footers: {
-      default: createDocFooter(),
+      default: await createDocFooter(),
     },
     children: sectionChildren,
   }

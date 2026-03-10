@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import type { AnamnesisForm, FormResponse, LaudoTemplate, Laudo } from '@/types'
+import type { AnamnesisForm, FormResponse, LaudoTemplate } from '@/types'
 import { generateLaudoFromResponse } from '@/lib/ai-service'
-import { getProfessional, saveLaudo, getPatient } from '@/lib/storage'
-import { updateFormResponse } from '@/lib/form-service'
+import { getProfessional } from '@/lib/api/professional-api'
+import { createReport } from '@/lib/api/report-api'
+import { getCustomer } from '@/lib/api/customer-api'
+import { updateFormResponse } from '@/lib/api/form-api'
 import { buildVariableMap, resolveBlockVariables } from '@/lib/variable-service'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -36,7 +38,7 @@ export default function GenerateLaudoModal({
     setErrorMessage('')
 
     try {
-      const professional = getProfessional()
+      const professional = await getProfessional()
       const result = await generateLaudoFromResponse({
         form,
         response,
@@ -45,31 +47,34 @@ export default function GenerateLaudoModal({
       })
 
       // Resolve template variables on result blocks
-      const patient = response.patientId ? getPatient(response.patientId) : null
+      let patientData = null
+      if (response.patientId) {
+        try {
+          const patient = await getCustomer(response.patientId)
+          patientData = patient?.data ?? null
+        } catch {
+          // patient not found
+        }
+      }
       const variableMap = buildVariableMap(
-        patient?.data ?? null,
+        patientData,
         form,
         response,
       )
       const resolvedBlocks = resolveBlockVariables(result.blocks, variableMap)
 
-      // Criar laudo
-      const now = new Date().toISOString()
-      const laudo: Laudo = {
-        id: crypto.randomUUID(),
-        createdAt: now,
-        updatedAt: now,
+      // Criar laudo via API
+      const laudo = await createReport({
         status: 'rascunho',
         patientName: result.patientName || response.patientName,
         patientId: response.patientId ?? undefined,
         formResponseId: response.id,
+        formId: form.id,
         blocks: resolvedBlocks,
-      }
-
-      saveLaudo(laudo)
+      })
 
       // Atualizar resposta com link para o laudo
-      await updateFormResponse({
+      await updateFormResponse(form.id, {
         ...response,
         generatedLaudoId: laudo.id,
       })

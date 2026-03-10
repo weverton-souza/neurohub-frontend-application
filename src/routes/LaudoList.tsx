@@ -1,18 +1,14 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Laudo, LaudoTemplate, Block } from '@/types'
-import {
-  getLaudos,
-  saveLaudo,
-  deleteLaudo,
-  getCustomTemplates,
-  deleteCustomTemplate,
-} from '@/lib/storage'
+import { getReports, createReport, deleteReport } from '@/lib/api/report-api'
+import { getReportTemplates, deleteReportTemplate } from '@/lib/api/template-api'
 import { getAllTemplates } from '@/lib/default-templates'
 import { formatDateTime } from '@/lib/utils'
 import { createEmptyLaudo } from '@/lib/laudo-utils'
 import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
+import { useError } from '@/contexts/ErrorContext'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
@@ -21,67 +17,87 @@ import StatusBadge from '@/components/ui/StatusBadge'
 
 export default function LaudoList() {
   const navigate = useNavigate()
+  const { showError } = useError()
 
   const [laudos, setLaudos] = useState<Laudo[]>([])
   const [customTemplates, setCustomTemplates] = useState<LaudoTemplate[]>([])
   const [showNewModal, setShowNewModal] = useState(false)
 
-  // Load data
-  useEffect(() => {
-    setLaudos(getLaudos())
-    setCustomTemplates(getCustomTemplates())
-  }, [])
+  const loadData = useCallback(async () => {
+    try {
+      const [reportsPage, templates] = await Promise.all([
+        getReports(0, 100),
+        getReportTemplates(),
+      ])
+      setLaudos(reportsPage.content)
+      setCustomTemplates(templates)
+    } catch (err) {
+      showError(err)
+    }
+  }, [showError])
+
+  useEffect(() => { loadData() }, [loadData])
 
   const allTemplates = getAllTemplates(customTemplates)
 
-  const handleCreateFromScratch = useCallback(() => {
-    const laudo = createEmptyLaudo()
-    setShowNewModal(false)
-    navigate(`/laudo/${laudo.id}`)
-  }, [navigate])
+  const handleCreateFromScratch = useCallback(async () => {
+    try {
+      const laudo = await createEmptyLaudo()
+      setShowNewModal(false)
+      navigate(`/laudo/${laudo.id}`)
+    } catch (err) {
+      showError(err)
+    }
+  }, [navigate, showError])
 
   const handleCreateFromTemplate = useCallback(
-    (template: LaudoTemplate) => {
-      const id = crypto.randomUUID()
-      const now = new Date().toISOString()
+    async (template: LaudoTemplate) => {
+      try {
+        const blocks: Block[] = template.blocks.map((tb) => ({
+          id: crypto.randomUUID(),
+          type: tb.type,
+          order: tb.order,
+          data: JSON.parse(JSON.stringify(tb.data)),
+          collapsed: false,
+        }))
 
-      const blocks: Block[] = template.blocks.map((tb) => ({
-        id: crypto.randomUUID(),
-        type: tb.type,
-        order: tb.order,
-        data: JSON.parse(JSON.stringify(tb.data)),
-        collapsed: false,
-      }))
+        const laudo = await createReport({
+          status: 'rascunho',
+          patientName: '',
+          blocks,
+        })
 
-      const laudo: Laudo = {
-        id,
-        createdAt: now,
-        updatedAt: now,
-        status: 'rascunho',
-        patientName: '',
-        blocks,
+        setShowNewModal(false)
+        navigate(`/laudo/${laudo.id}`)
+      } catch (err) {
+        showError(err)
       }
-
-      saveLaudo(laudo)
-      setShowNewModal(false)
-      navigate(`/laudo/${id}`)
     },
-    [navigate]
+    [navigate, showError]
   )
 
-  const handleDeleteLaudo = useCallback((id: string) => {
-    deleteLaudo(id)
-    setLaudos(getLaudos())
-  }, [])
+  const handleDeleteLaudo = useCallback(async (id: string) => {
+    try {
+      await deleteReport(id)
+      await loadData()
+    } catch (err) {
+      showError(err)
+    }
+  }, [loadData, showError])
 
   const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteLaudo)
 
   const handleDeleteTemplate = useCallback(
-    (id: string) => {
-      deleteCustomTemplate(id)
-      setCustomTemplates(getCustomTemplates())
+    async (id: string) => {
+      try {
+        await deleteReportTemplate(id)
+        const templates = await getReportTemplates()
+        setCustomTemplates(templates)
+      } catch (err) {
+        showError(err)
+      }
     },
-    []
+    [showError]
   )
 
   const sortedLaudos = useMemo(

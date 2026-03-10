@@ -18,15 +18,15 @@ import {
   createEmptyReferencesData,
   createEmptyClosingPageData,
 } from '@/types'
-import { getProfessional } from '@/lib/storage'
+import type { Professional } from '@/types'
 
-export function createBlock(type: BlockType, order: number): Block {
+export function createBlock(type: BlockType, order: number, professional?: Professional): Block {
   const id = crypto.randomUUID()
   let data
 
   switch (type) {
     case 'identification':
-      data = createEmptyIdentificationData(getProfessional())
+      data = createEmptyIdentificationData(professional ?? { name: '', crp: '', specialization: '' })
       break
     case 'text':
       data = createEmptyTextBlockData()

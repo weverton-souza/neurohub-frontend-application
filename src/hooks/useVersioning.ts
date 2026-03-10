@@ -1,29 +1,31 @@
 import { useCallback, useState } from 'react'
-import { Laudo, LaudoVersion, LAUDO_STATUS_LABELS } from '@/types'
-import { getVersionHistory, saveVersion } from '@/lib/version-storage'
+import type { Laudo, LaudoVersion } from '@/types'
+import { LAUDO_STATUS_LABELS } from '@/types'
+import { getReportVersions, createReportVersion } from '@/lib/api/report-api'
 
 export function useVersioning(laudo: Laudo | null) {
   const [versions, setVersions] = useState<LaudoVersion[]>([])
 
-  const refreshVersions = useCallback(() => {
+  const refreshVersions = useCallback(async () => {
     if (!laudo) return
-    setVersions(getVersionHistory(laudo.id))
+    try {
+      const v = await getReportVersions(laudo.id)
+      setVersions(v)
+    } catch {
+      // ignore
+    }
   }, [laudo])
 
   const createSnapshot = useCallback(
-    (description: string) => {
+    async (description: string) => {
       if (!laudo) return
-      const version: LaudoVersion = {
-        id: crypto.randomUUID(),
-        laudoId: laudo.id,
-        createdAt: new Date().toISOString(),
-        status: laudo.status,
-        description,
-        patientName: laudo.patientName,
-        blocks: JSON.parse(JSON.stringify(laudo.blocks)),
+      try {
+        await createReportVersion(laudo.id, { description })
+        const v = await getReportVersions(laudo.id)
+        setVersions(v)
+      } catch {
+        // ignore
       }
-      saveVersion(version)
-      setVersions(getVersionHistory(laudo.id))
     },
     [laudo]
   )

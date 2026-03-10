@@ -9,24 +9,24 @@ import type {
   Laudo,
 } from '@/types'
 import {
-  createEmptyPatientNote,
   createEmptyPatientEvent,
   PATIENT_EVENT_TYPE_LABELS,
   PATIENT_EVENT_TYPE_COLORS,
 } from '@/types'
 import {
-  getPatient,
-  savePatient,
-  getPatientNotes,
-  savePatientNote,
-  deletePatientNote,
-  getLaudosByPatient,
-  getPatientEvents,
-  savePatientEvent,
-  deletePatientEvent,
-} from '@/lib/storage'
+  getCustomer,
+  updateCustomer,
+  getCustomerNotes,
+  createCustomerNote,
+  deleteCustomerNote as apiDeleteCustomerNote,
+  getCustomerEvents,
+  createCustomerEvent,
+  deleteCustomerEvent as apiDeleteCustomerEvent,
+} from '@/lib/api/customer-api'
+import { getReportsByCustomer } from '@/lib/api/report-api'
 import { formatDateTime, formatDate } from '@/lib/utils'
 import { createLaudoFromPatient } from '@/lib/laudo-utils'
+import { useError } from '@/contexts/ErrorContext'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import Button from '@/components/ui/Button'
@@ -119,6 +119,7 @@ function groupEventsByMonth(events: PatientEvent[]): { label: string; events: Pa
 export default function PatientProfile() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { showError } = useError()
 
   const [patient, setPatient] = useState<Patient | null>(null)
   const [editData, setEditData] = useState<PatientData | null>(null)
@@ -140,15 +141,25 @@ export default function PatientProfile() {
   // Load patient
   useEffect(() => {
     if (!id) return
-    const p = getPatient(id)
-    if (p) {
-      setPatient(p)
-      setEditData({ ...p.data })
-      setLaudos(getLaudosByPatient(id))
-      setNotes(getPatientNotes(id))
-      setEvents(getPatientEvents(id))
+    async function load() {
+      try {
+        const [p, patientLaudos, patientNotes, patientEvents] = await Promise.all([
+          getCustomer(id!),
+          getReportsByCustomer(id!),
+          getCustomerNotes(id!),
+          getCustomerEvents(id!),
+        ])
+        setPatient(p)
+        setEditData({ ...p.data })
+        setLaudos(patientLaudos)
+        setNotes(patientNotes)
+        setEvents(patientEvents)
+      } catch (err) {
+        showError(err)
+      }
     }
-  }, [id])
+    load()
+  }, [id, showError])
 
   // ========== Handlers ==========
 
@@ -159,41 +170,58 @@ export default function PatientProfile() {
     []
   )
 
-  const handleSaveSection = useCallback(() => {
+  const handleSaveSection = useCallback(async () => {
     if (!patient || !editData) return
     setSaving(true)
-    const updated: Patient = {
-      ...patient,
-      data: { ...editData },
-      updatedAt: new Date().toISOString(),
+    try {
+      const updated: Patient = {
+        ...patient,
+        data: { ...editData },
+        updatedAt: new Date().toISOString(),
+      }
+      await updateCustomer(updated)
+      setPatient(updated)
+    } catch (err) {
+      showError(err)
+    } finally {
+      setSaving(false)
     }
-    savePatient(updated)
-    setPatient(updated)
-    setTimeout(() => setSaving(false), 600)
-  }, [patient, editData])
+  }, [patient, editData, showError])
 
-  const handleCreateLaudo = useCallback(() => {
+  const handleCreateLaudo = useCallback(async () => {
     if (!patient) return
-    const laudo = createLaudoFromPatient(patient)
-    navigate(`/laudo/${laudo.id}`)
-  }, [patient, navigate])
+    try {
+      const laudo = await createLaudoFromPatient(patient)
+      navigate(`/laudo/${laudo.id}`)
+    } catch (err) {
+      showError(err)
+    }
+  }, [patient, navigate, showError])
 
-  const handleAddNote = useCallback(() => {
+  const handleAddNote = useCallback(async () => {
     if (!patient || !newNoteContent.trim()) return
-    const note = createEmptyPatientNote(patient.id)
-    note.content = newNoteContent.trim()
-    savePatientNote(note)
-    setNotes(getPatientNotes(patient.id))
-    setNewNoteContent('')
-  }, [patient, newNoteContent])
+    try {
+      await createCustomerNote(patient.id, { content: newNoteContent.trim() })
+      const updatedNotes = await getCustomerNotes(patient.id)
+      setNotes(updatedNotes)
+      setNewNoteContent('')
+    } catch (err) {
+      showError(err)
+    }
+  }, [patient, newNoteContent, showError])
 
   const handleDeleteNote = useCallback(
-    (noteId: string) => {
+    async (noteId: string) => {
       if (!patient) return
-      deletePatientNote(noteId)
-      setNotes(getPatientNotes(patient.id))
+      try {
+        await apiDeleteCustomerNote(patient.id, noteId)
+        const updatedNotes = await getCustomerNotes(patient.id)
+        setNotes(updatedNotes)
+      } catch (err) {
+        showError(err)
+      }
     },
-    [patient]
+    [patient, showError]
   )
 
   // Timeline handlers
@@ -203,21 +231,31 @@ export default function PatientProfile() {
     setShowEventForm(true)
   }, [patient])
 
-  const handleSaveEvent = useCallback(() => {
+  const handleSaveEvent = useCallback(async () => {
     if (!patient || !newEvent || !newEvent.title.trim()) return
-    savePatientEvent(newEvent)
-    setEvents(getPatientEvents(patient.id))
-    setShowEventForm(false)
-    setNewEvent(null)
-  }, [patient, newEvent])
+    try {
+      await createCustomerEvent(patient.id, newEvent)
+      const updatedEvents = await getCustomerEvents(patient.id)
+      setEvents(updatedEvents)
+      setShowEventForm(false)
+      setNewEvent(null)
+    } catch (err) {
+      showError(err)
+    }
+  }, [patient, newEvent, showError])
 
   const handleDeleteEvent = useCallback(
-    (eventId: string) => {
+    async (eventId: string) => {
       if (!patient) return
-      deletePatientEvent(eventId)
-      setEvents(getPatientEvents(patient.id))
+      try {
+        await apiDeleteCustomerEvent(patient.id, eventId)
+        const updatedEvents = await getCustomerEvents(patient.id)
+        setEvents(updatedEvents)
+      } catch (err) {
+        showError(err)
+      }
     },
-    [patient]
+    [patient, showError]
   )
 
   // ========== Not found ==========

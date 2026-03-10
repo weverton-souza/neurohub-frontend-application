@@ -21,10 +21,10 @@ import type {
   FormSectionGroup,
 } from '@/types'
 import { createEmptyFormField } from '@/types'
-import { getFormById, updateForm } from '@/lib/form-service'
+import { getFormById, updateForm } from '@/lib/api/form-api'
 import { useAutoSave } from '@/lib/hooks/use-auto-save'
 import { getAllTemplates } from '@/lib/default-templates'
-import { getCustomTemplates } from '@/lib/storage'
+import { getReportTemplates } from '@/lib/api/template-api'
 import { buildFormSectionGroups } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import QuestionCard from '@/components/form-builder/QuestionCard'
@@ -49,15 +49,18 @@ export default function FormBuilder() {
 
   const updateFormFn = useCallback((data: AnamnesisForm) => updateForm(data), [])
   const { saveStatus, scheduleSave, forceSave } = useAutoSave<AnamnesisForm>(updateFormFn)
-  const templates = useMemo(() => getAllTemplates(getCustomTemplates()), [])
+  const [templates, setTemplates] = useState(() => getAllTemplates([]))
 
-  // Load form
+  // Load form and templates
   useEffect(() => {
     if (!id) return
-    getFormById(id).then((loaded) => {
-      if (loaded) setForm(loaded)
-      else navigate('/formularios')
-    })
+    Promise.all([getFormById(id), getReportTemplates()])
+      .then(([loaded, customTemplates]) => {
+        if (loaded) setForm(loaded)
+        else navigate('/formularios')
+        setTemplates(getAllTemplates(customTemplates))
+      })
+      .catch(() => navigate('/formularios'))
   }, [id, navigate])
 
   const updateFormState = useCallback((patch: Partial<AnamnesisForm>) => {

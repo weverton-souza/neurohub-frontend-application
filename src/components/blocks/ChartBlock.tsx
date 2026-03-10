@@ -7,7 +7,6 @@ import type {
   ChartReferenceRegion,
   ChartType,
   ChartDisplayMode,
-  ChartTemplate,
 } from '@/types'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -16,7 +15,7 @@ import Modal from '@/components/ui/Modal'
 import { CloseIcon } from '@/components/icons'
 import ColorPicker from '@/components/ui/ColorPicker'
 import { Chart as ChartJS } from 'chart.js'
-import { saveChartTemplate, getChartTemplateCategories } from '@/lib/chart-template-service'
+import { createChartTemplate, getChartTemplates } from '@/lib/api/template-api'
 import '@/lib/chart-setup'
 
 interface ChartBlockProps {
@@ -65,38 +64,48 @@ export default function ChartBlock({ data, onChange }: ChartBlockProps) {
     setShowSaveTemplate(true)
   }
 
-  const handleSaveTemplate = () => {
-    const template: ChartTemplate = {
-      id: `chart-tpl-custom-${crypto.randomUUID()}`,
-      name: templateName.trim(),
-      description: templateDescription.trim(),
-      instrumentName: templateInstrument.trim(),
-      category: templateCategory.trim(),
-      chartType: data.chartType,
-      displayMode: data.displayMode,
-      series: data.series.map(s => ({ ...s })),
-      categories: data.categories.map(c => ({
-        ...c,
-        values: { ...c.values },
-      })),
-      referenceLines: data.referenceLines.map(r => ({ ...r })),
-      referenceRegions: data.referenceRegions.map(r => ({ ...r })),
-      yAxisLabel: data.yAxisLabel,
-      showValues: data.showValues,
-      showLegend: data.showLegend,
-      showRegionLegend: data.showRegionLegend ?? true,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const handleSaveTemplate = async () => {
+    try {
+      await createChartTemplate({
+        name: templateName.trim(),
+        description: templateDescription.trim(),
+        instrumentName: templateInstrument.trim(),
+        category: templateCategory.trim(),
+        chartType: data.chartType,
+        displayMode: data.displayMode,
+        series: data.series.map(s => ({ ...s })),
+        categories: data.categories.map(c => ({
+          ...c,
+          values: { ...c.values },
+        })),
+        referenceLines: data.referenceLines.map(r => ({ ...r })),
+        referenceRegions: data.referenceRegions.map(r => ({ ...r })),
+        yAxisLabel: data.yAxisLabel,
+        showValues: data.showValues,
+        showLegend: data.showLegend,
+        showRegionLegend: data.showRegionLegend ?? true,
+        isDefault: false,
+      })
+      setShowSaveTemplate(false)
+      setSavedFeedback(true)
+      setTimeout(() => setSavedFeedback(false), 2000)
+    } catch {
+      // error saving template
     }
-    saveChartTemplate(template)
-    setShowSaveTemplate(false)
-    setSavedFeedback(true)
-    setTimeout(() => setSavedFeedback(false), 2000)
   }
 
   const canSaveTemplate = templateName.trim() && templateInstrument.trim() && templateCategory.trim()
-  const existingCategories = showSaveTemplate ? getChartTemplateCategories() : []
+
+  const [existingCategories, setExistingCategories] = useState<string[]>([])
+  useEffect(() => {
+    if (!showSaveTemplate) return
+    getChartTemplates()
+      .then(tpls => {
+        const cats = [...new Set(tpls.map(t => t.category))]
+        setExistingCategories(cats.sort())
+      })
+      .catch(() => {})
+  }, [showSaveTemplate])
 
   // Backwards-compatible defaults for new fields
   const showRegionLegend = data.showRegionLegend ?? true

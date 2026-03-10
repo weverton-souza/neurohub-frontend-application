@@ -15,11 +15,11 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { ScoreTableData, ScoreTableColumn, ScoreTableTemplate } from '@/types'
+import type { ScoreTableData, ScoreTableColumn } from '@/types'
 import { createEmptyScoreTableRow, createScoreTableColumn } from '@/types'
 import { isFormulaColumn, computeCellResult, cellHasFormula, getCellFormulaText, getFormulaFunctions } from '@/lib/formula-engine'
 import { adjustFormulaRefs, isFormula, remapFormulaRefs, indexToLetter } from '@/lib/formula-parser'
-import { saveScoreTableTemplate, getTemplateCategories } from '@/lib/score-table-template-service'
+import { createScoreTableTemplate, getScoreTableTemplates } from '@/lib/api/template-api'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -652,34 +652,44 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
     setShowSaveTemplate(true)
   }
 
-  const handleSaveTemplate = () => {
-    const template: ScoreTableTemplate = {
-      id: `tpl-custom-${crypto.randomUUID()}`,
-      name: templateName.trim(),
-      description: templateDescription.trim(),
-      instrumentName: templateInstrument.trim(),
-      category: templateCategory.trim(),
-      columns: data.columns.map(c => ({
-        id: c.id,
-        label: c.label,
-        formula: c.formula ?? null,
-      })),
-      rows: data.rows.map(r => ({
-        id: r.id,
-        defaultValues: { ...r.values },
-      })),
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const handleSaveTemplate = async () => {
+    try {
+      await createScoreTableTemplate({
+        name: templateName.trim(),
+        description: templateDescription.trim(),
+        instrumentName: templateInstrument.trim(),
+        category: templateCategory.trim(),
+        columns: data.columns.map(c => ({
+          id: c.id,
+          label: c.label,
+          formula: c.formula ?? null,
+        })),
+        rows: data.rows.map(r => ({
+          id: r.id,
+          defaultValues: { ...r.values },
+        })),
+        isDefault: false,
+      })
+      setShowSaveTemplate(false)
+      setSavedFeedback(true)
+      setTimeout(() => setSavedFeedback(false), 2000)
+    } catch {
+      // error saving template
     }
-    saveScoreTableTemplate(template)
-    setShowSaveTemplate(false)
-    setSavedFeedback(true)
-    setTimeout(() => setSavedFeedback(false), 2000)
   }
 
   const canSaveTemplate = templateName.trim() && templateInstrument.trim() && templateCategory.trim()
-  const existingCategories = showSaveTemplate ? getTemplateCategories() : []
+
+  const [existingCategories, setExistingCategories] = useState<string[]>([])
+  useEffect(() => {
+    if (!showSaveTemplate) return
+    getScoreTableTemplates()
+      .then(tpls => {
+        const cats = [...new Set(tpls.map(t => t.category))]
+        setExistingCategories(cats.sort())
+      })
+      .catch(() => {})
+  }, [showSaveTemplate])
 
   // ========== Replicar fórmula ==========
 
