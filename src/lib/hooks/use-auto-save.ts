@@ -15,8 +15,12 @@ export function useAutoSave<T>(
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
       saveTimeoutRef.current = setTimeout(async () => {
         setSaveStatus('saving')
-        await saveFn(data)
-        setSaveStatus('saved')
+        try {
+          await saveFn(data)
+          setSaveStatus('saved')
+        } catch {
+          setSaveStatus('unsaved')
+        }
       }, delay)
     },
     [saveFn, delay]
@@ -26,8 +30,12 @@ export function useAutoSave<T>(
     async (data: T) => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
       setSaveStatus('saving')
-      await saveFn(data)
-      setSaveStatus('saved')
+      try {
+        await saveFn(data)
+        setSaveStatus('saved')
+      } catch {
+        setSaveStatus('unsaved')
+      }
     },
     [saveFn]
   )
