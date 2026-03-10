@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { ScoreTableTemplate } from '@/types'
-import { getScoreTableTemplates } from '@/lib/score-table-template-service'
+import { getScoreTableTemplates } from '@/lib/api/template-api'
 
 interface ScoreTableTemplatePickerProps {
   onSelectTemplate: (templateId: string) => void
@@ -14,8 +14,11 @@ export default function ScoreTableTemplatePicker({
   onBack,
 }: ScoreTableTemplatePickerProps) {
   const [search, setSearch] = useState('')
+  const [templates, setTemplates] = useState<ScoreTableTemplate[]>([])
 
-  const templates = useMemo(() => getScoreTableTemplates(), [])
+  useEffect(() => {
+    getScoreTableTemplates().then(setTemplates).catch(() => {})
+  }, [])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return templates

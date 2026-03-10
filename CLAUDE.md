@@ -92,15 +92,18 @@
 - Itens de contato configuráveis (Instagram, LinkedIn, Facebook, website, telefone, email)
 - Dados usados no header do .docx e no bloco de identificação
 
-### Persistência (localStorage)
-- Chaves: neurohub_laudos, neurohub_patients, neurohub_patient_notes, neurohub_patient_events, neurohub_professional, neurohub_templates, neurohub_forms, neurohub_form_responses, neurohub_versions_{laudoId}, neurohub_score_table_templates, neurohub_chart_templates
-- CRUD genérico via storage-utils.ts (readFromStorage, writeToStorage, upsertInStorage, deleteFromStorage)
-- Sem backend — tudo local
+### Persistência (Backend REST API)
+- Backend: dox-backend-application (Spring Boot + Kotlin + PostgreSQL)
+- HTTP client: axios com interceptors JWT (auto-refresh em TOKEN_EXPIRED)
+- Autenticação: JWT (accessToken em memória, refreshToken em localStorage)
+- Error handling: RFC 7807 ProblemDetail → ErrorModal global (PT-BR)
+- API services em `src/lib/api/`: customer-api, report-api, form-api, template-api, professional-api, workspace-api
+- Contextos: AuthContext (auth state + session), ErrorContext (error modal global)
+- Rotas protegidas via ProtectedRoute (redirect para /login se não autenticado)
+- Nomes: Patient→Customer, Laudo→Report, AnamnesisForm→Form, LaudoTemplate→ReportTemplate
 
 ## Próximas Features (roadmap até abril/2026)
 
-### Migração para Backend
-- Substituir localStorage por Supabase ou Node — autenticação, persistência remota, sync
 
 ### Templates Locked/Unlocked
 - Modo template (locked): estrutura fixa, profissional só preenche dados
@@ -129,11 +132,9 @@
 src/
   types/index.ts           → todas as interfaces, tipos, constantes e factory functions
   lib/                     → lógica de negócio, utilitários, serviços
-  lib/storage-utils.ts     → utilitários genéricos de localStorage
-  lib/storage.ts           → CRUD de laudos, pacientes, templates
+  lib/api/                 → API services (api-client, auth-service, error-handler, *-api.ts)
   lib/block-constants.tsx  → labels, cores, ícones e getBlockTitle()
   lib/laudo-utils.ts       → criação de laudos (createEmptyLaudo, createLaudoFromPatient)
-  lib/generic-template-service.ts → factory genérico para serviços de template (score-table, chart)
   lib/hooks/               → custom hooks reutilizáveis (useAutoSave, useConfirmDelete, usePagination, useClickOutside)
   components/blocks/       → um componente por tipo de bloco
   components/editor/       → componentes do editor (BlockList, BlockSelector, OutlineTree)
@@ -159,10 +160,10 @@ src/
 - Nunca duplicar lógica — se uma função existe em `lib/`, importar de lá
 - `getBlockTitle()` fica em `block-constants.tsx` — nunca recriar localmente
 - `resolveAnswerDisplay()` fica em `variable-service.ts` — fonte única para exibição de respostas
-- localStorage: usar `readFromStorage`, `writeToStorage`, `upsertInStorage`, `deleteFromStorage` de `storage-utils.ts`
-- Criação de laudos: usar `createEmptyLaudo()` e `createLaudoFromPatient()` de `laudo-utils.ts`
+- API calls: usar os serviços em `lib/api/*-api.ts` — nunca chamar axios diretamente
+- Criação de laudos: usar `createEmptyLaudo()` e `createLaudoFromPatient()` de `laudo-utils.ts` (async)
 - Custom hooks reutilizáveis em `lib/hooks/`: `useAutoSave`, `useConfirmDelete`, `usePagination`, `useClickOutside`
-- Template services: usar `createTemplateService()` de `generic-template-service.ts` para novos serviços de template
+- Error handling: usar `useError()` de `ErrorContext` — nunca `alert()` para erros de API
 
 ### Componentes React
 - Componentes funcionais com export default

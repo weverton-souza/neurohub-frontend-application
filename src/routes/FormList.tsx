@@ -1,13 +1,14 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { AnamnesisForm } from '@/types'
 import { createEmptyAnamnesisForm } from '@/types'
-import { listForms, createForm, deleteForm, countAllFormResponses, isDefaultForm } from '@/lib/form-service'
+import { listForms, createForm, deleteForm, listFormResponses } from '@/lib/api/form-api'
 import { getAllTemplates } from '@/lib/default-templates'
-import { getCustomTemplates } from '@/lib/storage'
+import { getReportTemplates } from '@/lib/api/template-api'
 import { formatDateTime } from '@/lib/utils'
 import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
+import { useError } from '@/contexts/ErrorContext'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
@@ -15,53 +16,82 @@ import PageHeader from '@/components/layout/PageHeader'
 
 export default function FormList() {
   const navigate = useNavigate()
+  const { showError } = useError()
 
   const [forms, setForms] = useState<AnamnesisForm[]>([])
   const [responseCounts, setResponseCounts] = useState<Record<string, number>>({})
-
-  const templates = useMemo(() => getAllTemplates(getCustomTemplates()), [])
+  const [templates, setTemplates] = useState(() => getAllTemplates([]))
 
   const loadData = useCallback(async () => {
-    const [loadedForms, counts] = await Promise.all([
-      listForms(),
-      countAllFormResponses(),
-    ])
-    setForms(loadedForms)
-    setResponseCounts(counts)
-  }, [])
+    try {
+      const [loadedForms, customTemplates] = await Promise.all([
+        listForms(),
+        getReportTemplates(),
+      ])
+      setForms(loadedForms)
+      setTemplates(getAllTemplates(customTemplates))
+
+      // Count responses per form
+      const counts: Record<string, number> = {}
+      const countResults = await Promise.all(
+        loadedForms.map(async (f) => {
+          const responses = await listFormResponses(f.id)
+          return { formId: f.id, count: responses.length }
+        })
+      )
+      for (const { formId, count } of countResults) {
+        counts[formId] = count
+      }
+      setResponseCounts(counts)
+    } catch (err) {
+      showError(err)
+    }
+  }, [showError])
 
   useEffect(() => {
     loadData()
   }, [loadData])
 
   const handleCreate = useCallback(async () => {
-    const form = createEmptyAnamnesisForm()
-    form.title = 'Novo Formulário'
-    const created = await createForm(form)
-    navigate(`/formulario/${created.id}/editar`)
-  }, [navigate])
+    try {
+      const form = createEmptyAnamnesisForm()
+      form.title = 'Novo Formulário'
+      const created = await createForm(form)
+      navigate(`/formulario/${created.id}/editar`)
+    } catch (err) {
+      showError(err)
+    }
+  }, [navigate, showError])
 
   const handleDeleteForm = useCallback(async (id: string) => {
-    await deleteForm(id)
-    await loadData()
-  }, [loadData])
+    try {
+      await deleteForm(id)
+      await loadData()
+    } catch (err) {
+      showError(err)
+    }
+  }, [loadData, showError])
 
   const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteForm)
 
   const handleDuplicate = useCallback(async (form: AnamnesisForm) => {
-    const dup = createEmptyAnamnesisForm()
-    dup.title = `${form.title} (cópia)`
-    dup.description = form.description
-    dup.fields = form.fields.map(f => ({
-      ...f,
-      id: crypto.randomUUID(),
-      options: f.options.map(o => ({ ...o, id: crypto.randomUUID() })),
-    }))
-    dup.linkedTemplateId = form.linkedTemplateId
-    dup.fieldMappings = form.fieldMappings.map(m => ({ ...m }))
-    await createForm(dup)
-    await loadData()
-  }, [loadData])
+    try {
+      const dup = createEmptyAnamnesisForm()
+      dup.title = `${form.title} (cópia)`
+      dup.description = form.description
+      dup.fields = form.fields.map(f => ({
+        ...f,
+        id: crypto.randomUUID(),
+        options: f.options.map(o => ({ ...o, id: crypto.randomUUID() })),
+      }))
+      dup.linkedTemplateId = form.linkedTemplateId
+      dup.fieldMappings = form.fieldMappings.map(m => ({ ...m }))
+      await createForm(dup)
+      await loadData()
+    } catch (err) {
+      showError(err)
+    }
+  }, [loadData, showError])
 
   const getTemplateName = (templateId: string | null): string | null => {
     if (!templateId) return null
@@ -129,7 +159,7 @@ export default function FormList() {
               {paginatedPage.content.map((form) => {
                 const templateName = getTemplateName(form.linkedTemplateId)
                 const responseCount = responseCounts[form.id] ?? 0
-                const isDefault = isDefaultForm(form.id)
+                const isDefault = !!form.isDefault
 
                 return (
                   <div

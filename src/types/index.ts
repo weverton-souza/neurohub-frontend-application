@@ -427,7 +427,8 @@ export interface Laudo {
   status: LaudoStatus
   patientName: string
   patientId?: string
-  formResponseId?: string  // link para resposta de formulário que gerou este laudo
+  formId?: string           // link para formulário de origem
+  formResponseId?: string   // link para resposta de formulário que gerou este laudo
   blocks: Block[]
 }
 
@@ -771,6 +772,7 @@ export interface AnamnesisForm {
   fields: FormField[]
   linkedTemplateId: string | null  // link para LaudoTemplate.id
   fieldMappings: FormFieldMapping[]
+  isDefault?: boolean
 }
 
 export type FormResponseStatus = 'em_andamento' | 'concluido'
@@ -876,4 +878,96 @@ export interface FormSectionGroup {
   sectionTitle: string
   sectionField: FormField | null
   children: FormField[]
+}
+
+// ========== API Error Types (RFC 7807 ProblemDetail) ==========
+
+export type ApiErrorCode =
+  | 'RESOURCE_NOT_FOUND'
+  | 'DUPLICATE_RESOURCE'
+  | 'INVALID_CREDENTIALS'
+  | 'INVALID_TOKEN'
+  | 'TOKEN_EXPIRED'
+  | 'ACCESS_DENIED'
+  | 'BUSINESS_RULE_VIOLATION'
+  | 'VALIDATION_ERROR'
+  | 'INTERNAL_ERROR'
+
+export interface ValidationFieldError {
+  field: string
+  message: string
+  rejectedValue: unknown
+}
+
+export interface ProblemDetailProperties {
+  errorCode: ApiErrorCode
+  timestamp: string
+  resource?: string
+  identifier?: string
+  field?: string
+  value?: string
+  errors?: ValidationFieldError[]
+  traceId?: string
+}
+
+export interface ProblemDetail {
+  type: string
+  title: string
+  status: number
+  detail: string
+  instance: string
+  properties: ProblemDetailProperties
+}
+
+// ========== Auth Types ==========
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterRequest {
+  name: string
+  email: string
+  password: string
+  vertical?: string
+}
+
+export interface RefreshRequest {
+  refreshToken: string
+}
+
+export interface SwitchTenantRequest {
+  tenantId: string
+}
+
+export interface AuthResponse {
+  accessToken: string
+  refreshToken: string
+  userId: string
+  email: string
+  name: string
+  tenantId: string
+  vertical: string
+}
+
+export interface AuthUser {
+  id: string
+  email: string
+  name: string
+  tenantId: string
+  vertical: string
+}
+
+// ========== Workspace Types ==========
+
+export type TenantType = 'PERSONAL' | 'ORGANIZATION'
+export type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER'
+
+export interface Workspace {
+  tenantId: string
+  name: string
+  type: TenantType
+  vertical: string
+  role: MemberRole | null
 }

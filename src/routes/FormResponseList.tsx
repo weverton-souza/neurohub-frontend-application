@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { AnamnesisForm, FormResponse, LaudoTemplate } from '@/types'
 import { FORM_RESPONSE_STATUS_LABELS, FORM_RESPONSE_STATUS_COLORS } from '@/types'
-import { getFormById, listFormResponses, deleteFormResponse } from '@/lib/form-service'
+import { getFormById, listFormResponses, deleteFormResponse } from '@/lib/api/form-api'
 import { getAllTemplates } from '@/lib/default-templates'
-import { getCustomTemplates } from '@/lib/storage'
+import { getReportTemplates } from '@/lib/api/template-api'
+import { useError } from '@/contexts/ErrorContext'
 import { formatDateTime } from '@/lib/utils'
 import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
@@ -17,39 +18,51 @@ import GenerateLaudoModal from '@/components/form-builder/GenerateLaudoModal'
 export default function FormResponseList() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { showError } = useError()
 
   const [form, setForm] = useState<AnamnesisForm | null>(null)
   const [responses, setResponses] = useState<FormResponse[]>([])
   const [generateForResponse, setGenerateForResponse] = useState<FormResponse | null>(null)
+  const [allTemplates, setAllTemplates] = useState(() => getAllTemplates([]))
 
   const linkedTemplate = useMemo((): LaudoTemplate | null => {
     if (!form?.linkedTemplateId) return null
-    const all = getAllTemplates(getCustomTemplates())
-    return all.find((t) => t.id === form.linkedTemplateId) ?? null
-  }, [form])
+    return allTemplates.find((t) => t.id === form.linkedTemplateId) ?? null
+  }, [form, allTemplates])
 
   const loadData = useCallback(async () => {
     if (!id) return
-    const [loadedForm, loadedResponses] = await Promise.all([
-      getFormById(id),
-      listFormResponses(id),
-    ])
-    if (!loadedForm) {
-      navigate('/formularios')
-      return
+    try {
+      const [loadedForm, loadedResponses, customTemplates] = await Promise.all([
+        getFormById(id),
+        listFormResponses(id),
+        getReportTemplates(),
+      ])
+      if (!loadedForm) {
+        navigate('/formularios')
+        return
+      }
+      setForm(loadedForm)
+      setResponses(loadedResponses)
+      setAllTemplates(getAllTemplates(customTemplates))
+    } catch (err) {
+      showError(err)
     }
-    setForm(loadedForm)
-    setResponses(loadedResponses)
-  }, [id, navigate])
+  }, [id, navigate, showError])
 
   useEffect(() => {
     loadData()
   }, [loadData])
 
   const handleDeleteResponse = useCallback(async (responseId: string) => {
-    await deleteFormResponse(responseId)
-    await loadData()
-  }, [loadData])
+    try {
+      if (!id) return
+      await deleteFormResponse(id, responseId)
+      await loadData()
+    } catch (err) {
+      showError(err)
+    }
+  }, [id, loadData, showError])
 
   const { confirmId: confirmDeleteId, requestDelete: setConfirmDeleteId, confirmDelete, cancelDelete } = useConfirmDelete(handleDeleteResponse)
   const { page: paginatedPage, setCurrentPage, pageSize, changePageSize } = usePagination(responses)

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import type { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoTemplate, LaudoVersion, TextBlockData, Patient } from '@/types'
+import type { Block, BlockType, BlockData, Laudo, LaudoStatus, LaudoVersion, TextBlockData, Patient, ScoreTableTemplate, ChartTemplate } from '@/types'
 import { createScoreTableFromTemplate, createChartFromTemplate } from '@/types'
-import { getLaudo, saveLaudo, saveCustomTemplate, getPatients } from '@/lib/storage'
-import { getFormById, getFormResponseById } from '@/lib/form-service'
-import { getScoreTableTemplate } from '@/lib/score-table-template-service'
-import { getChartTemplate } from '@/lib/chart-template-service'
+import { getReport, updateReport } from '@/lib/api/report-api'
+import { getCustomers } from '@/lib/api/customer-api'
+import { createReportTemplate, getScoreTableTemplates, getChartTemplates } from '@/lib/api/template-api'
+import { getFormById, getFormResponseById } from '@/lib/api/form-api'
+import { useError } from '@/contexts/ErrorContext'
 import { createBlock, computeBlockMetas } from '@/lib/utils'
 import { useVersioning } from '@/hooks/useVersioning'
 import { useAutoSave } from '@/lib/hooks/use-auto-save'
@@ -23,6 +24,7 @@ import { HistoryIcon, SaveIcon } from '@/components/icons'
 export default function LaudoEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { showError } = useError()
 
   const [laudo, setLaudo] = useState<Laudo | null>(null)
   const [showBlockSelector, setShowBlockSelector] = useState(false)
@@ -37,32 +39,47 @@ export default function LaudoEditor() {
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [formProvenanceLabel, setFormProvenanceLabel] = useState<string | null>(null)
   const [formProvenanceId, setFormProvenanceId] = useState<string | null>(null)
+  const [scoreTableTemplates, setScoreTableTemplates] = useState<ScoreTableTemplate[]>([])
+  const [chartTemplatesState, setChartTemplatesState] = useState<ChartTemplate[]>([])
   const sectionSelectorRef = useRef<HTMLDivElement>(null)
 
-  const saveLaudoFn = useCallback((data: Laudo) => saveLaudo(data), [])
+  const saveLaudoFn = useCallback((data: Laudo) => updateReport(data), [])
   const { saveStatus, scheduleSave, forceSave } = useAutoSave<Laudo>(saveLaudoFn)
 
-  // Load laudo and patients
+  // Load laudo, patients, and templates
   useEffect(() => {
     if (!id) return
-    const loaded = getLaudo(id)
-    if (loaded) {
-      setLaudo(loaded)
+    async function load() {
+      try {
+        const [loaded, customersPage, stTemplates, cTemplates] = await Promise.all([
+          getReport(id!),
+          getCustomers(0, 200),
+          getScoreTableTemplates(),
+          getChartTemplates(),
+        ])
+        setLaudo(loaded)
+        setPatients(customersPage.content)
+        setScoreTableTemplates(stTemplates)
+        setChartTemplatesState(cTemplates)
 
-      // Load provenance info if laudo was generated from a form response
-      if (loaded.formResponseId) {
-        getFormResponseById(loaded.formResponseId).then(async (resp) => {
-          if (resp) {
-            const form = await getFormById(resp.formId)
-            setFormProvenanceLabel(form?.title || 'Formulário')
-            setFormProvenanceId(resp.formId)
+        // Load provenance info if laudo was generated from a form response
+        if (loaded.formResponseId && loaded.formId) {
+          try {
+            const resp = await getFormResponseById(loaded.formId, loaded.formResponseId)
+            if (resp) {
+              const form = await getFormById(resp.formId)
+              setFormProvenanceLabel(form?.title || 'Formulário')
+              setFormProvenanceId(resp.formId)
+            }
+          } catch {
+            // provenance info is optional
           }
-        })
+        }
+      } catch {
+        navigate('/')
       }
-    } else {
-      navigate('/')
     }
-    setPatients(getPatients())
+    load()
   }, [id, navigate])
 
   // Versioning
@@ -119,7 +136,7 @@ export default function LaudoEditor() {
 
       // Score table com template: preencher dados do template
       if (type === 'score-table' && templateId) {
-        const template = getScoreTableTemplate(templateId)
+        const template = scoreTableTemplates.find(t => t.id === templateId)
         if (template) {
           newBlock.data = createScoreTableFromTemplate(template)
         }
@@ -127,7 +144,7 @@ export default function LaudoEditor() {
 
       // Chart com template: preencher dados do template
       if (type === 'chart' && templateId) {
-        const template = getChartTemplate(templateId)
+        const template = chartTemplatesState.find(t => t.id === templateId)
         if (template) {
           newBlock.data = createChartFromTemplate(template)
         }
@@ -159,7 +176,7 @@ export default function LaudoEditor() {
         setEditingBlockId(newBlock.id)
       }
     },
-    [laudo, updateLaudo, insertAfterBlockId]
+    [laudo, updateLaudo, insertAfterBlockId, scoreTableTemplates, chartTemplatesState]
   )
 
   const handleRequestAddBlock = useCallback(
@@ -199,26 +216,27 @@ export default function LaudoEditor() {
     setShowSectionSelector(false)
   }, [laudo, updateLaudo])
 
-  const handleSaveTemplate = useCallback(() => {
+  const handleSaveTemplate = useCallback(async () => {
     if (!laudo || !templateName.trim()) return
 
-    const template: LaudoTemplate = {
-      id: crypto.randomUUID(),
-      name: templateName.trim(),
-      description: templateDesc.trim(),
-      isDefault: false,
-      blocks: laudo.blocks.map((b) => ({
-        type: b.type,
-        order: b.order,
-        data: JSON.parse(JSON.stringify(b.data)),
-      })),
+    try {
+      await createReportTemplate({
+        name: templateName.trim(),
+        description: templateDesc.trim(),
+        isDefault: false,
+        blocks: laudo.blocks.map((b) => ({
+          type: b.type,
+          order: b.order,
+          data: JSON.parse(JSON.stringify(b.data)),
+        })),
+      })
+      setShowSaveTemplate(false)
+      setTemplateName('')
+      setTemplateDesc('')
+    } catch (err) {
+      showError(err)
     }
-
-    saveCustomTemplate(template)
-    setShowSaveTemplate(false)
-    setTemplateName('')
-    setTemplateDesc('')
-  }, [laudo, templateName, templateDesc])
+  }, [laudo, templateName, templateDesc, showError])
 
   const handleGenerateDocx = useCallback(async () => {
     if (!laudo) return
@@ -227,14 +245,14 @@ export default function LaudoEditor() {
       createExportSnapshot('DOCX')
       const finalized = { ...laudo, status: 'finalizado' as const }
       setLaudo(finalized)
-      saveLaudo(finalized)
+      await updateReport(finalized)
 
       const { generateDocx } = await import('@/lib/docx-generator')
       await generateDocx(finalized)
     } catch (err) {
-      alert(`Erro ao gerar documento: ${(err as Error).message}`)
+      showError(err)
     }
-  }, [laudo, createExportSnapshot])
+  }, [laudo, createExportSnapshot, showError])
 
   const handleForceSave = useCallback(() => {
     if (!laudo) return

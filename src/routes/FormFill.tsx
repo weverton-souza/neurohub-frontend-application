@@ -7,9 +7,9 @@ import {
   getFormResponseById,
   createFormResponse,
   updateFormResponse,
-} from '@/lib/form-service'
+} from '@/lib/api/form-api'
+import { getCustomer } from '@/lib/api/customer-api'
 import { useAutoSave } from '@/lib/hooks/use-auto-save'
-import { getPatient } from '@/lib/storage'
 import { buildFormSectionGroups } from '@/lib/utils'
 import FormFieldRenderer from '@/components/form-fill/FormFieldRenderer'
 
@@ -22,7 +22,10 @@ export default function FormFill() {
   const [response, setResponse] = useState<FormResponse | null>(null)
   const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set())
 
-  const updateResponseFn = useCallback((data: FormResponse) => updateFormResponse(data), [])
+  const updateResponseFn = useCallback(
+    (data: FormResponse) => id ? updateFormResponse(id, data) : Promise.resolve(data),
+    [id],
+  )
   const { saveStatus, scheduleSave, forceSave } = useAutoSave<FormResponse>(updateResponseFn)
   const responseIdParam = searchParams.get('response')
   const patientIdParam = searchParams.get('patient')
@@ -40,10 +43,14 @@ export default function FormFill() {
 
       // Load or create response
       if (responseIdParam) {
-        const existing = await getFormResponseById(responseIdParam)
-        if (existing) {
-          setResponse(existing)
-          return
+        try {
+          const existing = await getFormResponseById(id, responseIdParam)
+          if (existing) {
+            setResponse(existing)
+            return
+          }
+        } catch {
+          // response not found, create new
         }
       }
 
@@ -52,10 +59,14 @@ export default function FormFill() {
 
       // Pre-fill patient if param provided
       if (patientIdParam) {
-        const patient = getPatient(patientIdParam)
-        if (patient) {
-          newResponse.patientId = patient.id
-          newResponse.patientName = patient.data.name
+        try {
+          const patient = await getCustomer(patientIdParam)
+          if (patient) {
+            newResponse.patientId = patient.id
+            newResponse.patientName = patient.data.name
+          }
+        } catch {
+          // patient not found
         }
       }
 
@@ -64,7 +75,7 @@ export default function FormFill() {
         .filter((f) => f.type !== 'section-header')
         .map((f) => createEmptyFormFieldAnswer(f.id))
 
-      const created = await createFormResponse(newResponse)
+      const created = await createFormResponse(id, newResponse)
       setResponse(created)
     })
   }, [id, navigate, responseIdParam, patientIdParam])

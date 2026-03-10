@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Professional, ContactType } from '@/types'
 import { CONTACT_TYPE_OPTIONS, createEmptyContactItem } from '@/types'
-import { getProfessional, saveProfessional } from '@/lib/storage'
+import { getProfessional, updateProfessional } from '@/lib/api/professional-api'
 import { fileToBase64DataUrl, resizeImageToBase64 } from '@/lib/image-utils'
+import { useError } from '@/contexts/ErrorContext'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -15,13 +16,25 @@ interface ProfessionalModalProps {
 }
 
 export default function ProfessionalModal({ isOpen, onClose }: ProfessionalModalProps) {
-  const [professional, setProfessional] = useState<Professional>(() => getProfessional())
+  const [professional, setProfessional] = useState<Professional>({ name: '', crp: '', specialization: '' })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { showError } = useError()
 
-  const handleSave = useCallback(() => {
-    saveProfessional(professional)
-    onClose()
-  }, [professional, onClose])
+  useEffect(() => {
+    if (!isOpen) return
+    getProfessional()
+      .then(setProfessional)
+      .catch(showError)
+  }, [isOpen, showError])
+
+  const handleSave = useCallback(async () => {
+    try {
+      await updateProfessional(professional)
+      onClose()
+    } catch (err) {
+      showError(err)
+    }
+  }, [professional, onClose, showError])
 
   const handleLogoUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
