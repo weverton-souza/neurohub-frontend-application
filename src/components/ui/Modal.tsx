@@ -11,6 +11,7 @@ interface ModalProps {
   onClose: () => void
   title?: string
   children: React.ReactNode
+  footer?: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   accent?: ModalAccent
 }
@@ -27,7 +28,7 @@ const defaultWidths: Record<string, number> = {
 const MIN_WIDTH = 360
 const MIN_HEIGHT = 300
 
-const Modal = ({ isOpen, onClose, title, children, size = 'md', accent }: ModalProps) => {
+const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', accent }: ModalProps) => {
   const panelRef = useRef<HTMLDivElement>(null)
   const [customSize, setCustomSize] = useState<{ w: number; h: number } | null>(null)
   const dragging = useRef(false)
@@ -148,6 +149,11 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md', accent }: ModalP
 
         {/* Scrollable content */}
         <div className="px-6 py-4 overflow-y-auto flex-1">{children}</div>
+
+        {/* Footer */}
+        {footer && (
+          <div className="px-6 py-3 border-t border-gray-200 shrink-0">{footer}</div>
+        )}
 
         {/* Resize handle — bottom-right corner */}
         <div

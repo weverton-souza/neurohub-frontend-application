@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import type {
   Block,
   BlockData,
@@ -75,10 +76,29 @@ function getModalTitle(block: Block): string {
 }
 
 export default function BlockEditModal({ block, onClose, onChange, customers, onCustomerSelected }: BlockEditModalProps) {
-  if (!block) return null
+  const [localData, setLocalData] = useState<BlockData | null>(null)
 
-  const handleChange = (data: BlockData) => {
-    onChange(block.id, data)
+  useEffect(() => {
+    if (block) {
+      setLocalData(structuredClone(block.data))
+    } else {
+      setLocalData(null)
+    }
+  }, [block])
+
+  if (!block || !localData) return null
+
+  const handleLocalChange = (data: BlockData) => {
+    setLocalData(data)
+  }
+
+  const handleSave = () => {
+    onChange(block.id, localData)
+    onClose()
+  }
+
+  const handleCancel = () => {
+    onClose()
   }
 
   const renderContent = () => {
@@ -86,8 +106,8 @@ export default function BlockEditModal({ block, onClose, onChange, customers, on
       case 'identification':
         return (
           <IdentificationBlock
-            data={block.data as IdentificationData}
-            onChange={handleChange}
+            data={localData as IdentificationData}
+            onChange={handleLocalChange}
             customers={customers}
             onCustomerSelected={onCustomerSelected}
           />
@@ -95,58 +115,76 @@ export default function BlockEditModal({ block, onClose, onChange, customers, on
       case 'text':
         return (
           <TextBlockModal
-            data={block.data as TextBlockData}
-            onChange={handleChange}
+            data={localData as TextBlockData}
+            onChange={handleLocalChange}
           />
         )
       case 'score-table':
         return (
           <ScoreTableBlock
-            data={block.data as ScoreTableData}
-            onChange={handleChange}
+            data={localData as ScoreTableData}
+            onChange={handleLocalChange}
           />
         )
       case 'info-box':
         return (
           <InfoBoxBlock
-            data={block.data as InfoBoxData}
-            onChange={handleChange}
+            data={localData as InfoBoxData}
+            onChange={handleLocalChange}
           />
         )
       case 'chart':
         return (
           <ChartBlock
-            data={block.data as ChartData}
-            onChange={handleChange}
+            data={localData as ChartData}
+            onChange={handleLocalChange}
           />
         )
       case 'references':
         return (
           <ReferencesBlock
-            data={block.data as ReferencesData}
-            onChange={handleChange}
+            data={localData as ReferencesData}
+            onChange={handleLocalChange}
           />
         )
       case 'closing-page':
         return (
           <ClosingPageBlock
-            data={block.data as ClosingPageData}
-            onChange={handleChange}
+            data={localData as ClosingPageData}
+            onChange={handleLocalChange}
           />
         )
     }
   }
 
+  const footer = (
+    <div className="flex justify-end gap-3">
+      <button
+        onClick={handleCancel}
+        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={handleSave}
+        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Salvar
+      </button>
+    </div>
+  )
+
   return (
     <Modal
       isOpen={true}
-      onClose={onClose}
+      onClose={handleCancel}
       title={getModalTitle(block)}
       size={MODAL_SIZES[block.type]}
       accent={{
         colorClass: BLOCK_TYPE_COLORS[block.type],
         icon: getBlockTypeIcon(block.type, 18),
       }}
+      footer={footer}
     >
       {renderContent()}
     </Modal>
