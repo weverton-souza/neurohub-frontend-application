@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" width="1600" height="800">
+  <rect width="1600" height="800" fill="white"/>
+  
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a8d8ea;stop-opacity:0.75"/>
+      <stop offset="100%" style="stop-color:#b8a9e8;stop-opacity:0.75"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4845f;stop-opacity:0.7"/>
+      <stop offset="100%" style="stop-color:#e8a87c;stop-opacity:0.7"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b8a;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#ee5a6f;stop-opacity:0.8"/>
+    </linearGradient>
+    <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f7a1b5;stop-opacity:0.55"/>
+      <stop offset="100%" style="stop-color:#e88da2;stop-opacity:0.55"/>
+    </linearGradient>
+    <linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7ecfc0;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#89d4cf;stop-opacity:0.6"/>
+    </linearGradient>
+    <linearGradient id="g6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#b8a9e8;stop-opacity:0.7"/>
+      <stop offset="100%" style="stop-color:#c4b1f0;stop-opacity:0.7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Top left - blue/purple block (partially cut off) -->
+  <rect x="-60" y="-80" width="260" height="260" rx="32" fill="url(#g1)" transform="rotate(-18, 70, 50)"/>
+
+  <!-- Top center-right - coral block -->
+  <rect x="950" y="-60" width="300" height="240" rx="36" fill="url(#g2)" transform="rotate(12, 1100, 60)"/>
+
+  <!-- Top far right - small purple block (cut off) -->
+  <rect x="1480" y="-30" width="180" height="180" rx="28" fill="url(#g6)" transform="rotate(-10, 1560, 60)"/>
+
+  <!-- Center right - pink block -->
+  <rect x="1300" y="320" width="160" height="160" rx="24" fill="url(#g4)" transform="rotate(22, 1380, 400)"/>
+
+  <!-- Bottom left - large red/pink block -->
+  <rect x="250" y="500" width="280" height="280" rx="40" fill="url(#g3)" transform="rotate(-14, 390, 640)"/>
+
+  <!-- Bottom left - small teal block -->
+  <rect x="80" y="620" width="120" height="120" rx="20" fill="url(#g5)" transform="rotate(8, 140, 680)"/>
+
+  <!-- Bottom center - medium purple block -->
+  <rect x="700" y="580" width="200" height="200" rx="30" fill="url(#g6)" transform="rotate(-8, 800, 680)"/>
+
+  <!-- Bottom right - cyan block (partially cut off) -->
+  <rect x="1380" y="560" width="240" height="240" rx="34" fill="url(#g5)" transform="rotate(15, 1500, 680)"/>
+
+  <!-- Small accent block - top center -->
+  <rect x="580" y="40" width="100" height="100" rx="18" fill="url(#g4)" transform="rotate(25, 630, 90)"/>
+
+  <!-- Small accent block - center left -->
+  <rect x="60" y="350" width="110" height="110" rx="18" fill="url(#g2)" transform="rotate(-12, 115, 405)" opacity="0.5"/>
+</svg>

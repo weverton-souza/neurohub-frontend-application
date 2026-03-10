@@ -71,7 +71,7 @@ export default function DocxPreviewPanel({ report, onClose, refreshKey }: DocxPr
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-hidden relative">
         {state === 'loading' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <svg className="animate-spin h-8 w-8 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -83,7 +83,7 @@ export default function DocxPreviewPanel({ report, onClose, refreshKey }: DocxPr
         )}
 
         {state === 'error' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4 text-center px-4">
               <div className="p-3 rounded-full bg-red-50">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,9 +108,9 @@ export default function DocxPreviewPanel({ report, onClose, refreshKey }: DocxPr
 
         <div
           ref={containerRef}
-          className={`h-full overflow-auto bg-gray-100 docx-preview-panel ${state !== 'ready' ? 'invisible' : ''}`}
+          className={`h-full overflow-auto bg-transparent docx-preview-panel ${state !== 'ready' ? 'invisible' : ''}`}
         />
-        <style>{`.docx-preview-panel .docx-wrapper { background: #f3f4f6 !important; }`}</style>
+        <style>{`.docx-preview-panel .docx-wrapper { background: transparent !important; }`}</style>
       </div>
     </div>
   )

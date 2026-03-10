@@ -135,6 +135,9 @@
 
 ### Polish Geral
 - Ajustes visuais e de UX para demo na convenção
+- Login: layout centralizado com card glassmorphism (esquerda) + slogan (direita), background SVG com dot pattern radial
+- Dot pattern sutil (radial-gradient) no background do ReportEditor e FormBuilder (opacity 0.065)
+- DocxPreviewPanel com backgrounds transparentes para exibir dots por trás
 
 ## Organização de Arquivos
 
