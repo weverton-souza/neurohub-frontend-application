@@ -360,7 +360,13 @@ export default function ReportEditor() {
   }
 
   return (
-    <div className="min-h-[calc(100vh)] bg-gray-100 flex flex-col">
+    <div
+      className="min-h-[calc(100vh)] bg-gray-100 flex flex-col"
+      style={{
+        backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.065) 1px, transparent 1px)',
+        backgroundSize: '20px 20px',
+      }}
+    >
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30 h-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center gap-4">
@@ -463,7 +469,9 @@ export default function ReportEditor() {
       </header>
 
       {/* Main content area */}
-      <div className={`flex-1 flex w-full px-4 sm:px-6 ${showDocxPreview ? 'gap-6' : 'max-w-3xl mx-auto'}`}>
+      <div
+        className={`flex-1 flex w-full px-4 sm:px-6 ${showDocxPreview ? 'gap-6' : 'max-w-3xl mx-auto'}`}
+      >
         {/* Left: blocks */}
         <div className={`min-w-0 flex flex-col ${showDocxPreview ? 'flex-1' : 'flex-1'}`}>
           {/* Form provenance banner */}
