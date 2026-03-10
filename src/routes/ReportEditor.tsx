@@ -15,6 +15,7 @@ import OutlineTree from '@/components/editor/OutlineTree'
 import BlockSelector, { BlockVariant } from '@/components/editor/BlockSelector'
 import BlockEditModal from '@/components/editor/BlockEditModal'
 import VersionHistoryModal from '@/components/editor/VersionHistoryModal'
+import DocxPreviewModal from '@/components/editor/DocxPreviewModal'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
@@ -37,6 +38,7 @@ export default function ReportEditor() {
   const [showSectionSelector, setShowSectionSelector] = useState(false)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [showDocxPreview, setShowDocxPreview] = useState(false)
   const [formProvenanceLabel, setFormProvenanceLabel] = useState<string | null>(null)
   const [formProvenanceId, setFormProvenanceId] = useState<string | null>(null)
   const [scoreTableTemplates, setScoreTableTemplates] = useState<ScoreTableTemplate[]>([])
@@ -247,8 +249,8 @@ export default function ReportEditor() {
       setReport(finalized)
       await updateReport(finalized)
 
-      const { generateDocx } = await import('@/lib/docx-generator')
-      await generateDocx(finalized)
+      const { downloadDocx } = await import('@/lib/docx-generator')
+      await downloadDocx(finalized)
     } catch (err) {
       showError(err)
     }
@@ -428,6 +430,16 @@ export default function ReportEditor() {
 
           <Button variant="secondary" size="sm" onClick={() => setShowSaveTemplate(true)}>
             Salvar como Template
+          </Button>
+
+          <Button variant="secondary" size="md" onClick={() => setShowDocxPreview(true)}>
+            <span className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+              </svg>
+              Preview
+            </span>
           </Button>
 
           <Button variant="primary" size="md" onClick={handleGenerateDocx}>
@@ -628,6 +640,14 @@ export default function ReportEditor() {
         versions={versions}
         onRestore={handleRestoreVersion}
       />
+
+      {report && (
+        <DocxPreviewModal
+          isOpen={showDocxPreview}
+          onClose={() => setShowDocxPreview(false)}
+          report={report}
+        />
+      )}
     </div>
   )
 }

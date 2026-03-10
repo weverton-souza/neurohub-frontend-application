@@ -17,6 +17,7 @@ import {
   convertInchesToTwip,
   ISectionOptions,
   ImageRun,
+  PageBreak,
 } from 'docx'
 import { saveAs } from 'file-saver'
 import {
@@ -276,32 +277,32 @@ async function createDocFooter(): Promise<Footer> {
   // Page number
   children.push(
     new Paragraph({
-      alignment: AlignmentType.RIGHT,
+      style: 'FooterPageNum',
       spacing: { before: 20 },
       children: [
         new TextRun({
           text: 'Página ',
-          size: 16,
+          size: 14,
           font: 'Calibri',
-          color: '999999',
+          color: 'AAAAAA',
         }),
         new TextRun({
           children: [PageNumber.CURRENT],
-          size: 16,
+          size: 14,
           font: 'Calibri',
-          color: '999999',
+          color: 'AAAAAA',
         }),
         new TextRun({
           text: ' de ',
-          size: 16,
+          size: 14,
           font: 'Calibri',
-          color: '999999',
+          color: 'AAAAAA',
         }),
         new TextRun({
           children: [PageNumber.TOTAL_PAGES],
-          size: 16,
+          size: 14,
           font: 'Calibri',
-          color: '999999',
+          color: 'AAAAAA',
         }),
       ],
     })
@@ -366,11 +367,9 @@ function renderIdentification(data: IdentificationData): (Paragraph | Table)[] {
   ].filter(([, val]) => val)
   elements.push(createKeyValueTable(laudoRows))
 
-  // Quebra de página após identificação — página 1 é só apresentação
   elements.push(
     new Paragraph({
-      children: [],
-      pageBreakBefore: true,
+      children: [new PageBreak()],
     })
   )
 
@@ -1208,11 +1207,10 @@ async function renderClosingPage(data: ClosingPageData, report: Report): Promise
   const showFather = data.showFatherSignature ?? false
   const showGuardian = data.showGuardianSignature ?? false
 
-  // Title with page break before
   if (data.title) {
+    elements.push(new Paragraph({ children: [new PageBreak()] }))
     elements.push(
       new Paragraph({
-        pageBreakBefore: true,
         keepNext: true,
         spacing: { before: 300, after: 150 },
         border: {
@@ -1519,7 +1517,7 @@ function formatDateBR(dateStr: string): string {
 
 // ========== Main generator ==========
 
-export async function generateDocx(report: Report): Promise<void> {
+export async function generateDocx(report: Report): Promise<Blob> {
   const sortedBlocks = [...report.blocks].sort((a, b) => a.order - b.order)
 
   const sectionChildren: (Paragraph | Table)[] = []
@@ -1602,11 +1600,29 @@ export async function generateDocx(report: Report): Promise<void> {
           },
         },
       },
+      paragraphStyles: [
+        {
+          id: 'FooterPageNum',
+          name: 'Footer Page Number',
+          run: {
+            color: 'AAAAAA',
+            size: 14,
+            font: 'Calibri',
+          },
+          paragraph: {
+            alignment: AlignmentType.RIGHT,
+          },
+        },
+      ],
     },
     sections: [sectionProperties],
   })
 
-  const blob = await Packer.toBlob(doc)
+  return Packer.toBlob(doc)
+}
+
+export async function downloadDocx(report: Report): Promise<void> {
+  const blob = await generateDocx(report)
 
   const fileName = report.customerName
     ? `Laudo - ${report.customerName}.docx`
