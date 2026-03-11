@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import type { AuthUser, LoginRequest, RegisterRequest } from '@/types'
 import {
   login as apiLogin,
@@ -8,7 +8,7 @@ import {
   switchTenant as apiSwitchTenant,
   authResponseToUser,
 } from '@/lib/api/auth-service'
-import { clearTokens, getAccessToken, getStoredUser, setStoredUser } from '@/lib/api/api-client'
+import { clearTokens, getAccessToken, getStoredUser, setStoredUser, setOnSessionExpired } from '@/lib/api/api-client'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -60,6 +60,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setStoredUser(user ? JSON.stringify(user) : null)
   }, [user])
+
+  // Registra callback para sessão expirada (interceptor chama quando refresh falha)
+  const sessionExpiredFired = useRef(false)
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      // Evita múltiplas execuções (várias requests 403 simultâneas)
+      if (sessionExpiredFired.current) return
+      sessionExpiredFired.current = true
+      setUser(null)
+      window.location.href = '/login'
+    })
+    return () => setOnSessionExpired(null)
+  }, [])
 
   const login = useCallback(async (credentials: LoginRequest) => {
     const response = await apiLogin(credentials)

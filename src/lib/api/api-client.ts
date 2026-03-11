@@ -99,6 +99,18 @@ api.interceptors.request.use(
   },
 )
 
+// ========== Session Expired Callback ==========
+
+let onSessionExpired: (() => void) | null = null
+
+/**
+ * Registra callback chamado quando a sessão expira (refresh falha).
+ * O AuthContext usa isso para fazer logout + redirect para /login.
+ */
+export function setOnSessionExpired(callback: (() => void) | null): void {
+  onSessionExpired = callback
+}
+
 // ========== Response Interceptor (auto-refresh) ==========
 
 let refreshPromise: Promise<boolean> | null = null
@@ -122,6 +134,13 @@ async function refreshAccessToken(): Promise<boolean> {
   }
 }
 
+function forceSessionExpired(): void {
+  clearTokens()
+  if (onSessionExpired) {
+    onSessionExpired()
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -133,16 +152,22 @@ api.interceptors.response.use(
     const { status, data } = error.response
     const originalRequest = error.config
 
-    // Auto-refresh on TOKEN_EXPIRED
+    // Auto-refresh on 401 or 403 (backend pode retornar 403 para token expirado)
     if (
-      status === 401 &&
+      (status === 401 || status === 403) &&
       originalRequest &&
       !(originalRequest as InternalAxiosRequestConfig & { _retry?: boolean })._retry
     ) {
       const problemData = data as ProblemDetail | null
       const errorCode = problemData?.properties?.errorCode
 
-      if (errorCode === 'TOKEN_EXPIRED') {
+      // Tenta refresh se: TOKEN_EXPIRED explícito, ou 403 sem ProblemDetail (Spring Security default)
+      const rawData = data as Record<string, unknown> | null
+      const isProblemDetail = rawData && typeof rawData.type === 'string'
+        && rawData.type.startsWith('urn:dox:error:')
+      const shouldRefresh = errorCode === 'TOKEN_EXPIRED' || (status === 403 && !isProblemDetail)
+
+      if (shouldRefresh) {
         (originalRequest as InternalAxiosRequestConfig & { _retry?: boolean })._retry = true
 
         // Deduplicate concurrent refresh attempts
@@ -157,6 +182,25 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${accessToken}`
           return api(originalRequest)
         }
+
+        // Refresh falhou — sessão expirou, redireciona para login
+        forceSessionExpired()
+        return Promise.reject(
+          new ApiError(
+            {
+              type: 'urn:dox:error:TOKEN_EXPIRED',
+              title: 'Sessão expirada',
+              status,
+              detail: 'Sua sessão expirou. Redirecionando para login...',
+              instance: originalRequest?.url || '',
+              properties: {
+                errorCode: 'TOKEN_EXPIRED',
+                timestamp: new Date().toISOString(),
+              },
+            },
+            status,
+          ),
+        )
       }
     }
 

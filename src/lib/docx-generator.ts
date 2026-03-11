@@ -41,9 +41,9 @@ import { getImageDimensions } from '@/lib/image-utils'
 import { computeCellResult } from '@/lib/formula-engine'
 
 // ========== Color constants ==========
-const DARK_BLUE = '1B4F72'
-const MEDIUM_BLUE = '2E86C1'
-const LIGHT_BLUE = 'D6EAF8'
+const DARK_BLUE = '163A5F'
+const MEDIUM_BLUE = '1E5F8C'
+const LIGHT_BLUE = 'D6E8F5'
 const WHITE = 'FFFFFF'
 const LIGHT_GRAY = 'F2F3F4'
 const BORDER_GRAY = 'D5D8DC'

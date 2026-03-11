@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import './design-tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +7,7 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    @apply bg-surface text-gray-900 font-sans antialiased;
   }
 }
 
@@ -40,7 +41,7 @@
     left: calc(-1 * var(--tree-pl));
     top: 0;
     bottom: 0;
-    border-left: 1px solid #d1d5db;
+    border-left: 1px solid var(--color-gray-300);
   }
 
   .tree-node:not(:last-child)::after {
@@ -49,7 +50,7 @@
     left: calc(-1 * var(--tree-pl));
     top: 24px;
     width: var(--tree-pl);
-    border-top: 1px solid #d1d5db;
+    border-top: 1px solid var(--color-gray-300);
   }
 
   /* Last node: L-shaped connector with rounded corner */
@@ -60,8 +61,8 @@
     top: 0;
     height: 24px;
     width: var(--tree-pl);
-    border-left: 1px solid #d1d5db;
-    border-bottom: 1px solid #d1d5db;
+    border-left: 1px solid var(--color-gray-300);
+    border-bottom: 1px solid var(--color-gray-300);
     border-bottom-left-radius: 6px;
   }
 
@@ -80,7 +81,7 @@
   }
 
   .plate-editor [data-slate-placeholder] {
-    color: #9ca3af;
+    color: var(--color-gray-400);
     pointer-events: none;
   }
 

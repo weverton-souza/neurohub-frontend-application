@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { parseError } from '@/lib/api/error-handler'
 import type { ParsedError } from '@/lib/api/error-handler'
 import ErrorModal from '@/components/ui/ErrorModal'
@@ -19,10 +18,11 @@ export function useError(): ErrorContextValue {
 
 export function ErrorProvider({ children }: { children: React.ReactNode }) {
   const [currentError, setCurrentError] = useState<ParsedError | null>(null)
-  const navigate = useNavigate()
 
   const showError = useCallback((error: unknown) => {
     const parsed = parseError(error)
+    // Erros de auth são tratados pelo interceptor (redirect automático) — não mostra modal
+    if (parsed.isAuthError) return
     setCurrentError(parsed)
   }, [])
 
@@ -30,18 +30,12 @@ export function ErrorProvider({ children }: { children: React.ReactNode }) {
     setCurrentError(null)
   }, [])
 
-  const handleGoToLogin = useCallback(() => {
-    setCurrentError(null)
-    navigate('/login')
-  }, [navigate])
-
   return (
     <ErrorContext.Provider value={{ showError, clearError }}>
       {children}
       <ErrorModal
         error={currentError}
         onClose={clearError}
-        onGoToLogin={handleGoToLogin}
       />
     </ErrorContext.Provider>
   )

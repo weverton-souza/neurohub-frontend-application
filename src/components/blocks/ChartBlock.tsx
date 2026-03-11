@@ -34,7 +34,7 @@ const DISPLAY_MODE_OPTIONS = [
 ]
 
 const DEFAULT_COLORS = [
-  '#2E86C1', '#1B4F72', '#27AE60', '#E74C3C', '#F39C12',
+  '#007AFF', '#0055B3', '#27AE60', '#E74C3C', '#F39C12',
   '#8E44AD', '#16A085', '#D35400', '#2C3E50', '#C0392B',
 ]
 
