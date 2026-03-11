@@ -401,11 +401,11 @@ export default function FormBuilder() {
 
       {/* Main content */}
       <main
-        className="min-h-[calc(100vh-49px)] bg-gray-100 py-6"
+        className="min-h-[calc(100vh-49px)] bg-[#F5F5F7] py-6"
         onClick={handleContainerClick}
         style={{
-          backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.065) 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
+          backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
         }}
       >
         {/* Editor mode */}

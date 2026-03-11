@@ -60,7 +60,7 @@ export default function Login() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-white" style={{ height: '100dvh' }}>
+    <div className="fixed inset-0 overflow-hidden bg-[#F5F5F7]" style={{ height: '100dvh' }}>
       <img
         src={loginBg}
         alt=""
@@ -70,20 +70,21 @@ export default function Login() {
       <div
         className="absolute inset-0 pointer-events-none z-[1]"
         style={{
-          backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.13) 1.2px, transparent 1.2px)',
+          backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.25) 1.2px, transparent 1.2px)',
           backgroundSize: '22px 22px',
-          maskImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.03) 100%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.03) 100%)',
+          maskImage: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0) 100%)',
         }}
       />
 
       <div className="relative z-20 h-dvh flex items-center justify-center gap-12 lg:gap-20 px-4 sm:px-8">
-        <div className="w-full max-w-[380px] bg-white/60 backdrop-blur-2xl border border-gray-200/50 rounded-2xl px-6 sm:px-8 py-6 sm:py-8 shadow-lg shadow-black/[0.06]">
+        <div className="w-full max-w-[380px] bg-white backdrop-blur-2xl border border-gray-200/30 rounded-3xl px-6 sm:px-8 py-6 sm:py-8"
+            style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)' }}>
           <img src={logoDox} alt="Dox" className="h-10 mx-auto mb-6" />
 
           <button
             type="button"
-            className="w-full flex items-center justify-center gap-2.5 border border-gray-300/60 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white/50 transition-colors bg-white/30"
+            className="w-full flex items-center justify-center gap-2.5 border border-gray-300/60 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors bg-white"
           >
             <GoogleIcon />
             Entrar com Google
@@ -171,7 +172,7 @@ export default function Login() {
         </div>
 
         <div className="hidden md:block text-center z-10 shrink-0">
-          <span className="block text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 leading-tight">
+          <span className="block text-2xl lg:text-3xl xl:text-4xl font-medium text-gray-900 leading-tight">
             Pense diferente.
           </span>
           <span className="block text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight">

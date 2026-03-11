@@ -361,10 +361,10 @@ export default function ReportEditor() {
 
   return (
     <div
-      className="min-h-[calc(100vh)] bg-gray-100 flex flex-col"
+      className="min-h-[calc(100vh)] bg-[#F5F5F7] flex flex-col"
       style={{
-        backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.065) 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
+        backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)',
+        backgroundSize: '22px 22px',
       }}
     >
       {/* Header */}
