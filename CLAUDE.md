@@ -92,6 +92,15 @@
 - Itens de contato configuráveis (Instagram, LinkedIn, Facebook, website, telefone, email)
 - Dados usados no header do .docx e no bloco de identificação
 
+### Design System
+- Tokens centralizados em `src/styles/design-tokens.css` com CSS custom properties
+- Duas camadas: primitivas (cores raw) e semânticas (surface, border, text, brand)
+- Paleta azul Apple (#007AFF) + cinzas quentes Apple (#F5F5F7)
+- Sombras multi-layer estilo Apple (xs, sm, md, lg, xl, card, dropdown, modal)
+- Tailwind config consome os tokens via `var()` — alterações no CSS propagam automaticamente
+- Navegação: GlobalTopBar (avatar, settings, logout) + PageHeader (toolbar contextual por página)
+- Font stack: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui
+
 ### Persistência (Backend REST API)
 - Backend: dox-backend-application (Spring Boot + Kotlin + PostgreSQL)
 - HTTP client: axios com interceptors JWT (auto-refresh em TOKEN_EXPIRED)
@@ -152,7 +161,7 @@ src/
   components/blocks/       → um componente por tipo de bloco
   components/editor/       → componentes do editor (BlockList, BlockSelector, OutlineTree)
   components/ui/           → componentes reutilizáveis (Button, Input, Modal, Select)
-  components/layout/       → AppLayout, Sidebar, PageHeader
+  components/layout/       → AppLayout, Sidebar, GlobalTopBar, PageHeader
   components/form-builder/ → componentes do construtor de formulários
   components/form-fill/    → componentes de preenchimento de formulários
   routes/                  → páginas (uma por rota)
@@ -186,8 +195,14 @@ src/
 
 ### Estilo
 - Tailwind v3 utility classes (nunca CSS inline ou modules)
-- Cores da marca: `brand-*` (configurado no tailwind.config)
-- Cores do docx: DARK_BLUE `#1B4F72`, MEDIUM_BLUE `#2E86C1`, LIGHT_BLUE `#D6EAF8`
+- Design tokens centralizados em `src/styles/design-tokens.css` (CSS custom properties)
+- Cores da marca (azul Apple): `brand-*` via `--color-blue-*` (ex: brand-500 = `#007AFF`)
+- Cinzas quentes Apple: `gray-*` via `--color-gray-*` (ex: gray-100 = `#F5F5F7`)
+- Aliases semânticos: `surface`, `surface-card`, `surface-hover`
+- Sombras customizadas: `shadow-xs`, `shadow-card`, `shadow-dropdown`, `shadow-modal`
+- Cores do docx: DARK_BLUE `#163A5F`, MEDIUM_BLUE `#1E5F8C`, LIGHT_BLUE `#D6E8F5`
+- Cores de status: success `#34C759`, warning `#FF9500`, danger `#FF3B30`
+- Font stack: Inter → -apple-system → Segoe UI → system-ui
 
 ## Antes de Commitar
 

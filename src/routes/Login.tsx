@@ -60,7 +60,7 @@ export default function Login() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-[#F5F5F7]" style={{ height: '100dvh' }}>
+    <div className="fixed inset-0 overflow-hidden bg-gray-100" style={{ height: '100dvh' }}>
       <img
         src={loginBg}
         alt=""

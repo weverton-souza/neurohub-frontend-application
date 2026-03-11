@@ -27,11 +27,10 @@ const ERROR_ICONS: Record<ApiErrorCode, { colorClass: string; iconType: ErrorIco
 
 export type ErrorIconType = 'warning' | 'error' | 'lock'
 
-const AUTH_ERROR_CODES: ApiErrorCode[] = [
-  'INVALID_CREDENTIALS',
+// Erros de sessão expirada — redirect direto para /login, sem modal
+const SESSION_EXPIRED_CODES: ApiErrorCode[] = [
   'INVALID_TOKEN',
   'TOKEN_EXPIRED',
-  'ACCESS_DENIED',
 ]
 
 export interface ParsedError {
@@ -60,7 +59,7 @@ export function parseError(error: unknown): ParsedError {
         field: e.field,
         message: e.message,
       })),
-      isAuthError: AUTH_ERROR_CODES.includes(code),
+      isAuthError: SESSION_EXPIRED_CODES.includes(code),
     }
   }
 

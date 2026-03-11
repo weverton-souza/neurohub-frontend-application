@@ -582,7 +582,7 @@ export function createEmptyChartData(): ChartData {
     title: '',
     chartType: 'bar',
     displayMode: 'grouped',
-    series: [{ id: seriesId, label: 'Série 1', color: '#2E86C1' }],
+    series: [{ id: seriesId, label: 'Série 1', color: '#007AFF' }],
     categories: [],
     referenceLines: [],
     referenceRegions: [],

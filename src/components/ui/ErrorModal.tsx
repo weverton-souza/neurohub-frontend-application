@@ -4,7 +4,6 @@ import Modal from '@/components/ui/Modal'
 interface ErrorModalProps {
   error: ParsedError | null
   onClose: () => void
-  onGoToLogin?: () => void
 }
 
 function ErrorIcon({ type }: { type: ErrorIconType }) {
@@ -34,7 +33,7 @@ function ErrorIcon({ type }: { type: ErrorIconType }) {
   )
 }
 
-export default function ErrorModal({ error, onClose, onGoToLogin }: ErrorModalProps) {
+export default function ErrorModal({ error, onClose }: ErrorModalProps) {
   if (!error) return null
 
   return (
@@ -64,15 +63,7 @@ export default function ErrorModal({ error, onClose, onGoToLogin }: ErrorModalPr
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          {error.isAuthError && onGoToLogin && (
-            <button
-              onClick={onGoToLogin}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
-            >
-              Ir para Login
-            </button>
-          )}
+        <div className="flex items-center justify-end pt-2">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
