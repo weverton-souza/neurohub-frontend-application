@@ -7,6 +7,11 @@ import type { ProblemDetail, RefreshRequest } from '@/types'
 let accessToken: string | null = null
 
 const REFRESH_TOKEN_KEY = 'dox_refresh_token'
+const ACCESS_TOKEN_KEY = 'dox_access_token'
+const USER_KEY = 'dox_user'
+
+// Restore accessToken from sessionStorage on module load (survives page refresh)
+accessToken = sessionStorage.getItem(ACCESS_TOKEN_KEY)
 
 export function getAccessToken(): string | null {
   return accessToken
@@ -14,6 +19,11 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string | null): void {
   accessToken = token
+  if (token) {
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, token)
+  } else {
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY)
+  }
 }
 
 export function getRefreshToken(): string | null {
@@ -28,9 +38,23 @@ export function setRefreshToken(token: string | null): void {
   }
 }
 
+export function getStoredUser(): string | null {
+  return sessionStorage.getItem(USER_KEY)
+}
+
+export function setStoredUser(json: string | null): void {
+  if (json) {
+    sessionStorage.setItem(USER_KEY, json)
+  } else {
+    sessionStorage.removeItem(USER_KEY)
+  }
+}
+
 export function clearTokens(): void {
   accessToken = null
   localStorage.removeItem(REFRESH_TOKEN_KEY)
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY)
+  sessionStorage.removeItem(USER_KEY)
 }
 
 // ========== Error Classes ==========
@@ -54,7 +78,7 @@ export class NetworkError extends Error {
 
 // ========== Axios Instance ==========
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
