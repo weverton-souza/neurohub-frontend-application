@@ -155,7 +155,7 @@ export default function CustomerList() {
                 placeholder="Buscar por nome ou CPF..."
               />
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
               <label htmlFor="page-size" className="text-sm text-gray-400">
                 Por página:
               </label>
@@ -211,7 +211,7 @@ export default function CustomerList() {
               return (
                 <div key={customer.id} className="bg-white rounded-xl border border-gray-200 transition-all hover:border-brand-300 hover:shadow-sm cursor-pointer" onClick={() => navigate(`/clientes/${customer.id}`)}>
                   {/* Card row */}
-                  <div className="p-4 flex items-center gap-4">
+                  <div className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
                     {/* Avatar */}
                     <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
                       <span className="text-sm font-semibold text-brand-700">
@@ -247,7 +247,7 @@ export default function CustomerList() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : customer.id) }}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
+                      className={`hidden sm:inline-flex px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
                         customerReports.length > 0
                           ? 'bg-brand-100 text-brand-700 hover:bg-brand-200'
                           : 'bg-gray-100 text-gray-500'
@@ -258,7 +258,7 @@ export default function CustomerList() {
                     </button>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="hidden sm:flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleCreateReport(customer) }}
@@ -358,7 +358,7 @@ export default function CustomerList() {
       >
         {editingCustomer && (
           <div className="p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Nome"
                 value={editingCustomer.data.name}

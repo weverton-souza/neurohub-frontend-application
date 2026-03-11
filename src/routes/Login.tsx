@@ -60,7 +60,7 @@ export default function Login() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-white">
+    <div className="fixed inset-0 overflow-hidden bg-white" style={{ height: '100dvh' }}>
       <img
         src={loginBg}
         alt=""
@@ -77,8 +77,8 @@ export default function Login() {
         }}
       />
 
-      <div className="relative z-20 h-screen flex items-center justify-center gap-12 lg:gap-20 px-8">
-        <div className="w-full max-w-[380px] bg-white/60 backdrop-blur-2xl border border-gray-200/50 rounded-2xl px-8 py-8 shadow-lg shadow-black/[0.06]">
+      <div className="relative z-20 h-dvh flex items-center justify-center gap-12 lg:gap-20 px-4 sm:px-8">
+        <div className="w-full max-w-[380px] bg-white/60 backdrop-blur-2xl border border-gray-200/50 rounded-2xl px-6 sm:px-8 py-6 sm:py-8 shadow-lg shadow-black/[0.06]">
           <img src={logoDox} alt="Dox" className="h-10 mx-auto mb-6" />
 
           <button
@@ -111,7 +111,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoFocus
-                className="w-full rounded-lg border border-gray-300/80 bg-white/40 px-3 py-1.5 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none transition-colors placeholder:text-gray-400"
+                className="w-full rounded-lg border border-gray-300/80 bg-white/40 px-3 py-2.5 sm:py-1.5 text-base sm:text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none transition-colors placeholder:text-gray-400"
               />
             </div>
 
@@ -127,7 +127,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full rounded-lg border border-gray-300/80 bg-white/50 px-3 py-1.5 pr-9 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none transition-colors placeholder:text-gray-400"
+                  className="w-full rounded-lg border border-gray-300/80 bg-white/50 px-3 py-2.5 sm:py-1.5 pr-9 text-base sm:text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none transition-colors placeholder:text-gray-400"
                 />
                 <button
                   type="button"

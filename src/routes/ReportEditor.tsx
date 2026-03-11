@@ -368,15 +368,15 @@ export default function ReportEditor() {
       }}
     >
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 h-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center gap-4">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 h-14 lg:h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-full flex items-center gap-2 sm:gap-4">
           <button
             type="button"
             onClick={() => {
               handleForceSave()
               navigate('/')
             }}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors shrink-0"
             title="Voltar"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
@@ -390,38 +390,33 @@ export default function ReportEditor() {
               value={report.customerName || ''}
               onChange={(e) => handleUpdateReport({ customerName: e.target.value })}
               placeholder="Nome do cliente"
-              className="text-lg font-semibold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 w-full truncate placeholder:text-gray-400"
+              className="text-base lg:text-lg font-semibold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 w-full truncate placeholder:text-gray-400"
             />
           </div>
 
           {/* Save status */}
           <div className="flex items-center gap-1.5 text-xs shrink-0">
             {saveStatus === 'saved' && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-gray-500">Salvo</span>
-              </>
+              <span className="w-2 h-2 rounded-full bg-green-500" title="Salvo" />
             )}
             {saveStatus === 'saving' && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                <span className="text-gray-500">Salvando...</span>
-              </>
+              <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" title="Salvando..." />
             )}
             {saveStatus === 'unsaved' && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-orange-500" />
-                <span className="text-gray-500">Não salvo</span>
-              </>
+              <span className="w-2 h-2 rounded-full bg-orange-500" title="Não salvo" />
             )}
+            <span className="text-gray-500 hidden sm:inline">
+              {saveStatus === 'saved' ? 'Salvo' : saveStatus === 'saving' ? 'Salvando...' : 'Não salvo'}
+            </span>
           </div>
 
           <StatusSelector status={report.status} onChange={handleStatusChange} />
 
+          {/* Botões secundários — hidden no mobile */}
           <button
             type="button"
             onClick={createManualSnapshot}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+            className="hidden md:inline-flex p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
             title="Salvar versão"
           >
             <SaveIcon size={18} />
@@ -430,17 +425,17 @@ export default function ReportEditor() {
           <button
             type="button"
             onClick={handleOpenVersionHistory}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+            className="hidden md:inline-flex p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
             title="Histórico de versões"
           >
             <HistoryIcon size={18} />
           </button>
 
-          <Button variant="secondary" size="sm" onClick={() => setShowSaveTemplate(true)}>
+          <Button variant="secondary" size="sm" onClick={() => setShowSaveTemplate(true)} className="hidden lg:inline-flex">
             Salvar como Template
           </Button>
 
-          <Button variant="secondary" size="md" onClick={() => setShowDocxPreview((v) => !v)}>
+          <Button variant="secondary" size="md" onClick={() => setShowDocxPreview((v) => !v)} className="hidden lg:inline-flex">
             <span className="flex items-center gap-2">
               {showDocxPreview ? (
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -462,7 +457,7 @@ export default function ReportEditor() {
                 <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
                 <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
               </svg>
-              Gerar .docx
+              <span className="hidden sm:inline">.docx</span>
             </span>
           </Button>
         </div>
@@ -473,7 +468,7 @@ export default function ReportEditor() {
         className={`flex-1 flex w-full px-4 sm:px-6 ${showDocxPreview ? 'gap-6' : 'max-w-3xl mx-auto'}`}
       >
         {/* Left: blocks */}
-        <div className={`min-w-0 flex flex-col ${showDocxPreview ? 'flex-1' : 'flex-1'}`}>
+        <div className={`min-w-0 flex flex-col ${showDocxPreview ? 'w-full max-w-3xl' : 'flex-1'}`}>
           {/* Form provenance banner */}
           {formProvenanceLabel && (
             <div className="pt-3">
@@ -604,9 +599,9 @@ export default function ReportEditor() {
           </main>
         </div>
 
-        {/* Right: preview panel */}
+        {/* Right: preview panel (desktop only) */}
         {showDocxPreview && (
-          <div className="flex-1 min-w-0 sticky top-16 h-[calc(100vh-4rem)] py-4">
+          <div className="hidden lg:block flex-1 min-w-0 sticky top-16 h-[calc(100vh-4rem)] py-4">
             <DocxPreviewPanel
               report={report}
               onClose={() => setShowDocxPreview(false)}

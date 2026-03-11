@@ -340,8 +340,8 @@ export default function FormBuilder() {
     <>
       {/* Tabs header (Google Forms style) */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-[860px] mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-[860px] mx-auto px-3 sm:px-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={handleBack}
@@ -359,14 +359,14 @@ export default function FormBuilder() {
                 saveStatus === 'saving' ? 'bg-yellow-400' :
                 'bg-gray-300'
               }`} />
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 hidden sm:inline">
                 {saveStatus === 'saved' ? 'Salvo' : saveStatus === 'saving' ? 'Salvando...' : ''}
               </span>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex">
+          <div className="flex overflow-x-auto">
             {([
               { mode: 'editor' as ViewMode, label: 'Perguntas' },
               { mode: 'preview' as ViewMode, label: 'Preview' },
@@ -376,7 +376,7 @@ export default function FormBuilder() {
                 key={mode}
                 type="button"
                 onClick={() => setViewMode(mode)}
-                className={`px-4 py-3 text-sm font-medium border-b-[3px] transition-colors ${
+                className={`px-3 sm:px-4 py-3 text-sm font-medium border-b-[3px] transition-colors whitespace-nowrap ${
                   viewMode === mode
                     ? 'text-brand-600 border-brand-500'
                     : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50'
@@ -392,6 +392,7 @@ export default function FormBuilder() {
             variant={form.linkedTemplateId ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setShowTemplateLinkModal(true)}
+            className="hidden sm:inline-flex shrink-0"
           >
             {form.linkedTemplateId ? linkedTemplate?.name ?? 'Template' : 'Vincular Template'}
           </Button>
