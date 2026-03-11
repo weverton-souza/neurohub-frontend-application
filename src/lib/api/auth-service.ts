@@ -1,5 +1,6 @@
+import axios from 'axios'
 import type { LoginRequest, RegisterRequest, AuthResponse, AuthUser } from '@/types'
-import { api, setAccessToken, setRefreshToken, clearTokens, getRefreshToken } from '@/lib/api/api-client'
+import { api, setAccessToken, setRefreshToken, clearTokens, getRefreshToken, API_BASE_URL } from '@/lib/api/api-client'
 
 export async function login(credentials: LoginRequest): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>('/auth/login', credentials)
@@ -26,19 +27,38 @@ export async function logout(): Promise<void> {
   }
 }
 
+let refreshPromise: Promise<AuthResponse | null> | null = null
+
 export async function refreshSession(): Promise<AuthResponse | null> {
+  // Deduplicate concurrent calls (e.g. React StrictMode double-mount)
+  if (refreshPromise) return refreshPromise
+
   const refreshToken = getRefreshToken()
   if (!refreshToken) return null
 
-  try {
-    const { data } = await api.post<AuthResponse>('/auth/refresh', { refreshToken })
-    setAccessToken(data.accessToken)
-    setRefreshToken(data.refreshToken)
-    return data
-  } catch {
-    clearTokens()
-    return null
-  }
+  refreshPromise = (async () => {
+    try {
+      // Use raw axios to bypass interceptors — avoids recursive refresh loop
+      const { data } = await axios.post<AuthResponse>(
+        `${API_BASE_URL}/auth/refresh`,
+        { refreshToken },
+        { headers: { 'Content-Type': 'application/json' } },
+      )
+      setAccessToken(data.accessToken)
+      setRefreshToken(data.refreshToken)
+      return data
+    } catch (err) {
+      // Only clear tokens on auth rejection (4xx), not on network/server errors
+      if (axios.isAxiosError(err) && err.response && err.response.status < 500) {
+        clearTokens()
+      }
+      return null
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
 }
 
 export async function switchTenant(tenantId: string): Promise<AuthResponse> {

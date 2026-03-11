@@ -8,7 +8,7 @@ import {
   switchTenant as apiSwitchTenant,
   authResponseToUser,
 } from '@/lib/api/auth-service'
-import { clearTokens } from '@/lib/api/api-client'
+import { clearTokens, getAccessToken, getStoredUser, setStoredUser } from '@/lib/api/api-client'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -29,11 +29,20 @@ export function useAuth(): AuthContextValue {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // Restore user synchronously from sessionStorage (avoids StrictMode race conditions)
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const stored = getStoredUser()
+    if (stored && getAccessToken()) {
+      try { return JSON.parse(stored) as AuthUser } catch { return null }
+    }
+    return null
+  })
+  const [isLoading, setIsLoading] = useState(() => !getStoredUser() || !getAccessToken())
 
-  // Restore session from refresh token on mount
+  // Fallback: try refresh token only if no stored session
   useEffect(() => {
+    if (getStoredUser() && getAccessToken()) return
+
     let cancelled = false
     refreshSession()
       .then((response) => {
@@ -46,6 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
     return () => { cancelled = true }
   }, [])
+
+  // Persist user to sessionStorage whenever it changes
+  useEffect(() => {
+    setStoredUser(user ? JSON.stringify(user) : null)
+  }, [user])
 
   const login = useCallback(async (credentials: LoginRequest) => {
     const response = await apiLogin(credentials)

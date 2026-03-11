@@ -576,7 +576,7 @@ export default function CustomerProfile() {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       {/* Breadcrumb header */}
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 h-16">
+      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 sm:px-6 h-14 lg:h-16">
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-2 text-sm">
             <button
@@ -598,18 +598,18 @@ export default function CustomerProfile() {
 
       {/* Profile card */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <div className="flex gap-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="shrink-0">
-              <div className="w-24 h-24 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-3xl font-semibold ring-4 ring-white shadow-sm">
+              <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-2xl sm:text-3xl font-semibold ring-4 ring-white shadow-sm">
                 {initial}
               </div>
             </div>
 
             {/* Info grid */}
             <div className="flex-1 min-w-0">
-              <div className="grid grid-cols-3 gap-x-8 gap-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
                 <InfoField label="Nome" value={customer.data.name} />
                 <InfoField label="CPF" value={customer.data.cpf} />
                 <InfoField label="Idade" value={customer.data.age} />
@@ -632,7 +632,7 @@ export default function CustomerProfile() {
 
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto">
           <nav className="flex gap-0 -mb-px">
             {TABS.map((tab) => {
               const isActive = activeSection === tab.key
@@ -658,7 +658,7 @@ export default function CustomerProfile() {
 
       {/* Tab content */}
       <div className="flex-1 bg-gray-50/50">
-        <div className="max-w-5xl mx-auto px-6 py-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {sectionRenderers[activeSection]()}
         </div>
       </div>
@@ -680,7 +680,7 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         <Button size="sm" onClick={onSave} disabled={saving}>

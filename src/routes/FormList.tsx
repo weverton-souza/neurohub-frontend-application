@@ -113,7 +113,7 @@ export default function FormList() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* Page size */}
         {forms.length > 0 && (
-          <div className="mb-6 flex items-center justify-end">
+          <div className="mb-6 hidden sm:flex items-center justify-end">
             <div className="flex items-center gap-1.5">
               <label htmlFor="page-size-forms" className="text-sm text-gray-400">
                 Por página:
@@ -164,7 +164,7 @@ export default function FormList() {
                 return (
                   <div
                     key={form.id}
-                    className="bg-white rounded-xl border border-gray-200 hover:border-brand-300 hover:shadow-md transition-all p-4 flex items-center gap-4 cursor-pointer"
+                    className="bg-white rounded-xl border border-gray-200 hover:border-brand-300 hover:shadow-md transition-all p-3 sm:p-4 flex items-center gap-3 sm:gap-4 cursor-pointer"
                     onClick={() =>
                       isDefault
                         ? navigate(`/formulario/${form.id}/respostas`)
@@ -241,7 +241,7 @@ export default function FormList() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="hidden sm:flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={(e) => {

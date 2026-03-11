@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Report } from '@/types'
 import { renderAsync } from 'docx-preview'
 import { generateDocx } from '@/lib/docx-generator'
-import { saveAs } from 'file-saver'
 
 interface DocxPreviewPanelProps {
   report: Report
@@ -12,7 +11,7 @@ interface DocxPreviewPanelProps {
 
 type PreviewState = 'loading' | 'ready' | 'error'
 
-export default function DocxPreviewPanel({ report, onClose, refreshKey }: DocxPreviewPanelProps) {
+export default function DocxPreviewPanel({ report, refreshKey }: DocxPreviewPanelProps) {
   const [state, setState] = useState<PreviewState>('loading')
   const [errorMessage, setErrorMessage] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -58,13 +57,6 @@ export default function DocxPreviewPanel({ report, onClose, refreshKey }: DocxPr
         containerRef.current.innerHTML = ''
       }
     }
-  }, [])
-
-  const handleDownloadDocx = useCallback(() => {
-    const blob = docxBlobRef.current
-    if (!blob) return
-    const name = reportRef.current.customerName?.trim() || new Date().toISOString().split('T')[0]
-    saveAs(blob, `Laudo - ${name}.docx`)
   }, [])
 
   return (
