@@ -77,7 +77,7 @@ async function createDocHeader(): Promise<Header> {
     spacing: { after: 20 },
     children: [
       new TextRun({
-        text: prof.name,
+        text: prof.name || '',
         bold: true,
         size: 18,
         font: 'Calibri',
@@ -91,7 +91,7 @@ async function createDocHeader(): Promise<Header> {
     spacing: { after: 0 },
     children: [
       new TextRun({
-        text: `${prof.specialization} — CRP ${prof.crp}`,
+        text: `${prof.specialization || ''} — CRP ${prof.crp || ''}`,
         size: 16,
         font: 'Calibri',
         color: MEDIUM_BLUE,
@@ -624,6 +624,12 @@ function renderScoreTable(data: ScoreTableData): (Paragraph | Table)[] {
       new TableCell({
         width: { size: colWidth, type: WidthType.DXA },
         shading: { fill: DARK_BLUE, type: ShadingType.CLEAR, color: 'auto' },
+        borders: {
+          top: THIN_BORDER,
+          bottom: THIN_BORDER,
+          left: THIN_BORDER,
+          right: THIN_BORDER,
+        },
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
@@ -654,6 +660,12 @@ function renderScoreTable(data: ScoreTableData): (Paragraph | Table)[] {
       return new TableCell({
         width: { size: colWidth, type: WidthType.DXA },
         shading: { fill: cellBgColor, type: ShadingType.CLEAR, color: 'auto' },
+        borders: {
+          top: THIN_BORDER,
+          bottom: THIN_BORDER,
+          left: THIN_BORDER,
+          right: THIN_BORDER,
+        },
         children: [
           new Paragraph({
             alignment: getDocxAlignment(col),
@@ -1214,6 +1226,9 @@ async function renderClosingPage(data: ClosingPageData, report: Report): Promise
         keepNext: true,
         spacing: { before: 300, after: 150 },
         border: {
+          top: NO_BORDER,
+          left: NO_BORDER,
+          right: NO_BORDER,
           bottom: { color: MEDIUM_BLUE, space: 4, style: BorderStyle.SINGLE, size: 6 },
         },
         children: [
@@ -1416,6 +1431,9 @@ function createSectionHeader(text: string): Paragraph {
     keepNext: true,
     spacing: { before: 300, after: 150 },
     border: {
+      top: NO_BORDER,
+      left: NO_BORDER,
+      right: NO_BORDER,
       bottom: { color: MEDIUM_BLUE, space: 4, style: BorderStyle.SINGLE, size: 6 },
     },
     children: [
