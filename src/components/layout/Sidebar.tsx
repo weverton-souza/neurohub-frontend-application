@@ -22,19 +22,19 @@ const NAV_ITEMS: NavItemConfig[] = [
     to: '/',
     label: 'Relatórios',
     icon: DocumentIcon,
-    matchPaths: ['/relatorio/'],
+    matchPaths: ['/reports/'],
   },
   {
-    to: '/clientes',
+    to: '/customers',
     label: 'Clientes',
     icon: UsersIcon,
-    matchPaths: ['/clientes/'],
+    matchPaths: ['/customers/'],
   },
   {
-    to: '/formularios',
+    to: '/forms',
     label: 'Formulários',
     icon: ClipboardListIcon,
-    matchPaths: ['/formulario/'],
+    matchPaths: ['/forms/'],
   },
 ]
 
@@ -128,10 +128,10 @@ export default function Sidebar({
       <div className="border-t border-gray-200 py-3 px-2 space-y-1 shrink-0">
         <div className="relative group">
           <NavLink
-            to="/guias"
+            to="/guides"
             onClick={handleNavClick}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
-              location.pathname === '/guias'
+              location.pathname === '/guides'
                 ? 'bg-brand-100 text-brand-700 font-medium'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             }`}

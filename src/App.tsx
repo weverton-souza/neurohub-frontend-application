@@ -12,23 +12,25 @@ import FormBuilder from '@/routes/FormBuilder'
 import FormFill from '@/routes/FormFill'
 import FormResponseList from '@/routes/FormResponseList'
 import FormulaGuide from '@/routes/FormulaGuide'
+import PublicFormFill from '@/routes/PublicFormFill'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/cadastro" element={<Register />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/public/forms/:token" element={<PublicFormFill />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<ReportList />} />
-          <Route path="/relatorio/:id" element={<ReportEditor />} />
-          <Route path="/clientes" element={<CustomerList />} />
-          <Route path="/clientes/:id" element={<CustomerProfile />} />
-          <Route path="/formularios" element={<FormList />} />
-          <Route path="/formulario/:id/editar" element={<FormBuilder />} />
-          <Route path="/formulario/:id/preencher" element={<FormFill />} />
-          <Route path="/formulario/:id/respostas" element={<FormResponseList />} />
-          <Route path="/guias" element={<FormulaGuide />} />
+          <Route path="/reports/:id" element={<ReportEditor />} />
+          <Route path="/customers" element={<CustomerList />} />
+          <Route path="/customers/:id" element={<CustomerProfile />} />
+          <Route path="/forms" element={<FormList />} />
+          <Route path="/forms/:id/edit" element={<FormBuilder />} />
+          <Route path="/forms/:id/fill" element={<FormFill />} />
+          <Route path="/forms/:id/responses" element={<FormResponseList />} />
+          <Route path="/guides" element={<FormulaGuide />} />
         </Route>
       </Route>
     </Routes>

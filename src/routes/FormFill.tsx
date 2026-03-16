@@ -36,7 +36,7 @@ export default function FormFill() {
 
     getFormById(id).then(async (loadedForm) => {
       if (!loadedForm) {
-        navigate('/formularios')
+        navigate('/forms')
         return
       }
       setForm(loadedForm)
@@ -150,7 +150,7 @@ export default function FormFill() {
     await forceSave(finalized)
     setResponse(finalized)
 
-    navigate(`/formulario/${id}/respostas`)
+    navigate(`/forms/${id}/responses`)
   }, [validate, response, id, navigate, forceSave])
 
   const handleSaveDraft = useCallback(async () => {
@@ -160,7 +160,7 @@ export default function FormFill() {
 
   const handleBack = useCallback(async () => {
     if (response) await forceSave(response)
-    navigate(`/formulario/${id}/respostas`)
+    navigate(`/forms/${id}/responses`)
   }, [response, id, navigate, forceSave])
 
   // Derived

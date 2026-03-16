@@ -34,6 +34,7 @@ import FieldMappingEditor from '@/components/form-builder/FieldMappingEditor'
 import FormPreview from '@/components/form-builder/FormPreview'
 import SectionDeleteModal from '@/components/ui/SectionDeleteModal'
 import SectionReorderModal from '@/components/form-builder/SectionReorderModal'
+import GenerateFormLinkModal from '@/components/form-builder/GenerateFormLinkModal'
 
 type ViewMode = 'editor' | 'preview' | 'mapping'
 
@@ -45,6 +46,7 @@ export default function FormBuilder() {
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [showTemplateLinkModal, setShowTemplateLinkModal] = useState(false)
   const [showSectionReorderModal, setShowSectionReorderModal] = useState(false)
+  const [showLinkModal, setShowLinkModal] = useState(false)
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null)
 
   const updateFormFn = useCallback((data: Form) => updateForm(data), [])
@@ -55,12 +57,12 @@ export default function FormBuilder() {
   useEffect(() => {
     if (!id) return
     Promise.all([getFormById(id), getReportTemplates()])
-      .then(([loaded, customTemplates]) => {
-        if (loaded) setForm(loaded)
-        else navigate('/formularios')
+      .then(([raw, customTemplates]) => {
+        if (raw) setForm(raw)
+        else navigate('/forms')
         setTemplates(getAllTemplates(customTemplates))
       })
-      .catch(() => navigate('/formularios'))
+      .catch(() => navigate('/forms'))
   }, [id, navigate])
 
   const updateFormState = useCallback((patch: Partial<Form>) => {
@@ -75,7 +77,7 @@ export default function FormBuilder() {
   // Force save on navigation
   const handleBack = useCallback(async () => {
     if (form) await forceSave(form)
-    navigate('/formularios')
+    navigate('/forms')
   }, [form, navigate, forceSave])
 
   // DnD
@@ -387,15 +389,31 @@ export default function FormBuilder() {
             ))}
           </div>
 
-          {/* Template link */}
-          <Button
-            variant={form.linkedTemplateId ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setShowTemplateLinkModal(true)}
-            className="hidden sm:inline-flex shrink-0"
-          >
-            {form.linkedTemplateId ? linkedTemplate?.name ?? 'Template' : 'Vincular Template'}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Generate Link */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLinkModal(true)}
+              className="hidden sm:inline-flex"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline -mt-0.5 mr-1">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              Gerar Link
+            </Button>
+
+            {/* Template link */}
+            <Button
+              variant={form.linkedTemplateId ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setShowTemplateLinkModal(true)}
+              className="hidden sm:inline-flex"
+            >
+              {form.linkedTemplateId ? linkedTemplate?.name ?? 'Template' : 'Vincular Template'}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -577,6 +595,14 @@ export default function FormBuilder() {
         sections={sectionReorderItems}
         onReorder={handleReorderSections}
       />
+
+      {id && (
+        <GenerateFormLinkModal
+          isOpen={showLinkModal}
+          onClose={() => setShowLinkModal(false)}
+          formId={id}
+        />
+      )}
     </>
   )
 }
