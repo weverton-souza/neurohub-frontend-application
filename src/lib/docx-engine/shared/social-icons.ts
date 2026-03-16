@@ -1,6 +1,6 @@
 import type { ContactType } from '@/types'
 
-const ICON_SIZE = 32 // canvas pixels (rendered at 12px in docx)
+const ICON_SIZE = 32
 const ICON_COLOR = '#666666'
 
 function createCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
@@ -28,12 +28,9 @@ function canvasToUint8Array(canvas: HTMLCanvasElement): Uint8Array {
   return bytes
 }
 
-// --- Icon drawing functions ---
-
 function drawInstagramIcon(): Uint8Array {
   const { canvas, ctx } = createCanvas()
   const s = ICON_SIZE
-  // Rounded rectangle (camera body)
   const r = s * 0.22
   const m = s * 0.12
   ctx.beginPath()
@@ -48,11 +45,9 @@ function drawInstagramIcon(): Uint8Array {
   ctx.quadraticCurveTo(m, m, m + r, m)
   ctx.closePath()
   ctx.stroke()
-  // Circle (lens)
   ctx.beginPath()
   ctx.arc(s / 2, s / 2, s * 0.2, 0, Math.PI * 2)
   ctx.stroke()
-  // Dot (flash)
   ctx.beginPath()
   ctx.arc(s * 0.72, s * 0.28, s * 0.05, 0, Math.PI * 2)
   ctx.fill()
@@ -83,16 +78,13 @@ function drawWebsiteIcon(): Uint8Array {
   const { canvas, ctx } = createCanvas()
   const s = ICON_SIZE
   const cx = s / 2, cy = s / 2, r = s * 0.38
-  // Outer circle (globe)
   ctx.beginPath()
   ctx.arc(cx, cy, r, 0, Math.PI * 2)
   ctx.stroke()
-  // Horizontal line
   ctx.beginPath()
   ctx.moveTo(cx - r, cy)
   ctx.lineTo(cx + r, cy)
   ctx.stroke()
-  // Vertical ellipse
   ctx.beginPath()
   ctx.ellipse(cx, cy, r * 0.45, r, 0, 0, Math.PI * 2)
   ctx.stroke()
@@ -102,7 +94,6 @@ function drawWebsiteIcon(): Uint8Array {
 function drawPhoneIcon(): Uint8Array {
   const { canvas, ctx } = createCanvas()
   const s = ICON_SIZE
-  // Simple phone receiver
   ctx.lineWidth = 2.5
   ctx.beginPath()
   ctx.moveTo(s * 0.2, s * 0.15)
@@ -110,11 +101,9 @@ function drawPhoneIcon(): Uint8Array {
   ctx.lineTo(s * 0.45, s * 0.7)
   ctx.quadraticCurveTo(s * 0.6, s * 0.85, s * 0.85, s * 0.8)
   ctx.stroke()
-  // Earpiece
   ctx.beginPath()
   ctx.arc(s * 0.22, s * 0.18, s * 0.07, 0, Math.PI * 2)
   ctx.fill()
-  // Mouthpiece
   ctx.beginPath()
   ctx.arc(s * 0.82, s * 0.78, s * 0.07, 0, Math.PI * 2)
   ctx.fill()
@@ -126,9 +115,7 @@ function drawEmailIcon(): Uint8Array {
   const s = ICON_SIZE
   const mx = s * 0.12, my = s * 0.22
   const w = s - mx * 2, h = s - my * 2
-  // Envelope rectangle
   ctx.strokeRect(mx, my, w, h)
-  // V shape (flap)
   ctx.beginPath()
   ctx.moveTo(mx, my)
   ctx.lineTo(s / 2, s / 2 + 1)
@@ -137,7 +124,6 @@ function drawEmailIcon(): Uint8Array {
   return canvasToUint8Array(canvas)
 }
 
-// --- Cache ---
 const iconCache = new Map<ContactType, Uint8Array>()
 
 const ICON_GENERATORS: Record<ContactType, () => Uint8Array> = {
@@ -149,7 +135,6 @@ const ICON_GENERATORS: Record<ContactType, () => Uint8Array> = {
   email: drawEmailIcon,
 }
 
-/** Generate a 32x32 monochrome PNG icon as Uint8Array for docx ImageRun */
 export function generateSocialIcon(type: ContactType): Uint8Array {
   const cached = iconCache.get(type)
   if (cached) return cached
@@ -159,7 +144,6 @@ export function generateSocialIcon(type: ContactType): Uint8Array {
   return bytes
 }
 
-/** Helper: convert raw base64 string to Uint8Array */
 export function base64ToUint8Array(base64: string): Uint8Array {
   const binaryString = atob(base64)
   const bytes = new Uint8Array(binaryString.length)
