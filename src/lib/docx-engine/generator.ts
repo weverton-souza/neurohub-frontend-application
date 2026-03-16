@@ -34,38 +34,22 @@ import {
   isSlateContent,
 } from '@/types'
 import { Chart as ChartJS } from 'chart.js'
-import '@/lib/chart-setup'
+import './chart/setup'
 import { getProfessional } from '@/lib/api/professional-api'
-import { generateSocialIcon, base64ToUint8Array } from '@/lib/social-icons'
-import { getImageDimensions } from '@/lib/image-utils'
-import { computeCellResult } from '@/lib/formula-engine'
-
-// ========== Color constants ==========
-const DARK_BLUE = '163A5F'
-const MEDIUM_BLUE = '1E5F8C'
-const LIGHT_BLUE = 'D6E8F5'
-const WHITE = 'FFFFFF'
-const LIGHT_GRAY = 'F2F3F4'
-const BORDER_GRAY = 'D5D8DC'
-
-// Page width in twips: A4 = 11906 twips, minus 1.5cm left + 1.5cm right = 11906 - 2*850 = 10206
-const PAGE_CONTENT_WIDTH = 10206
-const PAGE_MARGIN = 850 // 1.5cm in twips
-
-// ========== Helper: borders ==========
-const THIN_BORDER = {
-  color: BORDER_GRAY,
-  space: 1,
-  style: BorderStyle.SINGLE,
-  size: 4,
-}
-
-const NO_BORDER = {
-  color: WHITE,
-  space: 0,
-  style: BorderStyle.NONE,
-  size: 0,
-}
+import { generateSocialIcon, base64ToUint8Array } from './shared/social-icons'
+import { getImageDimensions } from './shared/image-utils'
+import { computeCellResult } from './table/formula-engine'
+import {
+  DARK_BLUE,
+  MEDIUM_BLUE,
+  LIGHT_BLUE,
+  WHITE,
+  LIGHT_GRAY,
+  PAGE_CONTENT_WIDTH,
+  PAGE_MARGIN,
+  THIN_BORDER,
+  NO_BORDER,
+} from './shared/constants'
 
 // ========== Header / Footer ==========
 

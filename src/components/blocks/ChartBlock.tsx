@@ -16,7 +16,7 @@ import { CloseIcon } from '@/components/icons'
 import ColorPicker from '@/components/ui/ColorPicker'
 import { Chart as ChartJS } from 'chart.js'
 import { createChartTemplate, getChartTemplates } from '@/lib/api/template-api'
-import '@/lib/chart-setup'
+import '@/lib/docx-engine/chart/setup'
 
 interface ChartBlockProps {
   data: ChartData

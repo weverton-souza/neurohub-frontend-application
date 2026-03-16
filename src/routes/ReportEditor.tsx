@@ -251,7 +251,7 @@ export default function ReportEditor() {
       setReport(finalized)
       await updateReport(finalized)
 
-      const { downloadDocx } = await import('@/lib/docx-generator')
+      const { downloadDocx } = await import('@/lib/docx-engine')
       await downloadDocx(finalized)
     } catch (err) {
       showError(err)

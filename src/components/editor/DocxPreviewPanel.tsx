@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Report } from '@/types'
 import { renderAsync } from 'docx-preview'
-import { generateDocx } from '@/lib/docx-generator'
+import { generateDocx } from '@/lib/docx-engine'
 
 interface DocxPreviewPanelProps {
   report: Report
