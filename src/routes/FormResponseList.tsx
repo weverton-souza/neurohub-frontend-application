@@ -14,6 +14,7 @@ import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
 import GenerateReportModal from '@/components/form-builder/GenerateReportModal'
+import GenerateFormLinkModal from '@/components/form-builder/GenerateFormLinkModal'
 
 export default function FormResponseList() {
   const { id } = useParams<{ id: string }>()
@@ -23,6 +24,7 @@ export default function FormResponseList() {
   const [form, setForm] = useState<Form | null>(null)
   const [responses, setResponses] = useState<FormResponse[]>([])
   const [generateForResponse, setGenerateForResponse] = useState<FormResponse | null>(null)
+  const [showLinkModal, setShowLinkModal] = useState(false)
   const [allTemplates, setAllTemplates] = useState(() => getAllTemplates([]))
 
   const linkedTemplate = useMemo((): ReportTemplate | null => {
@@ -39,7 +41,7 @@ export default function FormResponseList() {
         getReportTemplates(),
       ])
       if (!loadedForm) {
-        navigate('/formularios')
+        navigate('/forms')
         return
       }
       setForm(loadedForm)
@@ -68,7 +70,7 @@ export default function FormResponseList() {
   const { page: paginatedPage, setCurrentPage, pageSize, changePageSize } = usePagination(responses)
 
   const handleNewResponse = useCallback(() => {
-    navigate(`/formulario/${id}/preencher`)
+    navigate(`/forms/${id}/fill`)
   }, [id, navigate])
 
   if (!form) {
@@ -86,8 +88,15 @@ export default function FormResponseList() {
         subtitle={`${responses.length} ${responses.length === 1 ? 'resposta' : 'respostas'}`}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => navigate(`/formulario/${id}/editar`)}>
+            <Button variant="ghost" onClick={() => navigate(`/forms/${id}/edit`)}>
               Editar Formulário
+            </Button>
+            <Button variant="ghost" onClick={() => setShowLinkModal(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline -mt-0.5 mr-1">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              Gerar Link
             </Button>
             <Button onClick={handleNewResponse}>
               + Nova Resposta
@@ -146,7 +155,7 @@ export default function FormResponseList() {
                 <div
                   key={resp.id}
                   className="bg-white rounded-xl border border-gray-200 hover:border-brand-300 hover:shadow-md transition-all p-4 flex items-center gap-4 cursor-pointer"
-                  onClick={() => navigate(`/formulario/${id}/preencher?response=${resp.id}`)}
+                  onClick={() => navigate(`/forms/${id}/fill?response=${resp.id}`)}
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-gray-900 truncate">
@@ -176,7 +185,7 @@ export default function FormResponseList() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/relatorio/${resp.generatedReportId}`)
+                        navigate(`/reports/${resp.generatedReportId}`)
                       }}
                       className="text-xs text-brand-600 hover:text-brand-700 font-medium shrink-0"
                     >
@@ -242,6 +251,15 @@ export default function FormResponseList() {
         </div>
       </Modal>
 
+      {/* Generate Form Link Modal */}
+      {id && (
+        <GenerateFormLinkModal
+          isOpen={showLinkModal}
+          onClose={() => setShowLinkModal(false)}
+          formId={id}
+        />
+      )}
+
       {/* Generate Report Modal */}
       <GenerateReportModal
         isOpen={!!generateForResponse}
@@ -251,7 +269,7 @@ export default function FormResponseList() {
         template={linkedTemplate}
         onReportGenerated={(reportId) => {
           setGenerateForResponse(null)
-          navigate(`/relatorio/${reportId}`)
+          navigate(`/reports/${reportId}`)
         }}
       />
     </>

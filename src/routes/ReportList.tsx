@@ -44,7 +44,7 @@ export default function ReportList() {
     try {
       const report = await createEmptyReport()
       setShowNewModal(false)
-      navigate(`/relatorio/${report.id}`)
+      navigate(`/reports/${report.id}`)
     } catch (err) {
       showError(err)
     }
@@ -68,7 +68,7 @@ export default function ReportList() {
         })
 
         setShowNewModal(false)
-        navigate(`/relatorio/${report.id}`)
+        navigate(`/reports/${report.id}`)
       } catch (err) {
         showError(err)
       }
@@ -172,7 +172,7 @@ export default function ReportList() {
               <div
                 key={report.id}
                 className="bg-white rounded-xl border border-gray-200 hover:border-brand-300 hover:shadow-md transition-all p-3 sm:p-4 flex items-center gap-3 sm:gap-4 cursor-pointer"
-                onClick={() => navigate(`/relatorio/${report.id}`)}
+                onClick={() => navigate(`/reports/${report.id}`)}
               >
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-gray-900 truncate">

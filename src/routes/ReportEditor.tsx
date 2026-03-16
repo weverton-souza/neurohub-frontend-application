@@ -480,7 +480,7 @@ export default function ReportEditor() {
                   Gerado a partir do formulário{' '}
                   <button
                     type="button"
-                    onClick={() => formProvenanceId && navigate(`/formulario/${formProvenanceId}/respostas`)}
+                    onClick={() => formProvenanceId && navigate(`/forms/${formProvenanceId}/responses`)}
                     className="font-medium underline hover:text-brand-800"
                   >
                     {formProvenanceLabel}

@@ -124,6 +124,14 @@
 
 ## Próximas Features (roadmap até abril/2026)
 
+### Formulários Públicos (Link de Resposta para Clientes)
+- Página pública acessada via URL pré-gerada pelo backend (sem autenticação)
+- Rota pública `/forms/{token}` com layout limpo (sem sidebar/auth)
+- Profissional gera link com validade configurável, vinculado a um Form + Customer
+- Renderiza campos do formulário, valida respostas, envia e exibe confirmação
+- Expiração automática: link inválido após tempo limite ou após envio
+- API: `GET /public/forms/{token}` (carrega form) e `POST /public/forms/{token}/submit` (envia respostas)
+
 ### Templates Locked/Unlocked
 - Modo template (locked): estrutura fixa, profissional só preenche dados
 - Modo livre (unlocked): edição completa como hoje
