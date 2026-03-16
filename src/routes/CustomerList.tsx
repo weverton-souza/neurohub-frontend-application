@@ -115,7 +115,7 @@ export default function CustomerList() {
     async (customer: Customer) => {
       try {
         const report = await createReportFromCustomer(customer)
-        navigate(`/relatorio/${report.id}`)
+        navigate(`/reports/${report.id}`)
       } catch (err) {
         showError(err)
       }
@@ -209,7 +209,7 @@ export default function CustomerList() {
               const isExpanded = expandedId === customer.id
 
               return (
-                <div key={customer.id} className="bg-white rounded-xl border border-gray-200 transition-all hover:border-brand-300 hover:shadow-sm cursor-pointer" onClick={() => navigate(`/clientes/${customer.id}`)}>
+                <div key={customer.id} className="bg-white rounded-xl border border-gray-200 transition-all hover:border-brand-300 hover:shadow-sm cursor-pointer" onClick={() => navigate(`/customers/${customer.id}`)}>
                   {/* Card row */}
                   <div className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
                     {/* Avatar */}
@@ -312,7 +312,7 @@ export default function CustomerList() {
                             <button
                               key={report.id}
                               type="button"
-                              onClick={() => navigate(`/relatorio/${report.id}`)}
+                              onClick={() => navigate(`/reports/${report.id}`)}
                               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-left"
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">

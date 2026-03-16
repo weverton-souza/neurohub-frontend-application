@@ -57,7 +57,7 @@ export default function FormList() {
       const form = createEmptyForm()
       form.title = 'Novo Formulário'
       const created = await createForm(form)
-      navigate(`/formulario/${created.id}/editar`)
+      navigate(`/forms/${created.id}/edit`)
     } catch (err) {
       showError(err)
     }
@@ -167,8 +167,8 @@ export default function FormList() {
                     className="bg-white rounded-xl border border-gray-200 hover:border-brand-300 hover:shadow-md transition-all p-3 sm:p-4 flex items-center gap-3 sm:gap-4 cursor-pointer"
                     onClick={() =>
                       isDefault
-                        ? navigate(`/formulario/${form.id}/respostas`)
-                        : navigate(`/formulario/${form.id}/editar`)
+                        ? navigate(`/forms/${form.id}/responses`)
+                        : navigate(`/forms/${form.id}/edit`)
                     }
                   >
                     <div className="flex-1 min-w-0">
@@ -211,7 +211,7 @@ export default function FormList() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
-                          navigate(`/formulario/${form.id}/preencher`)
+                          navigate(`/forms/${form.id}/fill`)
                         }}
                         className="text-xs text-brand-600 hover:text-brand-700 font-medium shrink-0"
                       >
@@ -224,7 +224,7 @@ export default function FormList() {
                       className="shrink-0 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/formulario/${form.id}/respostas`)
+                        navigate(`/forms/${form.id}/responses`)
                       }}
                     >
                       <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full ${
