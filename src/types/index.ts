@@ -919,6 +919,29 @@ export interface ProblemDetail {
   properties: ProblemDetailProperties
 }
 
+// ========== Public Form ==========
+
+export type FormLinkStatus = 'PENDING' | 'ANSWERED' | 'EXPIRED'
+
+export interface FormLink {
+  id: string
+  token: string
+  formId: string
+  customerId: string
+  status: FormLinkStatus
+  expiresAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PublicFormData {
+  formTitle: string
+  formDescription: string | null
+  fields: FormField[]
+  customerName: string | null
+  expiresAt: string
+}
+
 // ========== Auth Types ==========
 
 export interface LoginRequest {
