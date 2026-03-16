@@ -1,5 +1,5 @@
 import type { ScoreTableColumn, ScoreTableData } from '@/types'
-import { isFormula, evaluateText, evaluateTextWithColor, FORMULA_FUNCTIONS } from '@/lib/formula-parser'
+import { isFormula, evaluateText, evaluateTextWithColor, FORMULA_FUNCTIONS } from './formula-parser'
 
 export { isFormula }
 
@@ -9,7 +9,6 @@ export interface FormulaResult {
   textColor?: string
 }
 
-/** Deriva cor do texto a partir do fundo (luminância) */
 function deriveTextColor(bgHex: string): string {
   const r = parseInt(bgHex.slice(1, 3), 16)
   const g = parseInt(bgHex.slice(3, 5), 16)
@@ -18,21 +17,10 @@ function deriveTextColor(bgHex: string): string {
   return luminance > 186 ? '#1a1a1a' : '#ffffff'
 }
 
-/**
- * Verifica se uma coluna tem fórmula default definida.
- */
 export function isFormulaColumn(column: ScoreTableColumn): boolean {
   return column.formula != null
 }
 
-/**
- * Retorna o valor de exibição de uma célula (calculado ou raw).
- *
- * Prioridade:
- * 1. Se o valor da célula é uma fórmula → avaliar
- * 2. Se a célula está vazia e a coluna tem fórmula default → avaliar fórmula da coluna
- * 3. Senão → retornar valor raw
- */
 export function computeCellDisplayValue(
   data: ScoreTableData,
   rowId: string,
@@ -43,12 +31,10 @@ export function computeCellDisplayValue(
 
   const rawValue = row.values[colId] ?? ''
 
-  // Célula tem fórmula direta no valor
   if (isFormula(rawValue)) {
     return evaluateText(rawValue, rowId, data, 0)
   }
 
-  // Célula vazia e coluna tem fórmula default
   const col = data.columns.find(c => c.id === colId)
   if (col?.formula && rawValue === '') {
     return evaluateText(col.formula, rowId, data, 0)
@@ -57,9 +43,6 @@ export function computeCellDisplayValue(
   return rawValue
 }
 
-/**
- * Retorna o valor de exibição + cor de fundo/texto de uma célula.
- */
 export function computeCellResult(
   data: ScoreTableData,
   rowId: string,
@@ -86,9 +69,6 @@ export function computeCellResult(
   return { text: result.text }
 }
 
-/**
- * Verifica se uma célula específica tem fórmula (direta ou via coluna).
- */
 export function cellHasFormula(
   data: ScoreTableData,
   rowId: string,
@@ -107,9 +87,6 @@ export function cellHasFormula(
   return false
 }
 
-/**
- * Retorna o texto da fórmula efetiva para uma célula (para exibir no modo de edição).
- */
 export function getCellFormulaText(
   data: ScoreTableData,
   rowId: string,
@@ -128,9 +105,6 @@ export function getCellFormulaText(
   return rawValue
 }
 
-/**
- * Retorna lista de funções disponíveis para referência/ajuda.
- */
 export function getFormulaFunctions(): readonly string[] {
   return FORMULA_FUNCTIONS
 }

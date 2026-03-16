@@ -1,5 +1,5 @@
-const MAX_LOGO_DIMENSION = 400 // px
-const MAX_LOGO_FILE_SIZE = 500 * 1024 // 500KB
+const MAX_LOGO_DIMENSION = 400
+const MAX_LOGO_FILE_SIZE = 500 * 1024
 
 export function fileToBase64DataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -47,7 +47,6 @@ export function resizeImageToBase64(
   })
 }
 
-/** Returns the natural dimensions of a base64 data URL image */
 export function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image()
