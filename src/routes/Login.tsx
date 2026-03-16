@@ -165,7 +165,7 @@ export default function Login() {
 
           <p className="text-center text-xs text-gray-500 mt-4">
             Não tem conta?{' '}
-            <Link to="/cadastro" className="text-brand-600 hover:text-brand-700 font-medium">
+            <Link to="/register" className="text-brand-600 hover:text-brand-700 font-medium">
               Criar conta
             </Link>
           </p>

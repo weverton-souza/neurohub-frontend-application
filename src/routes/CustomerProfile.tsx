@@ -192,7 +192,7 @@ export default function CustomerProfile() {
     if (!customer) return
     try {
       const report = await createReportFromCustomer(customer)
-      navigate(`/relatorio/${report.id}`)
+      navigate(`/reports/${report.id}`)
     } catch (err) {
       showError(err)
     }
@@ -269,7 +269,7 @@ export default function CustomerProfile() {
             variant="ghost"
             size="sm"
             className="mt-3"
-            onClick={() => navigate('/clientes')}
+            onClick={() => navigate('/customers')}
           >
             Voltar para Clientes
           </Button>
@@ -353,7 +353,7 @@ export default function CustomerProfile() {
         ) : (
           <div className="space-y-2">
             {reports.map((report) => (
-              <button key={report.id} onClick={() => navigate(`/relatorio/${report.id}`)} className="w-full text-left rounded-lg border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50/30 transition-colors">
+              <button key={report.id} onClick={() => navigate(`/reports/${report.id}`)} className="w-full text-left rounded-lg border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50/30 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 truncate">{report.customerName || 'Sem nome'}</p>
@@ -580,7 +580,7 @@ export default function CustomerProfile() {
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-2 text-sm">
             <button
-              onClick={() => navigate('/clientes')}
+              onClick={() => navigate('/customers')}
               className="text-gray-500 hover:text-brand-700 transition-colors"
             >
               Clientes
