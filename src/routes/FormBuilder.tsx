@@ -159,8 +159,7 @@ export default function FormBuilder() {
     const fields = form.fields
       .filter((f) => f.id !== fieldId)
       .map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => m.fieldId !== fieldId)
-    updateFormState({ fields, fieldMappings })
+    updateFormState({ fields })
     if (focusedFieldId === fieldId) setFocusedFieldId(null)
   }, [form, updateFormState, focusedFieldId])
 
@@ -199,8 +198,7 @@ export default function FormBuilder() {
     const fields = form.fields
       .filter((f) => !idsToRemove.has(f.id))
       .map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => !idsToRemove.has(m.fieldId))
-    updateFormState({ fields, fieldMappings })
+    updateFormState({ fields })
     setSectionDeleteTarget(null)
   }, [form, sectionDeleteTarget, updateFormState])
 
@@ -225,8 +223,7 @@ export default function FormBuilder() {
     remaining.splice(insertIndex, 0, ...childFields)
 
     const reordered = remaining.map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => m.fieldId !== sectionDeleteTarget.sectionFieldId)
-    updateFormState({ fields: reordered, fieldMappings })
+    updateFormState({ fields: reordered })
     setSectionDeleteTarget(null)
   }, [form, sectionDeleteTarget, sectionGroups, updateFormState])
 
@@ -285,8 +282,7 @@ export default function FormBuilder() {
     const fields = form.fields
       .filter((f) => f.id !== sectionFieldId)
       .map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => m.fieldId !== sectionFieldId)
-    updateFormState({ fields, fieldMappings })
+    updateFormState({ fields })
   }, [form, updateFormState])
 
   // ─── Derived ──────────────────────────────────────────
@@ -553,7 +549,7 @@ export default function FormBuilder() {
           <div className="max-w-[860px] mx-auto px-4">
             <FieldMappingEditor
               fields={sortedFields}
-              mappings={form.fieldMappings}
+              mappings={Array.isArray(form.fieldMappings) ? form.fieldMappings : []}
               template={linkedTemplate}
               onChange={(mappings) => updateFormState({ fieldMappings: mappings })}
             />
