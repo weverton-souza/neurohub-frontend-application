@@ -341,16 +341,21 @@ export default function FormBuilder() {
               </svg>
             </button>
 
-            {/* Save status */}
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${
-                saveStatus === 'saved' ? 'bg-green-400' :
-                saveStatus === 'saving' ? 'bg-yellow-400' :
-                'bg-gray-300'
-              }`} />
-              <span className="text-xs text-gray-400 hidden sm:inline">
-                {saveStatus === 'saved' ? 'Salvo' : saveStatus === 'saving' ? 'Salvando...' : ''}
-              </span>
+            {/* Version + Save status */}
+            <div className="flex items-center gap-3">
+              {form.currentVersion > 1 && (
+                <span className="text-xs text-gray-400 font-medium">v{form.currentVersion}</span>
+              )}
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${
+                  saveStatus === 'saved' ? 'bg-green-400' :
+                  saveStatus === 'saving' ? 'bg-yellow-400' :
+                  'bg-gray-300'
+                }`} />
+                <span className="text-xs text-gray-400 hidden sm:inline">
+                  {saveStatus === 'saved' ? 'Salvo' : saveStatus === 'saving' ? 'Salvando...' : ''}
+                </span>
+              </div>
             </div>
           </div>
 

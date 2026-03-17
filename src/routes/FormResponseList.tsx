@@ -160,6 +160,9 @@ export default function FormResponseList() {
                       <>
                         <ListCardPill>{formatDateTime(resp.updatedAt)}</ListCardPill>
                         <ListCardPill>{answeredCount} de {totalQuestions} respondidas</ListCardPill>
+                        {resp.version != null && form.currentVersion > 1 && (
+                          <ListCardPill>v{resp.version}</ListCardPill>
+                        )}
                       </>
                     }
                     badges={
