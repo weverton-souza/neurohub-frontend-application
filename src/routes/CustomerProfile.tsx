@@ -7,6 +7,9 @@ import type {
   CustomerEvent,
   CustomerEventType,
   Report,
+  FormResponse,
+  FormLink,
+  Form,
 } from '@/types'
 import {
   createEmptyCustomerEvent,
@@ -24,17 +27,24 @@ import {
   deleteCustomerEvent as apiDeleteCustomerEvent,
 } from '@/lib/api/customer-api'
 import { getReportsByCustomer } from '@/lib/api/report-api'
+import { getFormResponsesByCustomer, listForms } from '@/lib/api/form-api'
+import { getFormLinksByCustomer, createFormLink, revokeFormLink } from '@/lib/api/form-link-api'
 import { formatDateTime, calculateAge } from '@/lib/utils'
 import { createReportFromCustomer } from '@/lib/report-utils'
 import { useError } from '@/contexts/ErrorContext'
+import {
+  FORM_RESPONSE_STATUS_LABELS,
+  FORM_RESPONSE_STATUS_COLORS,
+} from '@/types'
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import Button from '@/components/ui/Button'
 import StatusBadge from '@/components/ui/StatusBadge'
+import ListCard, { ListCardPill } from '@/components/ui/ListCard'
 
 // ========== Types ==========
 
-type ProfileSection = 'personal' | 'contact' | 'clinical' | 'reports' | 'notes' | 'timeline'
+type ProfileSection = 'personal' | 'contact' | 'clinical' | 'reports' | 'forms' | 'links' | 'notes' | 'timeline'
 
 interface TabItem {
   key: ProfileSection
@@ -85,6 +95,8 @@ const TABS: TabItem[] = [
   { key: 'contact', label: 'Contato', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> },
   { key: 'clinical', label: 'Dados Clínicos', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> },
   { key: 'reports', label: 'Relatórios', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+  { key: 'forms', label: 'Questionários', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> },
+  { key: 'links', label: 'Links', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
   { key: 'notes', label: 'Notas', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
   { key: 'timeline', label: 'Histórico', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
 ]
@@ -130,27 +142,40 @@ export default function CustomerProfile() {
   const [saving, setSaving] = useState(false)
 
   const [reports, setReports] = useState<Report[]>([])
+  const [formResponses, setFormResponses] = useState<FormResponse[]>([])
+  const [formLinks, setFormLinks] = useState<FormLink[]>([])
+  const [forms, setForms] = useState<Form[]>([])
   const [notes, setNotes] = useState<CustomerNote[]>([])
   const [newNoteContent, setNewNoteContent] = useState('')
   const [events, setEvents] = useState<CustomerEvent[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
   const [newEvent, setNewEvent] = useState<CustomerEvent | null>(null)
+  const [showLinkForm, setShowLinkForm] = useState(false)
+  const [selectedFormId, setSelectedFormId] = useState('')
+  const [generatingLink, setGeneratingLink] = useState(false)
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
     async function load() {
       try {
-        const [p, customerReports, customerNotes, customerEvents] = await Promise.all([
+        const [p, customerReports, customerNotes, customerEvents, customerFormResponses, customerFormLinks, allForms] = await Promise.all([
           getCustomer(id!),
           getReportsByCustomer(id!),
           getCustomerNotes(id!),
           getCustomerEvents(id!),
+          getFormResponsesByCustomer(id!),
+          getFormLinksByCustomer(id!),
+          listForms(),
         ])
         setCustomer(p)
         setEditData({ ...p.data })
         setReports(customerReports)
         setNotes(customerNotes)
         setEvents(customerEvents)
+        setFormResponses(customerFormResponses)
+        setFormLinks(customerFormLinks)
+        setForms(allForms)
       } catch (err) {
         showError(err)
       }
@@ -254,6 +279,43 @@ export default function CustomerProfile() {
     [customer, showError]
   )
 
+  const handleGenerateLink = useCallback(async () => {
+    if (!customer || !selectedFormId) return
+    setGeneratingLink(true)
+    try {
+      await createFormLink(selectedFormId, customer.id)
+      const updatedLinks = await getFormLinksByCustomer(customer.id)
+      setFormLinks(updatedLinks)
+      setShowLinkForm(false)
+      setSelectedFormId('')
+    } catch (err) {
+      showError(err)
+    } finally {
+      setGeneratingLink(false)
+    }
+  }, [customer, selectedFormId, showError])
+
+  const handleRevokeLink = useCallback(async (linkId: string) => {
+    if (!customer) return
+    try {
+      await revokeFormLink(linkId)
+      const updatedLinks = await getFormLinksByCustomer(customer.id)
+      setFormLinks(updatedLinks)
+    } catch (err) {
+      showError(err)
+    }
+  }, [customer, showError])
+
+  const handleCopyLink = useCallback((link: FormLink) => {
+    const url = `${window.location.origin}/public/forms/${link.token}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLinkId(link.id)
+      setTimeout(() => setCopiedLinkId(null), 2000)
+    })
+  }, [])
+
+  const formsMap = new Map(forms.map((f) => [f.id, f]))
+
   // ========== Not found ==========
 
   if (!customer || !editData) {
@@ -353,34 +415,191 @@ export default function CustomerProfile() {
             <Button variant="ghost" size="sm" className="mt-4" onClick={handleCreateReport}>Criar relatório</Button>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {reports.map((report) => (
-              <button
+              <ListCard
                 key={report.id}
                 onClick={() => navigate(`/reports/${report.id}`)}
-                className="w-full text-left rounded-xl border border-gray-200 p-4 hover:border-brand-200 hover:shadow-md hover:shadow-brand-500/5 transition-all group"
+                title={report.formId ? (formsMap.get(report.formId)?.title || report.customerName || 'Relatório') : (report.customerName || 'Relatório')}
+                pills={
+                  <>
+                    <ListCardPill>{formatDateTime(report.createdAt)}</ListCardPill>
+                    <ListCardPill>{report.blocks.length} {report.blocks.length === 1 ? 'bloco' : 'blocos'}</ListCardPill>
+                  </>
+                }
+                badges={<StatusBadge status={report.status} />}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function renderFormsSection() {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900">Questionários Respondidos</h2>
+        {formResponses.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-gray-200 py-14 text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-brand-50 flex items-center justify-center mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-500" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-gray-900">Nenhuma resposta</p>
+            <p className="text-xs text-gray-500 mt-1">As respostas de questionários aparecerão aqui</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {formResponses.map((resp) => {
+              const form = formsMap.get(resp.formId)
+              const answeredCount = resp.answers.filter((a) =>
+                a.value || (a.selectedOptionIds && a.selectedOptionIds.length > 0) || a.scaleValue != null
+              ).length
+              return (
+                <ListCard
+                  key={resp.id}
+                  onClick={() => navigate(`/forms/${resp.formId}/fill?response=${resp.id}`)}
+                  title={form?.title || 'Formulário'}
+                  pills={
+                    <>
+                      <ListCardPill>{formatDateTime(resp.updatedAt)}</ListCardPill>
+                      <ListCardPill>{answeredCount} {answeredCount === 1 ? 'resposta' : 'respostas'}</ListCardPill>
+                    </>
+                  }
+                  badges={
+                    <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${
+                      FORM_RESPONSE_STATUS_COLORS[resp.status].bg
+                    } ${FORM_RESPONSE_STATUS_COLORS[resp.status].text}`}>
+                      {FORM_RESPONSE_STATUS_LABELS[resp.status]}
+                    </span>
+                  }
+                />
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function renderLinksSection() {
+    const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
+      PENDING: { label: 'Pendente', color: 'bg-amber-50 text-amber-700', dot: 'bg-amber-400' },
+      ANSWERED: { label: 'Respondido', color: 'bg-green-50 text-green-700', dot: 'bg-green-400' },
+      EXPIRED: { label: 'Expirado', color: 'bg-gray-100 text-gray-500', dot: 'bg-gray-400' },
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Links de Formulário</h2>
+          <Button size="sm" onClick={() => setShowLinkForm(true)}>+ Gerar Link</Button>
+        </div>
+
+        {showLinkForm && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-900">Gerar novo link</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Formulário</label>
+              <select
+                value={selectedFormId}
+                onChange={(e) => setSelectedFormId(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none transition-all"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-600" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate group-hover:text-brand-700 transition-colors">{report.customerName || 'Sem nome'}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">{formatDateTime(report.createdAt)}</span>
-                      <span className="text-xs text-gray-300">&middot;</span>
-                      <span className="text-xs text-gray-400">{report.blocks.length} {report.blocks.length === 1 ? 'bloco' : 'blocos'}</span>
+                <option value="">Selecione um formulário</option>
+                {forms.map((f) => (
+                  <option key={f.id} value={f.id}>{f.title || 'Sem título'}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => { setShowLinkForm(false); setSelectedFormId('') }}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleGenerateLink} disabled={!selectedFormId || generatingLink}>
+                {generatingLink ? 'Gerando...' : 'Gerar Link'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {formLinks.length === 0 && !showLinkForm ? (
+          <div className="rounded-2xl border-2 border-dashed border-gray-200 py-14 text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-brand-50 flex items-center justify-center mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-500" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-gray-900">Nenhum link gerado</p>
+            <p className="text-xs text-gray-500 mt-1">Gere links para o cliente responder formulários</p>
+            <Button variant="ghost" size="sm" className="mt-4" onClick={() => setShowLinkForm(true)}>
+              Gerar link
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {formLinks.map((link) => {
+              const form = formsMap.get(link.formId)
+              const cfg = statusConfig[link.status] || statusConfig.PENDING
+              const isCopied = copiedLinkId === link.id
+              return (
+                <div key={link.id} className="bg-white rounded-xl border border-gray-200 p-4 group hover:border-gray-300 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{form?.title || 'Formulário'}</p>
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${cfg.color}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <span>Criado em {formatDateTime(link.createdAt)}</span>
+                        <span className="text-gray-300">&middot;</span>
+                        <span>Expira em {formatDateTime(link.expiresAt)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {link.status === 'PENDING' && (
+                        <>
+                          <button
+                            onClick={() => handleCopyLink(link)}
+                            className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-all"
+                            title="Copiar link"
+                          >
+                            {isCopied ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-500" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleRevokeLink(link.id)}
+                            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                            title="Revogar link"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="15" y1="9" x2="9" y2="15" />
+                              <line x1="9" y1="9" x2="15" y2="15" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <StatusBadge status={report.status} />
                 </div>
-              </button>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -573,6 +792,8 @@ export default function CustomerProfile() {
     contact: renderContactSection,
     clinical: renderClinicalSection,
     reports: renderReportsSection,
+    forms: renderFormsSection,
+    links: renderLinksSection,
     notes: renderNotesSection,
     timeline: renderTimelineSection,
   }
@@ -584,7 +805,7 @@ export default function CustomerProfile() {
       {/* Profile hero */}
       <div className="bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
         {/* Breadcrumb */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-2">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-2">
           <div className="flex items-center gap-2 text-sm">
             <button
               onClick={() => navigate('/customers')}
@@ -602,7 +823,7 @@ export default function CustomerProfile() {
         </div>
 
         {/* Profile card */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
           <div className="flex flex-col sm:flex-row gap-5 sm:gap-8">
             {/* Avatar */}
             <div className="shrink-0">
@@ -664,7 +885,7 @@ export default function CustomerProfile() {
 
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <nav className="flex gap-1 -mb-px">
             {TABS.map((tab) => {
               const isActive = activeSection === tab.key
@@ -691,7 +912,7 @@ export default function CustomerProfile() {
 
       {/* Tab content */}
       <div className="flex-1 bg-gray-50/50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
           {sectionRenderers[activeSection]()}
         </div>
       </div>

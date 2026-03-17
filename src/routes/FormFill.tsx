@@ -7,6 +7,7 @@ import {
   getFormResponseById,
   createFormResponse,
   updateFormResponse,
+  getFormVersion,
 } from '@/lib/api/form-api'
 import { getCustomer } from '@/lib/api/customer-api'
 import { useAutoSave } from '@/lib/hooks/use-auto-save'
@@ -21,6 +22,7 @@ export default function FormFill() {
 
   const [form, setForm] = useState<Form | null>(null)
   const [response, setResponse] = useState<FormResponse | null>(null)
+  const [versionFields, setVersionFields] = useState<Form['fields'] | null>(null)
 
   const updateResponseFn = useCallback(
     (data: FormResponse) => id ? updateFormResponse(id, data) : Promise.resolve(data),
@@ -41,11 +43,14 @@ export default function FormFill() {
       }
       setForm(loadedForm)
 
-      // Load or create response
       if (responseIdParam) {
         try {
           const existing = await getFormResponseById(id, responseIdParam)
           if (existing) {
+            if (existing.version != null && existing.version !== loadedForm.currentVersion) {
+              const ver = await getFormVersion(id, existing.version)
+              setVersionFields(ver.fields)
+            }
             setResponse(existing)
             return
           }
@@ -89,8 +94,10 @@ export default function FormFill() {
     })
   }, [scheduleSave])
 
+  const activeFields = versionFields ?? form?.fields ?? []
+
   const { validationErrors, validate, clearFieldError } = useFormValidation(
-    useCallback(() => form?.fields ?? [], [form]),
+    useCallback(() => activeFields, [activeFields]),
     useCallback(() => response?.answers ?? [], [response]),
   )
 
@@ -130,12 +137,14 @@ export default function FormFill() {
     navigate(`/forms/${id}/responses`)
   }, [response, id, navigate, forceSave])
 
-  const { sectionGroups } = useSortedFields(form?.fields)
+  const { sectionGroups } = useSortedFields(activeFields)
 
   const getAnswer = useCallback((fieldId: string): FormFieldAnswer => {
     return response?.answers.find((a) => a.fieldId === fieldId)
       ?? createEmptyFormFieldAnswer(fieldId)
   }, [response])
+
+  const isReadOnly = response?.status === 'concluido'
 
   if (!form || !response) {
     return (
@@ -204,7 +213,8 @@ export default function FormFill() {
             value={response.customerName}
             onChange={(e) => handleCustomerNameChange(e.target.value)}
             placeholder="Nome completo do cliente"
-            className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors"
+            disabled={isReadOnly}
+            className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -253,6 +263,7 @@ export default function FormFill() {
                     field={field}
                     answer={getAnswer(field.id)}
                     onChange={handleAnswerChange}
+                    disabled={isReadOnly}
                   />
 
                   {hasError && (
@@ -270,22 +281,24 @@ export default function FormFill() {
         ))}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4 pb-10">
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
-          >
-            Salvar rascunho
-          </button>
-          <button
-            type="button"
-            onClick={handleFinalize}
-            className="px-8 py-2.5 rounded-full bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 shadow-sm hover:shadow-md transition-all"
-          >
-            Enviar
-          </button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex items-center justify-between pt-4 pb-10">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
+            >
+              Salvar rascunho
+            </button>
+            <button
+              type="button"
+              onClick={handleFinalize}
+              className="px-8 py-2.5 rounded-full bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 shadow-sm hover:shadow-md transition-all"
+            >
+              Enviar
+            </button>
+          </div>
+        )}
       </main>
     </div>
   )

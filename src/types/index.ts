@@ -768,9 +768,21 @@ export interface Form {
   createdAt: string
   updatedAt: string
   fields: FormField[]
-  linkedTemplateId: string | null  // link para ReportTemplate.id
+  linkedTemplateId: string | null
   fieldMappings: FormFieldMapping[]
+  currentVersion: number
   isDefault?: boolean
+}
+
+export interface FormVersion {
+  id: string
+  formId: string
+  version: number
+  title: string
+  description: string | null
+  fields: FormField[]
+  fieldMappings: FormFieldMapping[]
+  createdAt: string
 }
 
 export type FormResponseStatus = 'em_andamento' | 'concluido'
@@ -795,13 +807,15 @@ export interface FormFieldAnswer {
 export interface FormResponse {
   id: string
   formId: string
-  customerId: string | null     // link opcional ao cadastro de clientes
-  customerName: string          // sempre armazenado (pode não estar no cadastro)
+  formVersionId: string
+  customerId: string | null
+  customerName: string
   status: FormResponseStatus
   answers: FormFieldAnswer[]
   createdAt: string
   updatedAt: string
-  generatedReportId: string | null  // preenchido após IA gerar o relatório
+  generatedReportId: string | null
+  version?: number
 }
 
 // ========== Form Factory Functions ==========
@@ -843,6 +857,7 @@ export function createEmptyForm(): Form {
     fields: [],
     linkedTemplateId: null,
     fieldMappings: [],
+    currentVersion: 1,
   }
 }
 
@@ -859,6 +874,7 @@ export function createEmptyFormResponse(formId: string): FormResponse {
   return {
     id: crypto.randomUUID(),
     formId,
+    formVersionId: '',
     customerId: null,
     customerName: '',
     status: 'em_andamento',
