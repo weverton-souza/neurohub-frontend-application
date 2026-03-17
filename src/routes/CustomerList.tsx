@@ -14,6 +14,8 @@ import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal'
+import EmptyState from '@/components/ui/EmptyState'
 
 export default function CustomerList() {
   const navigate = useNavigate()
@@ -176,26 +178,20 @@ export default function CustomerList() {
         )}
 
         {customers.length === 0 ? (
-          /* Empty state */
-          <div className="text-center py-20">
-            <div className="mx-auto w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center mb-4">
+          <EmptyState
+            icon={
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-500" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <line x1="19" y1="8" x2="19" y2="14" />
                 <line x1="22" y1="11" x2="16" y2="11" />
               </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              Nenhum cliente cadastrado
-            </h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Cadastre seu primeiro cliente para começar
-            </p>
-            <Button onClick={handleOpenNew} size="lg">
-              + Novo Cliente
-            </Button>
-          </div>
+            }
+            title="Nenhum cliente cadastrado"
+            message="Cadastre seu primeiro cliente para começar"
+            buttonLabel="+ Novo Cliente"
+            onAction={handleOpenNew}
+          />
         ) : filteredCustomers.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-sm text-gray-500">Nenhum cliente encontrado para "{search}"</p>
@@ -430,27 +426,12 @@ export default function CustomerList() {
         )}
       </Modal>
 
-      {/* Delete Confirm Modal */}
-      <Modal
+      <ConfirmDeleteModal
         isOpen={!!confirmDeleteId}
         onClose={cancelDelete}
-        title="Confirmar exclusão"
-        size="sm"
-      >
-        <div className="p-4 space-y-4">
-          <p className="text-sm text-gray-600">
-            Tem certeza de que deseja excluir este cliente? Esta ação não pode ser desfeita.
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={cancelDelete}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              Excluir
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={confirmDelete}
+        message="Tem certeza de que deseja excluir este cliente? Esta ação não pode ser desfeita."
+      />
     </>
   )
 }

@@ -14,6 +14,8 @@ import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
 import StatusBadge from '@/components/ui/StatusBadge'
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal'
+import EmptyState from '@/components/ui/EmptyState'
 
 export default function ReportList() {
   const navigate = useNavigate()
@@ -144,26 +146,20 @@ export default function ReportList() {
         )}
 
         {reports.length === 0 ? (
-          /* Empty state */
-          <div className="text-center py-20">
-            <div className="mx-auto w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center mb-4">
+          <EmptyState
+            icon={
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-500">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinecap="round" strokeLinejoin="round" />
                 <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
                 <line x1="12" y1="18" x2="12" y2="12" strokeLinecap="round" strokeLinejoin="round" />
                 <line x1="9" y1="15" x2="15" y2="15" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              Nenhum relatório ainda
-            </h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Crie seu primeiro relatório para começar
-            </p>
-            <Button onClick={() => setShowNewModal(true)} size="lg">
-              + Novo Relatório
-            </Button>
-          </div>
+            }
+            title="Nenhum relatório ainda"
+            message="Crie seu primeiro relatório para começar"
+            buttonLabel="+ Novo Relatório"
+            onAction={() => setShowNewModal(true)}
+          />
         ) : (
           /* Report list */
           <>
@@ -300,27 +296,12 @@ export default function ReportList() {
         </div>
       </Modal>
 
-      {/* Delete Confirm Modal */}
-      <Modal
+      <ConfirmDeleteModal
         isOpen={!!confirmDeleteId}
         onClose={cancelDelete}
-        title="Confirmar exclusão"
-        size="sm"
-      >
-        <div className="p-4 space-y-4">
-          <p className="text-sm text-gray-600">
-            Tem certeza de que deseja excluir este relatório? Esta ação não pode ser desfeita.
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={cancelDelete}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              Excluir
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={confirmDelete}
+        message="Tem certeza de que deseja excluir este relatório? Esta ação não pode ser desfeita."
+      />
     </>
   )
 }
