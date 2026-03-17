@@ -28,6 +28,7 @@ interface OutlineRowProps {
   onDuplicate: (blockId: string) => void
   onRemove: (blockId: string) => void
   onChange: (blockId: string, data: BlockData) => void
+  onTogglePageBreak?: (blockId: string) => void
 }
 
 function getBlockBorderColor(block: Block, meta: BlockMeta): string {
@@ -125,6 +126,7 @@ export default function OutlineRow({
   onDuplicate,
   onRemove,
   onChange,
+  onTogglePageBreak,
 }: OutlineRowProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [confirmingRemove, setConfirmingRemove] = useState(false)
@@ -218,16 +220,21 @@ export default function OutlineRow({
     'placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal'
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      data-block-id={block.id}
-      className={`
-        group flex items-center gap-2.5 px-4 py-4 rounded-lg border-l-4 transition-all
-        ${getBlockBorderColor(block, meta)}
-        ${isDragging ? 'opacity-50 shadow-lg bg-white z-10' : 'bg-white shadow-sm hover:shadow-md'}
-      `}
-    >
+    <div ref={setNodeRef} style={style} data-block-id={block.id}>
+      {block.pageBreakBefore && (
+        <div className="flex items-center gap-2 py-1 mb-1">
+          <div className="flex-1 border-t-2 border-dashed border-amber-400" />
+          <span className="text-[10px] text-amber-500 font-medium uppercase tracking-wider shrink-0">Quebra de página</span>
+          <div className="flex-1 border-t-2 border-dashed border-amber-400" />
+        </div>
+      )}
+      <div
+        className={`
+          group flex items-center gap-2.5 px-4 py-4 rounded-lg border-l-4 transition-all
+          ${getBlockBorderColor(block, meta)}
+          ${isDragging ? 'opacity-50 shadow-lg bg-white z-10' : 'bg-white shadow-sm hover:shadow-md'}
+        `}
+      >
       {/* Drag handle */}
       <button
         type="button"
@@ -382,6 +389,23 @@ export default function OutlineRow({
                 Duplicar
               </button>
 
+              {/* Page break toggle */}
+              {onTogglePageBreak && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onTogglePageBreak(block.id)
+                    setShowMenu(false)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                >
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M1 3.75A.75.75 0 011.75 3h16.5a.75.75 0 010 1.5H1.75A.75.75 0 011 3.75zM1 16.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H1.75a.75.75 0 01-.75-.75zM1 10a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5A.75.75 0 011 10zm12.25-.75a.75.75 0 000 1.5h5a.75.75 0 000-1.5h-5z" clipRule="evenodd" />
+                  </svg>
+                  {block.pageBreakBefore ? 'Remover quebra de página' : 'Quebra de página antes'}
+                </button>
+              )}
+
               {/* Remove */}
               <button
                 type="button"
@@ -404,6 +428,7 @@ export default function OutlineRow({
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

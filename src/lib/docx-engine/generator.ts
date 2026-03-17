@@ -1526,6 +1526,11 @@ export async function generateDocx(report: Report): Promise<Blob> {
 
   // Render each block
   for (const block of sortedBlocks) {
+    // User-toggled page break before this block
+    if (block.pageBreakBefore) {
+      sectionChildren.push(new Paragraph({ children: [new PageBreak()] }))
+    }
+
     switch (block.type) {
       case 'identification':
         sectionChildren.push(...renderIdentification(block.data as IdentificationData))
