@@ -83,10 +83,10 @@ export default function FormList() {
       dup.fields = form.fields.map(f => ({
         ...f,
         id: crypto.randomUUID(),
-        options: f.options.map(o => ({ ...o, id: crypto.randomUUID() })),
+        options: (f.options ?? []).map(o => ({ ...o, id: crypto.randomUUID() })),
       }))
       dup.linkedTemplateId = form.linkedTemplateId
-      dup.fieldMappings = form.fieldMappings.map(m => ({ ...m }))
+      dup.fieldMappings = form.fieldMappings
       await createForm(dup)
       await loadData()
     } catch (err) {
