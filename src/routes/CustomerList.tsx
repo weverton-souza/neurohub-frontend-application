@@ -14,6 +14,7 @@ import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
+import ListCard, { ListCardPill, ListCardBadge, ListCardAction, TrashIcon, EditIcon, DocumentPlusIcon } from '@/components/ui/ListCard'
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -236,106 +237,46 @@ export default function CustomerList() {
               const avatarColor = getAvatarColor(customer.data.name || customer.id)
 
               return (
-                <div
+                <ListCard
                   key={customer.id}
-                  className="group bg-white rounded-2xl border border-gray-200/80 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-200 cursor-pointer overflow-hidden"
                   onClick={() => navigate(`/customers/${customer.id}`)}
-                >
-                  <div className="p-4 sm:p-5 flex items-center gap-4">
-                    {/* Avatar */}
-                    <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center shrink-0 shadow-sm`}>
-                      <span className="text-sm font-semibold text-white tracking-wide">
-                        {initials}
-                      </span>
+                  avatar={
+                    <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center shadow-sm`}>
+                      <span className="text-sm font-semibold text-white tracking-wide">{initials}</span>
                     </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate group-hover:text-brand-700 transition-colors">
-                        {customer.data.name || 'Cliente sem nome'}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        {customer.data.cpf && (
-                          <span className="inline-flex items-center text-xs text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full font-mono">
-                            {customer.data.cpf}
-                          </span>
-                        )}
-                        {customer.data.phone && (
-                          <span className="inline-flex items-center text-xs text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full">
-                            {customer.data.phone}
-                          </span>
-                        )}
-                        {customer.data.birthDate && (
-                          <span className="inline-flex items-center text-xs text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full">
-                            {calculateAge(customer.data.birthDate, true)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="hidden sm:flex items-center gap-3 shrink-0">
-                      {/* Reports count */}
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                        customerReports.length > 0
-                          ? 'bg-brand-50 text-brand-700'
-                          : 'bg-gray-50 text-gray-400'
-                      }`}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                        </svg>
+                  }
+                  title={customer.data.name || 'Cliente sem nome'}
+                  pills={
+                    <>
+                      {customer.data.cpf && <ListCardPill><span className="font-mono">{customer.data.cpf}</span></ListCardPill>}
+                      {customer.data.phone && <ListCardPill>{customer.data.phone}</ListCardPill>}
+                      {customer.data.birthDate && <ListCardPill>{calculateAge(customer.data.birthDate, true)}</ListCardPill>}
+                    </>
+                  }
+                  badges={
+                    <>
+                      <ListCardBadge
+                        variant={customerReports.length > 0 ? 'brand' : 'default'}
+                        icon={
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                        }
+                      >
                         {customerReports.length}
-                      </div>
-
-                      {/* Updated */}
-                      <span className="text-xs text-gray-400">
-                        {formatDateTime(customer.updatedAt)}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="hidden sm:flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleCreateReport(customer) }}
-                        className="p-2 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition-colors"
-                        title="Novo relatório"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                          <line x1="12" y1="18" x2="12" y2="12" />
-                          <line x1="9" y1="15" x2="15" y2="15" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleOpenEdit(customer) }}
-                        className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="Editar"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setConfirmDeleteId(customer.id)
-                        }}
-                        className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Excluir"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                      </ListCardBadge>
+                      <span className="text-xs text-gray-400">{formatDateTime(customer.updatedAt)}</span>
+                    </>
+                  }
+                  actions={
+                    <>
+                      <ListCardAction onClick={() => handleCreateReport(customer)} title="Novo relatório" icon={<DocumentPlusIcon />} variant="brand" />
+                      <ListCardAction onClick={() => handleOpenEdit(customer)} title="Editar" icon={<EditIcon />} />
+                      <ListCardAction onClick={() => setConfirmDeleteId(customer.id)} title="Excluir" icon={<TrashIcon />} variant="danger" />
+                    </>
+                  }
+                />
               )
             })}
           </div>
