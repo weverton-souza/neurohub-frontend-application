@@ -4,7 +4,7 @@ import type { Customer, CustomerData, Report } from '@/types'
 import { createEmptyCustomer } from '@/types'
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from '@/lib/api/customer-api'
 import { getReports } from '@/lib/api/report-api'
-import { formatDateTime } from '@/lib/utils'
+import { formatDateTime, calculateAge } from '@/lib/utils'
 import { createReportFromCustomer } from '@/lib/report-utils'
 import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
@@ -17,6 +17,29 @@ import PageHeader from '@/components/layout/PageHeader'
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal'
 import EmptyState from '@/components/ui/EmptyState'
 
+const AVATAR_COLORS = [
+  'from-blue-400 to-blue-600',
+  'from-purple-400 to-purple-600',
+  'from-teal-400 to-teal-600',
+  'from-rose-400 to-rose-600',
+  'from-amber-400 to-amber-600',
+  'from-indigo-400 to-indigo-600',
+  'from-emerald-400 to-emerald-600',
+  'from-cyan-400 to-cyan-600',
+]
+
+function getAvatarColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return (parts[0]?.[0] ?? '?').toUpperCase()
+}
+
 export default function CustomerList() {
   const navigate = useNavigate()
   const { showError } = useError()
@@ -26,7 +49,6 @@ export default function CustomerList() {
   const [search, setSearch] = useState('')
   const [showFormModal, setShowFormModal] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -43,7 +65,6 @@ export default function CustomerList() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Count reports per customer
   const reportCountMap = useMemo(() => {
     const map: Record<string, Report[]> = {}
     for (const report of reports) {
@@ -70,7 +91,6 @@ export default function CustomerList() {
 
   const { page: paginatedPage, setCurrentPage, pageSize, changePageSize, resetPage } = usePagination(filteredCustomers)
 
-  // Reset page when search changes
   useEffect(() => {
     resetPage()
   }, [search, resetPage])
@@ -150,11 +170,16 @@ export default function CustomerList() {
         {/* Search + filters */}
         {customers.length > 0 && (
           <div className="mb-6 flex items-center gap-3">
-            <div className="flex-1">
-              <Input
+            <div className="flex-1 relative">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+              </svg>
+              <input
+                type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome ou CPF..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none transition-all"
               />
             </div>
             <div className="hidden sm:flex items-center gap-1.5 shrink-0">
@@ -193,73 +218,89 @@ export default function CustomerList() {
             onAction={handleOpenNew}
           />
         ) : filteredCustomers.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-sm text-gray-500">Nenhum cliente encontrado para "{search}"</p>
+          <div className="text-center py-16">
+            <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor" className="text-gray-400">
+                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-gray-900">Nenhum resultado</p>
+            <p className="text-sm text-gray-500 mt-1">Nenhum cliente encontrado para &ldquo;{search}&rdquo;</p>
           </div>
         ) : (
-          /* Customer list */
           <>
-          <div className="space-y-3">
+          <div className="grid gap-3">
             {paginatedPage.content.map((customer) => {
               const customerReports = reportCountMap[customer.id] ?? []
-              const isExpanded = expandedId === customer.id
+              const initials = getInitials(customer.data.name)
+              const avatarColor = getAvatarColor(customer.data.name || customer.id)
 
               return (
-                <div key={customer.id} className="bg-white rounded-xl border border-gray-200 transition-all hover:border-brand-300 hover:shadow-sm cursor-pointer" onClick={() => navigate(`/customers/${customer.id}`)}>
-                  {/* Card row */}
-                  <div className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+                <div
+                  key={customer.id}
+                  className="group bg-white rounded-2xl border border-gray-200/80 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-200 cursor-pointer overflow-hidden"
+                  onClick={() => navigate(`/customers/${customer.id}`)}
+                >
+                  <div className="p-4 sm:p-5 flex items-center gap-4">
                     {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-semibold text-brand-700">
-                        {customer.data.name ? customer.data.name.charAt(0).toUpperCase() : '?'}
+                    <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center shrink-0 shadow-sm`}>
+                      <span className="text-sm font-semibold text-white tracking-wide">
+                        {initials}
                       </span>
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">
+                      <h3 className="font-semibold text-gray-900 truncate group-hover:text-brand-700 transition-colors">
                         {customer.data.name || 'Cliente sem nome'}
                       </h3>
-                      <div className="flex items-center gap-3 mt-0.5">
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {customer.data.cpf && (
-                          <>
-                            <span className="text-xs text-gray-500">{customer.data.cpf}</span>
-                            <span className="text-xs text-gray-400">·</span>
-                          </>
+                          <span className="inline-flex items-center text-xs text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full font-mono">
+                            {customer.data.cpf}
+                          </span>
+                        )}
+                        {customer.data.phone && (
+                          <span className="inline-flex items-center text-xs text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                            {customer.data.phone}
+                          </span>
                         )}
                         {customer.data.birthDate && (
-                          <>
-                            <span className="text-xs text-gray-500">{customer.data.age || customer.data.birthDate}</span>
-                            <span className="text-xs text-gray-400">·</span>
-                          </>
+                          <span className="inline-flex items-center text-xs text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                            {calculateAge(customer.data.birthDate, true)}
+                          </span>
                         )}
-                        <span className="text-xs text-gray-400">
-                          Atualizado {formatDateTime(customer.updatedAt)}
-                        </span>
                       </div>
                     </div>
 
-                    {/* Reports badge */}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : customer.id) }}
-                      className={`hidden sm:inline-flex px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
+                    {/* Stats */}
+                    <div className="hidden sm:flex items-center gap-3 shrink-0">
+                      {/* Reports count */}
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${
                         customerReports.length > 0
-                          ? 'bg-brand-100 text-brand-700 hover:bg-brand-200'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                      title={customerReports.length > 0 ? 'Ver relatórios vinculados' : 'Nenhum relatório vinculado'}
-                    >
-                      {customerReports.length} {customerReports.length === 1 ? 'relatório' : 'relatórios'}
-                    </button>
+                          ? 'bg-brand-50 text-brand-700'
+                          : 'bg-gray-50 text-gray-400'
+                      }`}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        {customerReports.length}
+                      </div>
+
+                      {/* Updated */}
+                      <span className="text-xs text-gray-400">
+                        {formatDateTime(customer.updatedAt)}
+                      </span>
+                    </div>
 
                     {/* Actions */}
-                    <div className="hidden sm:flex items-center gap-1 shrink-0">
+                    <div className="hidden sm:flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleCreateReport(customer) }}
                         className="p-2 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition-colors"
-                        title="Novo relatório para este cliente"
+                        title="Novo relatório"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -272,7 +313,7 @@ export default function CustomerList() {
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleOpenEdit(customer) }}
                         className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="Editar cliente"
+                        title="Editar"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -286,7 +327,7 @@ export default function CustomerList() {
                           setConfirmDeleteId(customer.id)
                         }}
                         className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Excluir cliente"
+                        title="Excluir"
                       >
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
@@ -294,45 +335,6 @@ export default function CustomerList() {
                       </button>
                     </div>
                   </div>
-
-                  {/* Expanded reports list */}
-                  {isExpanded && customerReports.length > 0 && (
-                    <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/50 rounded-b-xl">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                        Relatórios vinculados
-                      </p>
-                      <div className="space-y-1.5">
-                        {customerReports
-                          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                          .map((report) => (
-                            <button
-                              key={report.id}
-                              type="button"
-                              onClick={() => navigate(`/reports/${report.id}`)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white transition-colors text-left"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                              </svg>
-                              <span className="text-sm text-gray-700 flex-1 truncate">
-                                {report.customerName || 'Sem nome'}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                report.status === 'finalizado'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-yellow-100 text-yellow-700'
-                              }`}>
-                                {report.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {formatDateTime(report.updatedAt)}
-                              </span>
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )
             })}
@@ -353,7 +355,7 @@ export default function CustomerList() {
         size="lg"
       >
         {editingCustomer && (
-          <div className="p-4 space-y-4">
+          <div className="p-5 space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Nome"
@@ -373,12 +375,12 @@ export default function CustomerList() {
                 value={editingCustomer.data.birthDate}
                 onChange={(e) => updateEditingField('birthDate', e.target.value)}
               />
-              <Input
-                label="Idade"
-                value={editingCustomer.data.age}
-                onChange={(e) => updateEditingField('age', e.target.value)}
-                placeholder="Ex: 32 anos e 4 meses"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Idade</label>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                  {calculateAge(editingCustomer.data.birthDate) || '\u2014'}
+                </div>
+              </div>
               <Input
                 label="Escolaridade"
                 value={editingCustomer.data.education}
@@ -416,7 +418,7 @@ export default function CustomerList() {
                 placeholder="Ex: Avó, Tio, Tutor"
               />
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
               <Button variant="ghost" onClick={() => { setShowFormModal(false); setEditingCustomer(null) }}>
                 Cancelar
               </Button>
