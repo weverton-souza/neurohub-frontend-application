@@ -39,6 +39,7 @@ const FORM_ADULTO: Form = {
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-adulto',
   fieldMappings: [],
+  currentVersion: 1,
   fields: [
     // Dados pessoais
     sectionHeader(0, 'Dados Pessoais'),
@@ -130,6 +131,7 @@ const FORM_INFANTIL: Form = {
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-adulto',
   fieldMappings: [],
+  currentVersion: 1,
   fields: [
     // Dados da criança
     sectionHeader(0, 'Dados da Criança'),
@@ -204,6 +206,7 @@ const FORM_BREVE: Form = {
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-breve',
   fieldMappings: [],
+  currentVersion: 1,
   fields: [
     field(0, 'short-text', 'Nome completo', { required: true }),
     field(1, 'date', 'Data de nascimento', { required: true }),

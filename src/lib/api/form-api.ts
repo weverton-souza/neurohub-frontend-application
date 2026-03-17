@@ -1,4 +1,4 @@
-import type { Form, FormResponse } from '@/types'
+import type { Form, FormResponse, FormVersion } from '@/types'
 import { api } from '@/lib/api/api-client'
 
 // ========== Forms CRUD ==========
@@ -25,6 +25,18 @@ export async function updateForm(form: Form): Promise<Form> {
 
 export async function deleteForm(id: string): Promise<void> {
   await api.delete(`/forms/${id}`)
+}
+
+// ========== Form Versions ==========
+
+export async function getFormVersions(formId: string): Promise<FormVersion[]> {
+  const { data } = await api.get<FormVersion[]>(`/forms/${formId}/versions`)
+  return data
+}
+
+export async function getFormVersion(formId: string, version: number): Promise<FormVersion> {
+  const { data } = await api.get<FormVersion>(`/forms/${formId}/versions/${version}`)
+  return data
 }
 
 // ========== Form Responses CRUD ==========
@@ -60,4 +72,9 @@ export async function updateFormResponse(
 
 export async function deleteFormResponse(formId: string, responseId: string): Promise<void> {
   await api.delete(`/forms/${formId}/responses/${responseId}`)
+}
+
+export async function getFormResponsesByCustomer(customerId: string): Promise<FormResponse[]> {
+  const { data } = await api.get<FormResponse[]>(`/forms/by-customer/${customerId}/responses`)
+  return data
 }
