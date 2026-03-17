@@ -393,6 +393,7 @@ export interface Block {
   order: number
   data: BlockData
   collapsed: boolean
+  pageBreakBefore?: boolean
 }
 
 // ========== Report ==========
