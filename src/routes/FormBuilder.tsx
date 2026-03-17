@@ -18,14 +18,13 @@ import type {
   Form,
   FormField,
   FormFieldType,
-  FormSectionGroup,
 } from '@/types'
 import { createEmptyFormField } from '@/types'
 import { getFormById, updateForm } from '@/lib/api/form-api'
 import { useAutoSave } from '@/lib/hooks/use-auto-save'
+import { useSortedFields } from '@/lib/hooks/use-sorted-fields'
 import { getAllTemplates } from '@/lib/default-templates'
 import { getReportTemplates } from '@/lib/api/template-api'
-import { buildFormSectionGroups } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import QuestionCard from '@/components/form-builder/QuestionCard'
 import FloatingToolbar from '@/components/form-builder/FloatingToolbar'
@@ -173,15 +172,7 @@ export default function FormBuilder() {
     childFieldIds: string[]
   } | null>(null)
 
-  const sortedFields = useMemo(
-    () => form ? [...form.fields].sort((a, b) => a.order - b.order) : [],
-    [form]
-  )
-
-  const sectionGroups: FormSectionGroup[] = useMemo(
-    () => buildFormSectionGroups(sortedFields),
-    [sortedFields]
-  )
+  const { sortedFields, sectionGroups } = useSortedFields(form?.fields)
 
   const handleRemoveFieldOrSection = useCallback((fieldId: string) => {
     if (!form) return
