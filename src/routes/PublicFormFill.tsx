@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import type { PublicFormData, FormFieldAnswer } from '@/types'
 import { createEmptyFormFieldAnswer } from '@/types'
 import { getPublicForm, submitPublicForm } from '@/lib/api/public-form-api'
-import { buildFormSectionGroups } from '@/lib/utils'
+import { useFormValidation } from '@/lib/hooks/use-form-validation'
+import { useSortedFields } from '@/lib/hooks/use-sorted-fields'
 import FormFieldRenderer from '@/components/form-fill/FormFieldRenderer'
 
 type PageState = 'loading' | 'form' | 'success' | 'error'
@@ -14,7 +15,6 @@ export default function PublicFormFill() {
   const [pageState, setPageState] = useState<PageState>('loading')
   const [formData, setFormData] = useState<PublicFormData | null>(null)
   const [answers, setAnswers] = useState<FormFieldAnswer[]>([])
-  const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set())
   const [errorMessage, setErrorMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -41,50 +41,19 @@ export default function PublicFormFill() {
       })
   }, [token])
 
+  const { validationErrors, validate, clearFieldError } = useFormValidation(
+    useCallback(() => formData?.fields ?? [], [formData]),
+    useCallback(() => answers, [answers]),
+  )
+
   const handleAnswerChange = useCallback((answer: FormFieldAnswer) => {
     setAnswers((prev) => {
       const exists = prev.find((a) => a.fieldId === answer.fieldId)
       if (exists) return prev.map((a) => (a.fieldId === answer.fieldId ? answer : a))
       return [...prev, answer]
     })
-
-    if (validationErrors.has(answer.fieldId)) {
-      setValidationErrors((prev) => {
-        const next = new Set(prev)
-        next.delete(answer.fieldId)
-        return next
-      })
-    }
-  }, [validationErrors])
-
-  const validate = useCallback((): boolean => {
-    if (!formData) return false
-    const errors = new Set<string>()
-
-    for (const field of formData.fields) {
-      if (!field.required || field.type === 'section-header') continue
-
-      const answer = answers.find((a) => a.fieldId === field.id)
-      if (!answer) {
-        errors.add(field.id)
-        continue
-      }
-
-      const isEmpty =
-        (field.type === 'short-text' || field.type === 'long-text' || field.type === 'date' || field.type === 'yes-no')
-          ? !answer.value.trim()
-        : (field.type === 'single-choice' || field.type === 'multiple-choice')
-          ? answer.selectedOptionIds.length === 0
-        : field.type === 'scale'
-          ? answer.scaleValue === null
-        : false
-
-      if (isEmpty) errors.add(field.id)
-    }
-
-    setValidationErrors(errors)
-    return errors.size === 0
-  }, [formData, answers])
+    clearFieldError(answer.fieldId)
+  }, [clearFieldError])
 
   const handleSubmit = useCallback(async () => {
     if (!validate() || !token || !formData || submitting) return
@@ -102,15 +71,7 @@ export default function PublicFormFill() {
     }
   }, [validate, token, formData, answers, submitting])
 
-  const sortedFields = useMemo(
-    () => formData ? [...formData.fields].sort((a, b) => a.order - b.order) : [],
-    [formData],
-  )
-
-  const sectionGroups = useMemo(
-    () => buildFormSectionGroups(sortedFields),
-    [sortedFields],
-  )
+  const { sectionGroups } = useSortedFields(formData?.fields)
 
   const getAnswer = useCallback((fieldId: string): FormFieldAnswer => {
     return answers.find((a) => a.fieldId === fieldId)
