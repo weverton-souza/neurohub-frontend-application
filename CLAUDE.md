@@ -15,100 +15,9 @@
 - Plate.js (platejs) para rich text WYSIWYG (bold, itálico, sublinhado, riscado, listas, alinhamento)
 - `docx` 9 para geração de .docx in-browser
 
-## Features do Projeto
+## Planos do Projeto
 
-### Relatórios (Reports)
-- Editor de blocos com drag-and-drop (dnd-kit) e auto-save via API
-- 7 tipos de bloco: identification, text, score-table, info-box, chart, references, closing-page
-- Sistema de seções derivado dos blocos (não armazenado) com collapse/expand
-- Sidebar com árvore de navegação (OutlineTree) e IntersectionObserver para destaque ativo
-- Criação a partir de templates (2 padrões: Adulto e Breve) ou do zero
-- Versionamento com snapshots manuais e automáticos (máx. 20 por relatório)
-- Status com transições: rascunho → em_revisão → finalizado
-- Exportação .docx in-browser com header profissional, logo, rodapé com ícones sociais e paginação
-- Gráficos Chart.js (bar/line) com modos grouped/separated, linhas e regiões de referência, exportados como PNG no .docx
-- Templates de gráfico pré-configurados (10 padrões): WAIS-III Subtestes, WAIS-III Índices, RAVLT Curva, FDT, BDI-II, BAI, SRS-2, ToL-BR, Perfil Cognitivo, TMT
-- Seleção de template ao criar gráfico via BlockSelector (flow em 2 steps)
-- Salvar gráfico como template customizado com nome, instrumento e categoria
-- Rich text WYSIWYG (Plate.js) com bold, itálico, sublinhado, riscado, listas (bullet/numerada), alinhamento (L/C/R/J) nos blocos de texto
-- Conteúdo armazenado em Slate JSON (array de nós), com backward compat para HTML legado (auto-conversão no load)
-- Itens rotulados (key-value) nos blocos de texto
-- Tabelas dinâmicas com colunas nomeadas pelo usuário (score-table)
-- Engine de fórmulas v2: classificação por faixa, operações matemáticas (soma, subtração, média), agregações por coluna e linha
-- Fórmulas digitáveis nas células (prefixo `=`) com autocomplete de funções, auto-uppercase, e barra de fórmulas
-- Referências de célula (A1, B23) e ranges de coluna (A:A) — referências standalone de coluna (A, B) não aceitas
-- Cores em fórmulas via sintaxe `@#RRGGBB` — color picker visual com presets, input hex, e slider de intensidade com marcadores (10-90)
-- Aplicação em lote de intensidade (lightness) a todas as cores da tabela, mantendo hue de cada uma
-- Replicação de fórmulas: ao confirmar com Enter, popup oferece replicar para mesma linha ou coluna com ajuste automático de referências (como Excel)
-- Detecção de conflitos: ao replicar sobre células que já possuem fórmula, popup pergunta se quer sobrepor ou manter existentes
-- Alinhamento por coluna (esquerda/centro/direita) com toggle no header — headers sempre centralizados
-- Salvar tabela como template customizado com nome, instrumento e categoria
-- Templates de tabela de escores com fórmulas embutidas: WAIS-III, RAVLT, FDT, BDI-II, BAI, SRS-2, ToL-BR
-- FormulaEditor visual para configurar fórmulas por coluna ou célula (sem digitação de expressões)
-- Seleção de template ao criar tabela de escores via BlockSelector (flow em 2 steps)
-- Valores calculados automaticamente no editor e no export .docx
-- `adjustFormulaRefs()` em formula-parser.ts: ajusta referências de célula ao replicar (deltaCol/deltaRow)
-- `remapFormulaRefs()` em formula-parser.ts: remapeia referências ao reordenar linhas/colunas (permutação)
-- Cell ranges nas fórmulas: sintaxe `A1:A4` e `A1:B3` para intervalos de células (single e multi-coluna)
-- Funções SOMA, MEDIA, MIN, MAX, CONT aceitam ranges como argumento (ex: `=SOMA(A1:A4;B1:B4)`)
-- Reordenar linhas com drag-and-drop (grip handle no número da linha)
-- Reordenar colunas com drag-and-drop (grip handle no header da coluna)
-- Fórmulas com referências posicionais (A1, B2, A1:A4, A:A) são remapeadas automaticamente ao reordenar
-- Página de encerramento com assinaturas configuráveis (profissional, cliente, mãe, pai, responsável)
-
-### Clientes (Customers)
-- Cadastro completo: dados pessoais, contato, dados clínicos
-- Busca por nome ou CPF com paginação
-- Perfil com 6 abas: Dados Pessoais, Contato, Dados Clínicos, Relatórios, Notas, Histórico
-- Notas clínicas com timestamp
-- Timeline de eventos (consulta, retorno, avaliação, relatório, observação) agrupados por mês/ano
-- Vínculo com relatórios via customerId — criar relatório a partir do cliente pré-preenche o bloco de identificação
-- Dados do cliente são copiados para o relatório (não vinculados — edição no relatório não altera o cadastro)
-
-### Formulários (Forms)
-- Construtor de formulários com 8 tipos de campo: short-text, long-text, single-choice, multiple-choice, scale, yes-no, date, section-header
-- 3 formulários padrão: Adulto (32 campos), Infantil (29 campos), Breve (7 campos)
-- Drag-and-drop para reordenação de campos
-- Preview do formulário como o usuário final vê
-- Mapeamento de campos para seções de template de relatório (FieldMappingEditor)
-- Vínculo com template de relatório (TemplateLinkModal)
-- Duplicação de formulários
-
-### Preenchimento de Formulários
-- Interface de preenchimento com renderização por tipo de campo (FormFieldRenderer)
-- Validação de campos obrigatórios
-- Auto-save com debounce
-- Status: em_andamento → concluído
-- Suporte a pré-preenchimento via cliente
-
-### Geração de Relatório a partir de Respostas
-- Pipeline de geração via IA: buildPrompt → generateReportFromResponse → parseAIResponse
-- Sistema de variáveis com sintaxe {{chave}} resolvidas de dados do cliente e respostas do formulário
-- Mapeamento campo→seção com hints para a IA
-- Resolução de variáveis (variable-service) em blocos text e info-box
-
-### Configurações Profissionais
-- Modal para nome, CRP, especialização, logo (base64)
-- Itens de contato configuráveis (Instagram, LinkedIn, Facebook, website, telefone, email)
-- Dados usados no header do .docx e no bloco de identificação
-
-### Design System
-- Tokens centralizados em `src/styles/design-tokens.css` com CSS custom properties
-- Duas camadas: primitivas (cores raw) e semânticas (surface, border, text, brand)
-- Paleta azul Apple (#007AFF) + cinzas quentes Apple (#F5F5F7)
-- Sombras multi-layer estilo Apple (xs, sm, md, lg, xl, card, dropdown, modal)
-- Tailwind config consome os tokens via `var()` — alterações no CSS propagam automaticamente
-- Navegação: GlobalTopBar (avatar, settings, logout) + PageHeader (toolbar contextual por página)
-- Font stack: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui
-
-### Persistência (Backend REST API)
-- Backend: dox-backend-application (Spring Boot + Kotlin + PostgreSQL)
-- HTTP client: axios com interceptors JWT (auto-refresh em TOKEN_EXPIRED)
-- Autenticação: JWT (accessToken em memória, refreshToken em localStorage)
-- Error handling: RFC 7807 ProblemDetail → ErrorModal global (PT-BR)
-- API services em `src/lib/api/`: customer-api, report-api, form-api, template-api, professional-api, workspace-api
-- Contextos: AuthContext (auth state + session), ErrorContext (error modal global)
-- Rotas protegidas via ProtectedRoute (redirect para /login se não autenticado)
+> Features implementadas e próximas features estão centralizados em `plans/frontend-plan.md` na raiz do environment.
 
 ## Nomenclatura Frontend ↔ Backend
 
@@ -217,7 +126,8 @@ src/
 1. Rodar `npx tsc --noEmit` — zero erros obrigatório
 2. Rodar `npx vite build` — build deve passar
 3. Nunca commitar `tsconfig.tsbuildinfo`, `.env`, ou `node_modules`
-4. Atualizar o CLAUDE.md: adicionar novas features implementadas em `## Features do Projeto` e remover da `## Próximas Features` o que já foi concluído
+4. Atualizar `plans/frontend-plan.md`: adicionar novas features implementadas e remover da `## Próximas Features` o que já foi concluído
+5. Se novos arquivos foram criados, atualizar `plans/frontend-architecture.md` com os novos arquivos na árvore
 
 ## Padrões de Commit
 
