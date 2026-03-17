@@ -10,9 +10,10 @@ import { useConfirmDelete } from '@/lib/hooks/use-confirm-delete'
 import { usePagination } from '@/lib/hooks/use-pagination'
 import { useError } from '@/contexts/ErrorContext'
 import Button from '@/components/ui/Button'
-import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal'
+import EmptyState from '@/components/ui/EmptyState'
 
 export default function FormList() {
   const navigate = useNavigate()
@@ -133,26 +134,20 @@ export default function FormList() {
         )}
 
         {forms.length === 0 ? (
-          /* Empty state */
-          <div className="text-center py-20">
-            <div className="mx-auto w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center mb-4">
+          <EmptyState
+            icon={
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-500" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
                 <line x1="12" y1="11" x2="12" y2="17" />
                 <line x1="9" y1="14" x2="15" y2="14" />
               </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              Nenhum formulário ainda
-            </h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Crie seu primeiro formulário de anamnese
-            </p>
-            <Button onClick={handleCreate} size="lg">
-              + Novo Formulário
-            </Button>
-          </div>
+            }
+            title="Nenhum formulário ainda"
+            message="Crie seu primeiro formulário de anamnese"
+            buttonLabel="+ Novo Formulário"
+            onAction={handleCreate}
+          />
         ) : (
           <>
             <div className="space-y-3">
@@ -281,27 +276,12 @@ export default function FormList() {
         )}
       </main>
 
-      {/* Delete Confirm Modal */}
-      <Modal
+      <ConfirmDeleteModal
         isOpen={!!confirmDeleteId}
         onClose={cancelDelete}
-        title="Confirmar exclusão"
-        size="sm"
-      >
-        <div className="p-4 space-y-4">
-          <p className="text-sm text-gray-600">
-            Tem certeza de que deseja excluir este formulário e todas as suas respostas? Esta ação não pode ser desfeita.
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={cancelDelete}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              Excluir
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={confirmDelete}
+        message="Tem certeza de que deseja excluir este formulário e todas as suas respostas? Esta ação não pode ser desfeita."
+      />
     </>
   )
 }

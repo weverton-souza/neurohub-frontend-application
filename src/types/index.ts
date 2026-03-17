@@ -259,6 +259,19 @@ export interface ScoreTableData {
   templateId?: string | null
 }
 
+// ========== Base Template ==========
+
+export interface BaseTemplate {
+  id: string
+  name: string
+  description: string
+  instrumentName: string
+  category: string
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 // ========== Score Table Templates ==========
 
 export interface ScoreTableTemplateColumn {
@@ -272,27 +285,14 @@ export interface ScoreTableTemplateRow {
   defaultValues: Record<string, string>  // inclui fórmulas como valores
 }
 
-export interface ScoreTableTemplate {
-  id: string
-  name: string
-  description: string
-  instrumentName: string
-  category: string
+export interface ScoreTableTemplate extends BaseTemplate {
   columns: ScoreTableTemplateColumn[]
   rows: ScoreTableTemplateRow[]
-  isDefault: boolean
-  createdAt: string
-  updatedAt: string
 }
 
 // ========== Chart Templates ==========
 
-export interface ChartTemplate {
-  id: string
-  name: string
-  description: string
-  instrumentName: string
-  category: string
+export interface ChartTemplate extends BaseTemplate {
   chartType: ChartType
   displayMode: ChartDisplayMode
   series: ChartSeries[]
@@ -303,9 +303,6 @@ export interface ChartTemplate {
   showValues: boolean
   showLegend: boolean
   showRegionLegend: boolean
-  isDefault: boolean
-  createdAt: string
-  updatedAt: string
 }
 
 export interface InfoBoxData {
