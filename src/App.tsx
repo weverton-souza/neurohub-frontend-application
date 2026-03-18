@@ -12,6 +12,7 @@ import FormBuilder from '@/routes/FormBuilder'
 import FormFill from '@/routes/FormFill'
 import FormResponseList from '@/routes/FormResponseList'
 import FormulaGuide from '@/routes/FormulaGuide'
+import Calendar from '@/routes/Calendar'
 import PublicFormFill from '@/routes/PublicFormFill'
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/forms/:id/edit" element={<FormBuilder />} />
           <Route path="/forms/:id/fill" element={<FormFill />} />
           <Route path="/forms/:id/responses" element={<FormResponseList />} />
+          <Route path="/calendar" element={<Calendar />} />
           <Route path="/guides" element={<FormulaGuide />} />
         </Route>
       </Route>
