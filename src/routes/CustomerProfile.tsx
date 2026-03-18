@@ -5,26 +5,17 @@ import type {
   CustomerData,
   CustomerNote,
   CustomerEvent,
-  CustomerEventType,
   Report,
   FormResponse,
   FormLink,
   Form,
 } from '@/types'
-import {
-  createEmptyCustomerEvent,
-  CUSTOMER_EVENT_TYPE_LABELS,
-  CUSTOMER_EVENT_TYPE_COLORS,
-} from '@/types'
+import { getVerticalRecordConfig } from '@/types'
 import {
   getCustomer,
   updateCustomer,
   getCustomerNotes,
-  createCustomerNote,
-  deleteCustomerNote as apiDeleteCustomerNote,
   getCustomerEvents,
-  createCustomerEvent,
-  deleteCustomerEvent as apiDeleteCustomerEvent,
 } from '@/lib/api/customer-api'
 import { getReportsByCustomer } from '@/lib/api/report-api'
 import { getFormResponsesByCustomer, listForms } from '@/lib/api/form-api'
@@ -32,6 +23,7 @@ import { getFormLinksByCustomer, createFormLink, revokeFormLink } from '@/lib/ap
 import { formatDateTime, calculateAge } from '@/lib/utils'
 import { createReportFromCustomer } from '@/lib/report-utils'
 import { useError } from '@/contexts/ErrorContext'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   FORM_RESPONSE_STATUS_LABELS,
   FORM_RESPONSE_STATUS_COLORS,
@@ -39,12 +31,13 @@ import {
 import Input from '@/components/ui/Input'
 import TextArea from '@/components/ui/TextArea'
 import Button from '@/components/ui/Button'
+import CustomerRecordTab from '@/components/customer/CustomerRecordTab'
 import StatusBadge from '@/components/ui/StatusBadge'
 import ListCard, { ListCardPill } from '@/components/ui/ListCard'
 
 // ========== Types ==========
 
-type ProfileSection = 'personal' | 'contact' | 'clinical' | 'reports' | 'forms' | 'links' | 'notes' | 'timeline'
+type ProfileSection = 'personal' | 'contact' | 'clinical' | 'reports' | 'forms' | 'links' | 'record'
 
 interface TabItem {
   key: ProfileSection
@@ -79,55 +72,7 @@ function getInitials(name: string): string {
 
 // ========== Icons ==========
 
-function TrashIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  )
-}
-
-// ========== Tabs config ==========
-
-const TABS: TabItem[] = [
-  { key: 'personal', label: 'Dados Pessoais', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
-  { key: 'contact', label: 'Contato', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> },
-  { key: 'clinical', label: 'Dados Clínicos', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> },
-  { key: 'reports', label: 'Relatórios', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
-  { key: 'forms', label: 'Questionários', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> },
-  { key: 'links', label: 'Links', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
-  { key: 'notes', label: 'Notas', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
-  { key: 'timeline', label: 'Histórico', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
-]
-
-const EVENT_TYPE_OPTIONS: { value: CustomerEventType; label: string }[] = [
-  { value: 'consulta', label: 'Consulta' },
-  { value: 'retorno', label: 'Retorno' },
-  { value: 'avaliacao', label: 'Avaliação' },
-  { value: 'laudo', label: 'Laudo' },
-  { value: 'observacao', label: 'Observação' },
-]
-
-// ========== Timeline helpers ==========
-
-function groupEventsByMonth(events: CustomerEvent[]): { label: string; events: CustomerEvent[] }[] {
-  const groups: Map<string, CustomerEvent[]> = new Map()
-
-  for (const event of events) {
-    const d = new Date(event.date)
-    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(event)
-  }
-
-  return Array.from(groups.entries())
-    .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([, evts]) => ({
-      label: new Date(evts[0].date).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
-      events: evts,
-    }))
-}
+// TABS is built dynamically in the component to use the vertical-specific tab name
 
 // ========== Component ==========
 
@@ -135,6 +80,19 @@ export default function CustomerProfile() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showError } = useError()
+  const { user } = useAuth()
+  const vertical = user?.vertical ?? 'GENERAL'
+  const verticalConfig = getVerticalRecordConfig(vertical)
+
+  const TABS: TabItem[] = [
+    { key: 'personal', label: 'Dados Pessoais', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+    { key: 'contact', label: 'Contato', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> },
+    ...(vertical === 'HEALTH' ? [{ key: 'clinical' as ProfileSection, label: 'Dados Clínicos', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> }] : []),
+    { key: 'reports', label: 'Relatórios', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+    { key: 'forms', label: 'Questionários', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> },
+    { key: 'links', label: 'Links', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
+    { key: 'record', label: verticalConfig.tabName, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  ]
 
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [editData, setEditData] = useState<CustomerData | null>(null)
@@ -146,10 +104,7 @@ export default function CustomerProfile() {
   const [formLinks, setFormLinks] = useState<FormLink[]>([])
   const [forms, setForms] = useState<Form[]>([])
   const [notes, setNotes] = useState<CustomerNote[]>([])
-  const [newNoteContent, setNewNoteContent] = useState('')
   const [events, setEvents] = useState<CustomerEvent[]>([])
-  const [showEventForm, setShowEventForm] = useState(false)
-  const [newEvent, setNewEvent] = useState<CustomerEvent | null>(null)
   const [showLinkForm, setShowLinkForm] = useState(false)
   const [selectedFormId, setSelectedFormId] = useState('')
   const [generatingLink, setGeneratingLink] = useState(false)
@@ -219,65 +174,6 @@ export default function CustomerProfile() {
       showError(err)
     }
   }, [customer, navigate, showError])
-
-  const handleAddNote = useCallback(async () => {
-    if (!customer || !newNoteContent.trim()) return
-    try {
-      await createCustomerNote(customer.id, { content: newNoteContent.trim() })
-      const updatedNotes = await getCustomerNotes(customer.id)
-      setNotes(updatedNotes)
-      setNewNoteContent('')
-    } catch (err) {
-      showError(err)
-    }
-  }, [customer, newNoteContent, showError])
-
-  const handleDeleteNote = useCallback(
-    async (noteId: string) => {
-      if (!customer) return
-      try {
-        await apiDeleteCustomerNote(customer.id, noteId)
-        const updatedNotes = await getCustomerNotes(customer.id)
-        setNotes(updatedNotes)
-      } catch (err) {
-        showError(err)
-      }
-    },
-    [customer, showError]
-  )
-
-  const handleOpenEventForm = useCallback(() => {
-    if (!customer) return
-    setNewEvent(createEmptyCustomerEvent(customer.id))
-    setShowEventForm(true)
-  }, [customer])
-
-  const handleSaveEvent = useCallback(async () => {
-    if (!customer || !newEvent || !newEvent.title.trim()) return
-    try {
-      await createCustomerEvent(customer.id, newEvent)
-      const updatedEvents = await getCustomerEvents(customer.id)
-      setEvents(updatedEvents)
-      setShowEventForm(false)
-      setNewEvent(null)
-    } catch (err) {
-      showError(err)
-    }
-  }, [customer, newEvent, showError])
-
-  const handleDeleteEvent = useCallback(
-    async (eventId: string) => {
-      if (!customer) return
-      try {
-        await apiDeleteCustomerEvent(customer.id, eventId)
-        const updatedEvents = await getCustomerEvents(customer.id)
-        setEvents(updatedEvents)
-      } catch (err) {
-        showError(err)
-      }
-    },
-    [customer, showError]
-  )
 
   const handleGenerateLink = useCallback(async () => {
     if (!customer || !selectedFormId) return
@@ -606,184 +502,15 @@ export default function CustomerProfile() {
     )
   }
 
-  function renderNotesSection() {
+  function renderRecordSection() {
     return (
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Notas de Acompanhamento</h2>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-          <TextArea value={newNoteContent} onChange={(e) => setNewNoteContent(e.target.value)} placeholder="Escreva uma nota de acompanhamento..." className="min-h-[80px]" />
-          <div className="flex justify-end">
-            <Button size="sm" onClick={handleAddNote} disabled={!newNoteContent.trim()}>Adicionar Nota</Button>
-          </div>
-        </div>
-        {notes.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-gray-200 py-10 text-center">
-            <p className="text-sm text-gray-500">Nenhuma nota registrada</p>
-            <p className="text-xs text-gray-400 mt-1">Adicione notas para acompanhar o progresso</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {notes.map((note) => (
-              <div key={note.id} className="bg-white rounded-xl border border-gray-200 p-4 group hover:border-gray-300 transition-colors">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-400 font-medium">
-                      {formatDateTime(note.createdAt)}
-                      {note.updatedAt !== note.createdAt && <span className="ml-1 text-gray-300">(editado)</span>}
-                    </p>
-                    <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap leading-relaxed">{note.content}</p>
-                  </div>
-                  <button onClick={() => handleDeleteNote(note.id)} className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all" title="Excluir nota">
-                    <TrashIcon />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  function renderTimelineSection() {
-    const grouped = groupEventsByMonth(events)
-
-    return (
-      <div className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Histórico</h2>
-          <Button size="sm" onClick={handleOpenEventForm}>+ Novo Evento</Button>
-        </div>
-
-        {showEventForm && newEvent && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">Novo evento</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                <select
-                  value={newEvent.type}
-                  onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CustomerEventType })}
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none transition-all"
-                >
-                  {EVENT_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <Input
-                label="Data e Hora"
-                type="datetime-local"
-                value={newEvent.date.slice(0, 16)}
-                onChange={(e) => setNewEvent({ ...newEvent, date: new Date(e.target.value).toISOString() })}
-              />
-              <div className="sm:col-span-2">
-                <Input
-                  label="Título"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                  placeholder="Ex: Primeira consulta de avaliação"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <TextArea
-                  label="Descrição (opcional)"
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                  placeholder="Observações sobre o evento..."
-                  className="min-h-[60px]"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => { setShowEventForm(false); setNewEvent(null) }}>
-                Cancelar
-              </Button>
-              <Button size="sm" onClick={handleSaveEvent} disabled={!newEvent.title.trim()}>
-                Salvar Evento
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {events.length === 0 && !showEventForm ? (
-          <div className="rounded-2xl border-2 border-dashed border-gray-200 py-14 text-center">
-            <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-gray-900">Nenhum evento</p>
-            <p className="text-xs text-gray-500 mt-1">Registre consultas, retornos e avaliações</p>
-            <Button variant="ghost" size="sm" className="mt-4" onClick={handleOpenEventForm}>
-              Registrar evento
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {grouped.map((group) => (
-              <div key={group.label}>
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    {group.label}
-                  </span>
-                  <div className="flex-1 h-px bg-gray-200" />
-                </div>
-
-                <ol className="relative border-l-2 border-gray-200 ml-3">
-                  {group.events.map((event) => {
-                    const dotColor = CUSTOMER_EVENT_TYPE_COLORS[event.type]
-                    const typeLabel = CUSTOMER_EVENT_TYPE_LABELS[event.type]
-                    const eventDate = new Date(event.date)
-                    const timeStr = eventDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                    const dateStr = eventDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-
-                    return (
-                      <li key={event.id} className="mb-6 ml-6 group">
-                        <span className={`absolute -left-[9px] w-4 h-4 rounded-full ${dotColor} ring-4 ring-white`} />
-
-                        <div className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-300 hover:shadow-sm transition-all">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1.5">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium text-white ${dotColor}`}>
-                                  {typeLabel}
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                  {dateStr} &agrave;s {timeStr}
-                                </span>
-                              </div>
-
-                              <h4 className="text-sm font-medium text-gray-900">
-                                {event.title}
-                              </h4>
-
-                              {event.description && (
-                                <p className="text-sm text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed">
-                                  {event.description}
-                                </p>
-                              )}
-                            </div>
-
-                            <button
-                              onClick={() => handleDeleteEvent(event.id)}
-                              className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                              title="Excluir evento"
-                            >
-                              <TrashIcon />
-                            </button>
-                          </div>
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ol>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <CustomerRecordTab
+        customerId={customer!.id}
+        notes={notes}
+        events={events}
+        onNotesChange={setNotes}
+        onEventsChange={setEvents}
+      />
     )
   }
 
@@ -794,8 +521,7 @@ export default function CustomerProfile() {
     reports: renderReportsSection,
     forms: renderFormsSection,
     links: renderLinksSection,
-    notes: renderNotesSection,
-    timeline: renderTimelineSection,
+    record: renderRecordSection,
   }
 
   // ========== Main Render ==========
@@ -864,13 +590,13 @@ export default function CustomerProfile() {
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
                     </svg>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-gray-900">{notes.length}</p>
-                    <p className="text-xs text-gray-400 -mt-0.5">{notes.length === 1 ? 'nota' : 'notas'}</p>
+                    <p className="text-lg font-bold text-gray-900">{notes.length + events.length}</p>
+                    <p className="text-xs text-gray-400 -mt-0.5">{notes.length + events.length === 1 ? 'registro' : 'registros'}</p>
                   </div>
                 </div>
                 <div className="w-px h-8 bg-gray-200" />

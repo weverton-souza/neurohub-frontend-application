@@ -34,6 +34,7 @@ import FormPreview from '@/components/form-builder/FormPreview'
 import SectionDeleteModal from '@/components/ui/SectionDeleteModal'
 import SectionReorderModal from '@/components/form-builder/SectionReorderModal'
 import GenerateFormLinkModal from '@/components/form-builder/GenerateFormLinkModal'
+import DotPattern from '@/components/ui/DotPattern'
 
 type ViewMode = 'editor' | 'preview' | 'mapping'
 
@@ -410,13 +411,9 @@ export default function FormBuilder() {
       </header>
 
       {/* Main content */}
-      <main
-        className="min-h-[calc(100vh-49px)] bg-gray-100 py-6"
+      <DotPattern
+        className="min-h-[calc(100vh-49px)] py-6"
         onClick={handleContainerClick}
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
       >
         {/* Editor mode */}
         {viewMode === 'editor' && (
@@ -560,7 +557,7 @@ export default function FormBuilder() {
             />
           </div>
         )}
-      </main>
+      </DotPattern>
 
       {/* Modals */}
       <TemplateLinkModal
