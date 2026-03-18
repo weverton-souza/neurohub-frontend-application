@@ -21,6 +21,7 @@ import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
 import StatusSelector from '@/components/editor/StatusSelector'
 import { HistoryIcon, SaveIcon } from '@/components/icons'
+import DotPattern from '@/components/ui/DotPattern'
 
 export default function ReportEditor() {
   const { id } = useParams<{ id: string }>()
@@ -360,13 +361,7 @@ export default function ReportEditor() {
   }
 
   return (
-    <div
-      className="min-h-[calc(100vh)] bg-gray-100 flex flex-col"
-      style={{
-        backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)',
-        backgroundSize: '22px 22px',
-      }}
-    >
+    <DotPattern className="min-h-[calc(100vh)] flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30 h-14 lg:h-16">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-full flex items-center gap-2 sm:gap-4">
@@ -669,6 +664,6 @@ export default function ReportEditor() {
         onRestore={handleRestoreVersion}
       />
 
-    </div>
+    </DotPattern>
   )
 }

@@ -94,9 +94,9 @@ export interface CustomerNote {
 
 // ========== Customer Timeline ==========
 
-export type CustomerEventType = 'consulta' | 'retorno' | 'avaliacao' | 'laudo' | 'observacao'
+export type CustomerEventType = string
 
-export const CUSTOMER_EVENT_TYPE_LABELS: Record<CustomerEventType, string> = {
+export const CUSTOMER_EVENT_TYPE_LABELS: Record<string, string> = {
   consulta: 'Consulta',
   retorno: 'Retorno',
   avaliacao: 'Avaliação',
@@ -104,12 +104,89 @@ export const CUSTOMER_EVENT_TYPE_LABELS: Record<CustomerEventType, string> = {
   observacao: 'Observação',
 }
 
-export const CUSTOMER_EVENT_TYPE_COLORS: Record<CustomerEventType, string> = {
+export const CUSTOMER_EVENT_TYPE_COLORS: Record<string, string> = {
   consulta: 'bg-blue-500',
   retorno: 'bg-emerald-500',
   avaliacao: 'bg-purple-500',
   laudo: 'bg-amber-500',
   observacao: 'bg-gray-400',
+  // Tipos adicionais por vertical
+  vistoria: 'bg-blue-500',
+  medicao: 'bg-emerald-500',
+  ocorrencia: 'bg-red-500',
+  relatorio_tecnico: 'bg-purple-500',
+  audiencia: 'bg-blue-500',
+  peticao: 'bg-emerald-500',
+  despacho: 'bg-purple-500',
+  parecer: 'bg-amber-500',
+  atendimento: 'bg-blue-500',
+  reuniao: 'bg-purple-500',
+  encaminhamento: 'bg-amber-500',
+  nota: 'bg-gray-300',
+}
+
+// ========== Vertical Record Config ==========
+
+export interface VerticalEventTypeOption {
+  value: string
+  label: string
+}
+
+export interface VerticalRecordConfig {
+  tabName: string
+  eventTypes: VerticalEventTypeOption[]
+}
+
+const HEALTH_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'consulta', label: 'Consulta' },
+  { value: 'retorno', label: 'Retorno' },
+  { value: 'avaliacao', label: 'Avaliação' },
+  { value: 'laudo', label: 'Laudo' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const ENGINEERING_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'vistoria', label: 'Vistoria' },
+  { value: 'medicao', label: 'Medição' },
+  { value: 'ocorrencia', label: 'Ocorrência' },
+  { value: 'relatorio_tecnico', label: 'Relatório Técnico' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const LEGAL_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'audiencia', label: 'Audiência' },
+  { value: 'peticao', label: 'Petição' },
+  { value: 'despacho', label: 'Despacho' },
+  { value: 'parecer', label: 'Parecer' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const EDUCATION_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'atendimento', label: 'Atendimento' },
+  { value: 'avaliacao', label: 'Avaliação' },
+  { value: 'reuniao', label: 'Reunião' },
+  { value: 'encaminhamento', label: 'Encaminhamento' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const GENERAL_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'atendimento', label: 'Atendimento' },
+  { value: 'retorno', label: 'Retorno' },
+  { value: 'avaliacao', label: 'Avaliação' },
+  { value: 'relatorio_tecnico', label: 'Relatório Técnico' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+export const VERTICAL_RECORD_CONFIG: Record<string, VerticalRecordConfig> = {
+  HEALTH: { tabName: 'Prontuário', eventTypes: HEALTH_EVENT_TYPES },
+  ENGINEERING: { tabName: 'Diário de Obra', eventTypes: ENGINEERING_EVENT_TYPES },
+  LEGAL: { tabName: 'Acompanhamento Processual', eventTypes: LEGAL_EVENT_TYPES },
+  EDUCATION: { tabName: 'Registro Pedagógico', eventTypes: EDUCATION_EVENT_TYPES },
+  GENERAL: { tabName: 'Registro de Atendimento', eventTypes: GENERAL_EVENT_TYPES },
+}
+
+export function getVerticalRecordConfig(vertical: string): VerticalRecordConfig {
+  return VERTICAL_RECORD_CONFIG[vertical] ?? VERTICAL_RECORD_CONFIG.GENERAL
 }
 
 export interface CustomerEvent {
@@ -119,6 +196,59 @@ export interface CustomerEvent {
   title: string
   description: string
   date: string       // ISO datetime — data/hora do evento
+  createdAt: string
+}
+
+// ========== Calendar Event Tags ==========
+
+export interface EventTag {
+  id: string
+  name: string
+  color: string
+  createdAt: string
+  updatedAt: string
+}
+
+// ========== Calendar Events (Google Calendar pattern) ==========
+
+export interface EventDateTime {
+  date?: string
+  dateTime?: string
+  timeZone?: string
+}
+
+export interface CalendarEvent {
+  id: string
+  summary: string
+  description?: string
+  location?: string
+  start: EventDateTime
+  end: EventDateTime
+  allDay: boolean
+  tagId?: string
+  tagName?: string
+  tagColor?: string
+  customerId?: string
+  customerName?: string
+  status: 'confirmed' | 'tentative' | 'cancelled'
+  recurrence?: string[]
+  reminders?: { useDefault: boolean; overrides?: { method: string; minutes: number }[] }
+  googleEventId?: string
+  iCalUID?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// ========== Customer Event (calendar global view — from prontuário) ==========
+
+export interface CustomerCalendarEvent {
+  id: string
+  customerId: string
+  customerName: string
+  type: CustomerEventType
+  title: string
+  description: string
+  date: string
   createdAt: string
 }
 

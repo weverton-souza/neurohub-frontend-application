@@ -4,6 +4,7 @@ import {
   DocumentIcon,
   UsersIcon,
   ClipboardListIcon,
+  CalendarIcon,
   BookIcon,
 } from '@/components/icons'
 import type { IconProps } from '@/components/icons'
@@ -35,6 +36,11 @@ const NAV_ITEMS: NavItemConfig[] = [
     label: 'Formulários',
     icon: ClipboardListIcon,
     matchPaths: ['/forms/'],
+  },
+  {
+    to: '/calendar',
+    label: 'Agenda',
+    icon: CalendarIcon,
   },
 ]
 

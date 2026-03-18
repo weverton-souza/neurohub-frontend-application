@@ -1,4 +1,4 @@
-import type { Customer, CustomerNote, CustomerEvent, Page } from '@/types'
+import type { Customer, CustomerNote, CustomerEvent, CustomerCalendarEvent, Page } from '@/types'
 import { api } from '@/lib/api/api-client'
 
 // ========== Customer CRUD ==========
@@ -70,6 +70,23 @@ export async function createCustomerEvent(
   return data
 }
 
+export async function updateCustomerEvent(
+  customerId: string,
+  eventId: string,
+  event: Omit<CustomerEvent, 'id' | 'createdAt'>,
+): Promise<CustomerEvent> {
+  const { data } = await api.put<CustomerEvent>(`/customers/${customerId}/events/${eventId}`, event)
+  return data
+}
+
 export async function deleteCustomerEvent(customerId: string, eventId: string): Promise<void> {
   await api.delete(`/customers/${customerId}/events/${eventId}`)
+}
+
+// ========== Calendar (all events) ==========
+
+export async function getAllCustomerEvents(from: string, to: string): Promise<CustomerCalendarEvent[]> {
+  const params = new URLSearchParams({ from, to })
+  const { data } = await api.get<CustomerCalendarEvent[]>(`/events?${params}`)
+  return data
 }
