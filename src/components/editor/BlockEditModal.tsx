@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import type {
   Block,
   BlockData,
@@ -9,7 +10,7 @@ import type {
   ChartData,
   ReferencesData,
   ClosingPageData,
-  Patient,
+  Customer,
 } from '@/types'
 import { BLOCK_TYPE_LABELS } from '@/types'
 import { BLOCK_TYPE_COLORS, getBlockTypeIcon } from '@/lib/block-constants'
@@ -21,13 +22,18 @@ import InfoBoxBlock from '@/components/blocks/InfoBoxBlock'
 import ChartBlock from '@/components/blocks/ChartBlock'
 import ReferencesBlock from '@/components/blocks/ReferencesBlock'
 import ClosingPageBlock from '@/components/blocks/ClosingPageBlock'
+import AiGenerateButton from '@/components/ai/AiGenerateButton'
+import AiRegenerateBar from '@/components/ai/AiRegenerateBar'
+import AiLoadingOverlay from '@/components/ai/AiLoadingOverlay'
+import { useAiGeneration } from '@/lib/hooks/use-ai-generation'
 
 interface BlockEditModalProps {
   block: Block | null
   onClose: () => void
   onChange: (blockId: string, data: BlockData) => void
-  patients?: Patient[]
-  onPatientSelected?: (patientId: string) => void
+  customers?: Customer[]
+  onCustomerSelected?: (customerId: string) => void
+  reportId?: string
 }
 
 const MODAL_SIZES: Record<BlockType, 'sm' | 'md' | 'lg' | 'xl' | '2xl'> = {
@@ -74,11 +80,53 @@ function getModalTitle(block: Block): string {
   }
 }
 
-export default function BlockEditModal({ block, onClose, onChange, patients, onPatientSelected }: BlockEditModalProps) {
-  if (!block) return null
+export default function BlockEditModal({ block, onClose, onChange, customers, onCustomerSelected, reportId }: BlockEditModalProps) {
+  const [localData, setLocalData] = useState<BlockData | null>(null)
+  const ai = useAiGeneration()
 
-  const handleChange = (data: BlockData) => {
-    onChange(block.id, data)
+  const isAiEligible = block?.type === 'text' || block?.type === 'info-box'
+
+  useEffect(() => {
+    if (block) {
+      setLocalData(structuredClone(block.data))
+      ai.reset()
+    } else {
+      setLocalData(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [block])
+
+  const handleAiGenerate = async () => {
+    if (!block || !reportId || !localData) return
+    const sectionType = block.type === 'text'
+      ? (localData as TextBlockData).title || block.type
+      : block.type === 'info-box'
+        ? (localData as InfoBoxData).label || block.type
+        : block.type
+
+    const result = await ai.generate(reportId, sectionType)
+    if (result?.text) {
+      if (block.type === 'text') {
+        setLocalData({ ...localData as TextBlockData, content: result.text })
+      } else if (block.type === 'info-box') {
+        setLocalData({ ...localData as InfoBoxData, content: result.text })
+      }
+    }
+  }
+
+  if (!block || !localData) return null
+
+  const handleLocalChange = (data: BlockData) => {
+    setLocalData(data)
+  }
+
+  const handleSave = () => {
+    onChange(block.id, localData)
+    onClose()
+  }
+
+  const handleCancel = () => {
+    onClose()
   }
 
   const renderContent = () => {
@@ -86,69 +134,115 @@ export default function BlockEditModal({ block, onClose, onChange, patients, onP
       case 'identification':
         return (
           <IdentificationBlock
-            data={block.data as IdentificationData}
-            onChange={handleChange}
-            patients={patients}
-            onPatientSelected={onPatientSelected}
+            data={localData as IdentificationData}
+            onChange={handleLocalChange}
+            customers={customers}
+            onCustomerSelected={onCustomerSelected}
           />
         )
       case 'text':
         return (
           <TextBlockModal
-            data={block.data as TextBlockData}
-            onChange={handleChange}
+            data={localData as TextBlockData}
+            onChange={handleLocalChange}
           />
         )
       case 'score-table':
         return (
           <ScoreTableBlock
-            data={block.data as ScoreTableData}
-            onChange={handleChange}
+            data={localData as ScoreTableData}
+            onChange={handleLocalChange}
           />
         )
       case 'info-box':
         return (
           <InfoBoxBlock
-            data={block.data as InfoBoxData}
-            onChange={handleChange}
+            data={localData as InfoBoxData}
+            onChange={handleLocalChange}
           />
         )
       case 'chart':
         return (
           <ChartBlock
-            data={block.data as ChartData}
-            onChange={handleChange}
+            data={localData as ChartData}
+            onChange={handleLocalChange}
           />
         )
       case 'references':
         return (
           <ReferencesBlock
-            data={block.data as ReferencesData}
-            onChange={handleChange}
+            data={localData as ReferencesData}
+            onChange={handleLocalChange}
           />
         )
       case 'closing-page':
         return (
           <ClosingPageBlock
-            data={block.data as ClosingPageData}
-            onChange={handleChange}
+            data={localData as ClosingPageData}
+            onChange={handleLocalChange}
           />
         )
     }
   }
 
+  const footer = (
+    <div className="flex justify-end gap-3">
+      <button
+        onClick={handleCancel}
+        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={handleSave}
+        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Salvar
+      </button>
+    </div>
+  )
+
   return (
     <Modal
       isOpen={true}
-      onClose={onClose}
+      onClose={handleCancel}
       title={getModalTitle(block)}
       size={MODAL_SIZES[block.type]}
       accent={{
         colorClass: BLOCK_TYPE_COLORS[block.type],
         icon: getBlockTypeIcon(block.type, 18),
       }}
+      footer={footer}
     >
-      {renderContent()}
+      <div className="relative">
+        {/* AI controls */}
+        {isAiEligible && reportId && (
+          <div className="px-4 pt-3 space-y-2">
+            {block.generatedByAi ? (
+              <AiRegenerateBar
+                onRegenerate={handleAiGenerate}
+                regenerationsUsed={0}
+                maxRegenerations={3}
+                loading={ai.status === 'loading'}
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <AiGenerateButton
+                  onClick={handleAiGenerate}
+                  loading={ai.status === 'loading'}
+                  disabled={ai.status === 'loading'}
+                />
+                {ai.status === 'error' && ai.error && (
+                  <span className="text-xs text-red-500">{ai.error}</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <AiLoadingOverlay visible={ai.status === 'loading'} />
+        {renderContent()}
+      </div>
     </Modal>
   )
 }

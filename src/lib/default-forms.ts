@@ -1,5 +1,5 @@
 import {
-  AnamnesisForm,
+  Form,
   FormField,
   FormFieldOption,
   createEmptyFormField,
@@ -31,7 +31,7 @@ function sectionHeader(order: number, label: string): FormField {
 
 // ========== Anamnese Adulto ==========
 
-const FORM_ADULTO: AnamnesisForm = {
+const FORM_ADULTO: Form = {
   id: 'default-anamnese-adulto',
   title: 'Anamnese — Adulto',
   description: 'Formulário padrão de anamnese para avaliação de adultos.',
@@ -39,6 +39,7 @@ const FORM_ADULTO: AnamnesisForm = {
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-adulto',
   fieldMappings: [],
+  currentVersion: 1,
   fields: [
     // Dados pessoais
     sectionHeader(0, 'Dados Pessoais'),
@@ -122,7 +123,7 @@ const FORM_ADULTO: AnamnesisForm = {
 
 // ========== Anamnese Infantil ==========
 
-const FORM_INFANTIL: AnamnesisForm = {
+const FORM_INFANTIL: Form = {
   id: 'default-anamnese-infantil',
   title: 'Anamnese — Infantil',
   description: 'Formulário de anamnese para avaliação de crianças e adolescentes. Preenchido pelo responsável.',
@@ -130,6 +131,7 @@ const FORM_INFANTIL: AnamnesisForm = {
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-adulto',
   fieldMappings: [],
+  currentVersion: 1,
   fields: [
     // Dados da criança
     sectionHeader(0, 'Dados da Criança'),
@@ -196,7 +198,7 @@ const FORM_INFANTIL: AnamnesisForm = {
 
 // ========== Anamnese Breve ==========
 
-const FORM_BREVE: AnamnesisForm = {
+const FORM_BREVE: Form = {
   id: 'default-anamnese-breve',
   title: 'Anamnese Breve',
   description: 'Formulário resumido de anamnese para triagem rápida.',
@@ -204,6 +206,7 @@ const FORM_BREVE: AnamnesisForm = {
   updatedAt: new Date().toISOString(),
   linkedTemplateId: 'default-breve',
   fieldMappings: [],
+  currentVersion: 1,
   fields: [
     field(0, 'short-text', 'Nome completo', { required: true }),
     field(1, 'date', 'Data de nascimento', { required: true }),
@@ -225,7 +228,7 @@ const FORM_BREVE: AnamnesisForm = {
 
 // ========== Exports ==========
 
-export const DEFAULT_FORMS: AnamnesisForm[] = [
+export const DEFAULT_FORMS: Form[] = [
   FORM_ADULTO,
   FORM_INFANTIL,
   FORM_BREVE,

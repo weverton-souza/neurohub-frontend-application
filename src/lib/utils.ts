@@ -18,15 +18,15 @@ import {
   createEmptyReferencesData,
   createEmptyClosingPageData,
 } from '@/types'
-import { getProfessional } from '@/lib/storage'
+import type { Professional } from '@/types'
 
-export function createBlock(type: BlockType, order: number): Block {
+export function createBlock(type: BlockType, order: number, professional?: Professional): Block {
   const id = crypto.randomUUID()
   let data
 
   switch (type) {
     case 'identification':
-      data = createEmptyIdentificationData(getProfessional())
+      data = createEmptyIdentificationData(professional ?? { name: '', crp: '', specialization: '' })
       break
     case 'text':
       data = createEmptyTextBlockData()
@@ -252,4 +252,36 @@ export function paginate<T>(items: T[], page: number, size: number): Page<T> {
     last: safePage >= totalPages - 1,
     empty: content.length === 0,
   }
+}
+
+export function calculateAge(birthDateStr: string, short = false): string {
+  if (!birthDateStr) return ''
+  const birth = new Date(birthDateStr + 'T00:00:00')
+  if (isNaN(birth.getTime())) return ''
+
+  const today = new Date()
+  let years = today.getFullYear() - birth.getFullYear()
+  let months = today.getMonth() - birth.getMonth()
+  let days = today.getDate() - birth.getDate()
+
+  if (days < 0) {
+    months--
+    const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+    days += prevMonth.getDate()
+  }
+  if (months < 0) {
+    years--
+    months += 12
+  }
+
+  if (short) {
+    return `${years} ${years === 1 ? 'ano' : 'anos'}`
+  }
+
+  const parts: string[] = []
+  if (years > 0) parts.push(`${years} ${years === 1 ? 'ano' : 'anos'}`)
+  if (months > 0) parts.push(`${months} ${months === 1 ? 'mês' : 'meses'}`)
+  if (days > 0 || parts.length === 0) parts.push(`${days} ${days === 1 ? 'dia' : 'dias'}`)
+
+  return parts.join(', ')
 }

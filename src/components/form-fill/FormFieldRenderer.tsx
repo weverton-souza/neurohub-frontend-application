@@ -4,10 +4,12 @@ interface FormFieldRendererProps {
   field: FormField
   answer: FormFieldAnswer
   onChange: (answer: FormFieldAnswer) => void
+  disabled?: boolean
 }
 
-export default function FormFieldRenderer({ field, answer, onChange }: FormFieldRendererProps) {
+export default function FormFieldRenderer({ field, answer, onChange, disabled }: FormFieldRendererProps) {
   const update = (patch: Partial<FormFieldAnswer>) => {
+    if (disabled) return
     onChange({ ...answer, ...patch })
   }
 
@@ -19,7 +21,8 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
           value={answer.value}
           onChange={(e) => update({ value: e.target.value })}
           placeholder={field.placeholder || 'Sua resposta'}
-          className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors"
+          disabled={disabled}
+          className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         />
       )
 
@@ -30,7 +33,8 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
           onChange={(e) => update({ value: e.target.value })}
           placeholder={field.placeholder || 'Sua resposta'}
           rows={3}
-          className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors resize-none"
+          disabled={disabled}
+          className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors resize-none disabled:opacity-60 disabled:cursor-not-allowed"
         />
       )
 
@@ -42,10 +46,12 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
             return (
               <label
                 key={opt.id}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                  disabled ? 'cursor-default' : 'cursor-pointer'
+                } ${
                   isSelected
                     ? 'bg-brand-50'
-                    : 'hover:bg-gray-50'
+                    : disabled ? '' : 'hover:bg-gray-50'
                 }`}
               >
                 <span className={`w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
@@ -58,6 +64,7 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
                   name={`field-${field.id}`}
                   checked={isSelected}
                   onChange={() => update({ selectedOptionIds: [opt.id] })}
+                  disabled={disabled}
                   className="sr-only"
                 />
                 <span className="text-sm text-gray-700">{opt.label || 'Opção'}</span>
@@ -75,10 +82,12 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
             return (
               <label
                 key={opt.id}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                  disabled ? 'cursor-default' : 'cursor-pointer'
+                } ${
                   isChecked
                     ? 'bg-brand-50'
-                    : 'hover:bg-gray-50'
+                    : disabled ? '' : 'hover:bg-gray-50'
                 }`}
               >
                 <span className={`w-[18px] h-[18px] rounded flex items-center justify-center shrink-0 border-2 transition-colors ${
@@ -99,6 +108,7 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
                       : [...answer.selectedOptionIds, opt.id]
                     update({ selectedOptionIds: ids })
                   }}
+                  disabled={disabled}
                   className="sr-only"
                 />
                 <span className="text-sm text-gray-700">{opt.label || 'Opção'}</span>
@@ -124,10 +134,11 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
                 key={val}
                 type="button"
                 onClick={() => update({ scaleValue: val })}
+                disabled={disabled}
                 className={`w-10 h-10 rounded-full text-sm font-medium transition-all ${
                   answer.scaleValue === val
                     ? 'bg-brand-500 text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-brand-50 hover:text-brand-600'
+                    : disabled ? 'text-gray-400' : 'text-gray-500 hover:bg-brand-50 hover:text-brand-600'
                 }`}
               >
                 {val}
@@ -147,10 +158,11 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
           <button
             type="button"
             onClick={() => update({ value: 'sim' })}
+            disabled={disabled}
             className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
               answer.value === 'sim'
                 ? 'bg-brand-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-brand-50 hover:text-brand-600'
+                : disabled ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-600 hover:bg-brand-50 hover:text-brand-600'
             }`}
           >
             Sim
@@ -158,10 +170,11 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
           <button
             type="button"
             onClick={() => update({ value: 'não' })}
+            disabled={disabled}
             className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
               answer.value === 'não'
                 ? 'bg-brand-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-brand-50 hover:text-brand-600'
+                : disabled ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-600 hover:bg-brand-50 hover:text-brand-600'
             }`}
           >
             Não
@@ -175,7 +188,8 @@ export default function FormFieldRenderer({ field, answer, onChange }: FormField
           type="date"
           value={answer.value}
           onChange={(e) => update({ value: e.target.value })}
-          className="border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors"
+          disabled={disabled}
+          className="border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         />
       )
 

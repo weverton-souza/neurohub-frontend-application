@@ -1,4 +1,4 @@
-# CLAUDE.md — Regras do Projeto NeuroHub Frontend
+# CLAUDE.md — Regras do Projeto Dox Frontend
 
 ## Idioma
 
@@ -15,105 +15,44 @@
 - Plate.js (platejs) para rich text WYSIWYG (bold, itálico, sublinhado, riscado, listas, alinhamento)
 - `docx` 9 para geração de .docx in-browser
 
-## Features do Projeto
+## Planos do Projeto
 
-### Laudos (Relatórios Neuropsicológicos)
-- Editor de blocos com drag-and-drop (dnd-kit) e auto-save para localStorage
-- 7 tipos de bloco: identification, text, score-table, info-box, chart, references, closing-page
-- Sistema de seções derivado dos blocos (não armazenado) com collapse/expand
-- Sidebar com árvore de navegação (OutlineTree) e IntersectionObserver para destaque ativo
-- Criação a partir de templates (2 padrões: Adulto e Breve) ou do zero
-- Versionamento com snapshots manuais e automáticos (máx. 20 por laudo)
-- Status com transições: rascunho → em_revisão → finalizado
-- Exportação .docx in-browser com header profissional, logo, rodapé com ícones sociais e paginação
-- Gráficos Chart.js (bar/line) com modos grouped/separated, linhas e regiões de referência, exportados como PNG no .docx
-- Templates de gráfico pré-configurados (10 padrões): WAIS-III Subtestes, WAIS-III Índices, RAVLT Curva, FDT, BDI-II, BAI, SRS-2, ToL-BR, Perfil Cognitivo, TMT
-- Seleção de template ao criar gráfico via BlockSelector (flow em 2 steps)
-- Salvar gráfico como template customizado com nome, instrumento e categoria
-- Rich text WYSIWYG (Plate.js) com bold, itálico, sublinhado, riscado, listas (bullet/numerada), alinhamento (L/C/R/J) nos blocos de texto
-- Conteúdo armazenado em Slate JSON (array de nós), com backward compat para HTML legado (auto-conversão no load)
-- Itens rotulados (key-value) nos blocos de texto
-- Tabelas dinâmicas com colunas nomeadas pelo usuário (score-table)
-- Engine de fórmulas v2: classificação por faixa, operações matemáticas (soma, subtração, média), agregações por coluna e linha
-- Fórmulas digitáveis nas células (prefixo `=`) com autocomplete de funções, auto-uppercase, e barra de fórmulas
-- Referências de célula (A1, B23) e ranges de coluna (A:A) — referências standalone de coluna (A, B) não aceitas
-- Cores em fórmulas via sintaxe `@#RRGGBB` — color picker visual com presets, input hex, e slider de intensidade com marcadores (10-90)
-- Aplicação em lote de intensidade (lightness) a todas as cores da tabela, mantendo hue de cada uma
-- Replicação de fórmulas: ao confirmar com Enter, popup oferece replicar para mesma linha ou coluna com ajuste automático de referências (como Excel)
-- Detecção de conflitos: ao replicar sobre células que já possuem fórmula, popup pergunta se quer sobrepor ou manter existentes
-- Alinhamento por coluna (esquerda/centro/direita) com toggle no header — headers sempre centralizados
-- Salvar tabela como template customizado com nome, instrumento e categoria
-- Templates de tabela de escores com fórmulas embutidas: WAIS-III, RAVLT, FDT, BDI-II, BAI, SRS-2, ToL-BR
-- FormulaEditor visual para configurar fórmulas por coluna ou célula (sem digitação de expressões)
-- Seleção de template ao criar tabela de escores via BlockSelector (flow em 2 steps)
-- Valores calculados automaticamente no editor e no export .docx
-- `adjustFormulaRefs()` em formula-parser.ts: ajusta referências de célula ao replicar (deltaCol/deltaRow)
-- `remapFormulaRefs()` em formula-parser.ts: remapeia referências ao reordenar linhas/colunas (permutação)
-- Cell ranges nas fórmulas: sintaxe `A1:A4` e `A1:B3` para intervalos de células (single e multi-coluna)
-- Funções SOMA, MEDIA, MIN, MAX, CONT aceitam ranges como argumento (ex: `=SOMA(A1:A4;B1:B4)`)
-- Reordenar linhas com drag-and-drop (grip handle no número da linha)
-- Reordenar colunas com drag-and-drop (grip handle no header da coluna)
-- Fórmulas com referências posicionais (A1, B2, A1:A4, A:A) são remapeadas automaticamente ao reordenar
-- Página de encerramento com assinaturas configuráveis (profissional, paciente, mãe, pai, responsável)
+> Features implementadas e próximas features estão centralizados em `plans/frontend-plan.md` na raiz do environment.
 
-### Pacientes
-- Cadastro completo: dados pessoais, contato, dados clínicos
-- Busca por nome ou CPF com paginação
-- Perfil com 6 abas: Dados Pessoais, Contato, Dados Clínicos, Laudos, Notas, Histórico
-- Notas clínicas com timestamp
-- Timeline de eventos (consulta, retorno, avaliação, laudo, observação) agrupados por mês/ano
-- Vínculo com laudos via patientId — criar laudo a partir do paciente pré-preenche o bloco de identificação
-- Dados do paciente são copiados para o laudo (não vinculados — edição no laudo não altera o cadastro)
+## Nomenclatura Frontend ↔ Backend
 
-### Formulários de Anamnese
-- Construtor de formulários com 8 tipos de campo: short-text, long-text, single-choice, multiple-choice, scale, yes-no, date, section-header
-- 3 formulários padrão: Adulto (32 campos), Infantil (29 campos), Breve (7 campos)
-- Drag-and-drop para reordenação de campos
-- Preview do formulário como o usuário final vê
-- Mapeamento de campos para seções de template de laudo (FieldMappingEditor)
-- Vínculo com template de laudo (TemplateLinkModal)
-- Duplicação de formulários
-
-### Preenchimento de Formulários
-- Interface de preenchimento com renderização por tipo de campo (FormFieldRenderer)
-- Validação de campos obrigatórios
-- Auto-save com debounce
-- Status: em_andamento → concluído
-- Suporte a pré-preenchimento via paciente
-
-### Geração de Laudo a partir de Respostas
-- Pipeline de geração via IA: buildPrompt → generateLaudoFromResponse → parseAIResponse
-- Sistema de variáveis com sintaxe {{chave}} resolvidas de dados do paciente e respostas do formulário
-- Mapeamento campo→seção com hints para a IA
-- Resolução de variáveis (variable-service) em blocos text e info-box
-
-### Configurações Profissionais
-- Modal para nome, CRP, especialização, logo (base64)
-- Itens de contato configuráveis (Instagram, LinkedIn, Facebook, website, telefone, email)
-- Dados usados no header do .docx e no bloco de identificação
-
-### Persistência (localStorage)
-- Chaves: neurohub_laudos, neurohub_patients, neurohub_patient_notes, neurohub_patient_events, neurohub_professional, neurohub_templates, neurohub_forms, neurohub_form_responses, neurohub_versions_{laudoId}, neurohub_score_table_templates, neurohub_chart_templates
-- CRUD genérico via storage-utils.ts (readFromStorage, writeToStorage, upsertInStorage, deleteFromStorage)
-- Sem backend — tudo local
+| Frontend | Backend | Nota |
+|----------|---------|------|
+| Customer | Customer | `data` field é JSONB no backend |
+| Report | Report | `customerName`, `customerId` |
+| Form | Form | Estrutura similar |
+| FormResponse | FormResponse | `customerId`, `customerName`, `generatedReportId` |
+| ReportTemplate | ReportTemplate | - |
+| ReportVersion | ReportVersion | `reportId`, `customerName` |
+| Professional | ProfessionalSettings | Campos top-level (não nested) |
 
 ## Próximas Features (roadmap até abril/2026)
 
-### Migração para Backend
-- Substituir localStorage por Supabase ou Node — autenticação, persistência remota, sync
+### Formulários Públicos (Link de Resposta para Clientes)
+- Página pública acessada via URL pré-gerada pelo backend (sem autenticação)
+- Rota pública `/forms/{token}` com layout limpo (sem sidebar/auth)
+- Profissional gera link com validade configurável, vinculado a um Form + Customer
+- Renderiza campos do formulário, valida respostas, envia e exibe confirmação
+- Expiração automática: link inválido após tempo limite ou após envio
+- API: `GET /public/forms/{token}` (carrega form) e `POST /public/forms/{token}/submit` (envia respostas)
 
 ### Templates Locked/Unlocked
 - Modo template (locked): estrutura fixa, profissional só preenche dados
 - Modo livre (unlocked): edição completa como hoje
 
 ### Preview e Download em PDF
-- Preview do laudo: conversão .docx → PDF via LibreOffice headless no backend
+- Preview do relatório: conversão .docx → PDF via LibreOffice headless no backend
 - Download em PDF além do .docx atual
 
-### Acompanhamento do Paciente
-- Perguntas configuráveis por paciente (profissional define quais perguntas acompanhar)
-- Tela PWA/webview para o paciente: formulário diário com layout limpo
-- Rota separada para o paciente (`/p/:id`) com layout sem sidebar/menu do profissional
+### Acompanhamento do Cliente
+- Perguntas configuráveis por cliente (profissional define quais perguntas acompanhar)
+- Tela PWA/webview para o cliente: formulário diário com layout limpo
+- Rota separada para o cliente (`/p/:id`) com layout sem sidebar/menu do profissional
 - Painel da profissional: timeline de respostas + gráficos de evolução
 - Resumo por IA: chamada à API Claude para sintetizar dados de acompanhamento
 
@@ -122,6 +61,9 @@
 
 ### Polish Geral
 - Ajustes visuais e de UX para demo na convenção
+- Login: layout centralizado com card glassmorphism (esquerda) + slogan (direita), background SVG com dot pattern radial
+- Dot pattern sutil (radial-gradient) no background do ReportEditor e FormBuilder (opacity 0.065)
+- DocxPreviewPanel com backgrounds transparentes para exibir dots por trás
 
 ## Organização de Arquivos
 
@@ -129,16 +71,14 @@
 src/
   types/index.ts           → todas as interfaces, tipos, constantes e factory functions
   lib/                     → lógica de negócio, utilitários, serviços
-  lib/storage-utils.ts     → utilitários genéricos de localStorage
-  lib/storage.ts           → CRUD de laudos, pacientes, templates
+  lib/api/                 → API services (api-client, auth-service, error-handler, *-api.ts)
   lib/block-constants.tsx  → labels, cores, ícones e getBlockTitle()
-  lib/laudo-utils.ts       → criação de laudos (createEmptyLaudo, createLaudoFromPatient)
-  lib/generic-template-service.ts → factory genérico para serviços de template (score-table, chart)
+  lib/report-utils.ts      → criação de relatórios (createEmptyReport, createReportFromCustomer)
   lib/hooks/               → custom hooks reutilizáveis (useAutoSave, useConfirmDelete, usePagination, useClickOutside)
   components/blocks/       → um componente por tipo de bloco
   components/editor/       → componentes do editor (BlockList, BlockSelector, OutlineTree)
   components/ui/           → componentes reutilizáveis (Button, Input, Modal, Select)
-  components/layout/       → AppLayout, Sidebar, PageHeader
+  components/layout/       → AppLayout, Sidebar, GlobalTopBar, PageHeader
   components/form-builder/ → componentes do construtor de formulários
   components/form-fill/    → componentes de preenchimento de formulários
   routes/                  → páginas (uma por rota)
@@ -159,10 +99,10 @@ src/
 - Nunca duplicar lógica — se uma função existe em `lib/`, importar de lá
 - `getBlockTitle()` fica em `block-constants.tsx` — nunca recriar localmente
 - `resolveAnswerDisplay()` fica em `variable-service.ts` — fonte única para exibição de respostas
-- localStorage: usar `readFromStorage`, `writeToStorage`, `upsertInStorage`, `deleteFromStorage` de `storage-utils.ts`
-- Criação de laudos: usar `createEmptyLaudo()` e `createLaudoFromPatient()` de `laudo-utils.ts`
+- API calls: usar os serviços em `lib/api/*-api.ts` — nunca chamar axios diretamente
+- Criação de relatórios: usar `createEmptyReport()` e `createReportFromCustomer()` de `report-utils.ts` (async)
 - Custom hooks reutilizáveis em `lib/hooks/`: `useAutoSave`, `useConfirmDelete`, `usePagination`, `useClickOutside`
-- Template services: usar `createTemplateService()` de `generic-template-service.ts` para novos serviços de template
+- Error handling: usar `useError()` de `ErrorContext` — nunca `alert()` para erros de API
 
 ### Componentes React
 - Componentes funcionais com export default
@@ -172,15 +112,22 @@ src/
 
 ### Estilo
 - Tailwind v3 utility classes (nunca CSS inline ou modules)
-- Cores da marca: `brand-*` (configurado no tailwind.config)
-- Cores do docx: DARK_BLUE `#1B4F72`, MEDIUM_BLUE `#2E86C1`, LIGHT_BLUE `#D6EAF8`
+- Design tokens centralizados em `src/styles/design-tokens.css` (CSS custom properties)
+- Cores da marca (azul Apple): `brand-*` via `--color-blue-*` (ex: brand-500 = `#007AFF`)
+- Cinzas quentes Apple: `gray-*` via `--color-gray-*` (ex: gray-100 = `#F5F5F7`)
+- Aliases semânticos: `surface`, `surface-card`, `surface-hover`
+- Sombras customizadas: `shadow-xs`, `shadow-card`, `shadow-dropdown`, `shadow-modal`
+- Cores do docx: DARK_BLUE `#163A5F`, MEDIUM_BLUE `#1E5F8C`, LIGHT_BLUE `#D6E8F5`
+- Cores de status: success `#34C759`, warning `#FF9500`, danger `#FF3B30`
+- Font stack: Inter → -apple-system → Segoe UI → system-ui
 
 ## Antes de Commitar
 
 1. Rodar `npx tsc --noEmit` — zero erros obrigatório
 2. Rodar `npx vite build` — build deve passar
 3. Nunca commitar `tsconfig.tsbuildinfo`, `.env`, ou `node_modules`
-4. Atualizar o CLAUDE.md: adicionar novas features implementadas em `## Features do Projeto` e remover da `## Próximas Features` o que já foi concluído
+4. Atualizar `plans/frontend-plan.md`: adicionar novas features implementadas e remover da `## Próximas Features` o que já foi concluído
+5. Se novos arquivos foram criados, atualizar `plans/frontend-architecture.md` com os novos arquivos na árvore
 
 ## Padrões de Commit
 
@@ -194,8 +141,17 @@ chore: descrição curta em português
 - Mensagem descritiva no corpo quando necessário
 - Branch naming: `feat/nome-curto`, `fix/nome-curto`, `refactor/nome-curto`
 
+## Fluxo Git
+
+- **Nunca usar git worktree** — editar sempre no repo principal
+- Antes de começar: `git pull origin main`
+- Criar branch local: `git checkout -b feat/nome-curto`
+- Trabalhar, commitar, push, PR, merge
+- O dev server roda no repo principal — worktrees causam descompasso entre código editado e código servido
+
 ## Coisas para Nunca Fazer
 
+- Nunca usar git worktree
 - Nunca usar `react-chartjs-2`
 - Nunca registrar plugins do Chart.js globalmente no ChartBlock (usar array `plugins` inline)
 - Nunca esquecer `columnWidths` ao criar `new Table()` no docx

@@ -11,6 +11,7 @@ interface ModalProps {
   onClose: () => void
   title?: string
   children: React.ReactNode
+  footer?: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   accent?: ModalAccent
 }
@@ -27,7 +28,7 @@ const defaultWidths: Record<string, number> = {
 const MIN_WIDTH = 360
 const MIN_HEIGHT = 300
 
-const Modal = ({ isOpen, onClose, title, children, size = 'md', accent }: ModalProps) => {
+const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', accent }: ModalProps) => {
   const panelRef = useRef<HTMLDivElement>(null)
   const [customSize, setCustomSize] = useState<{ w: number; h: number } | null>(null)
   const dragging = useRef(false)
@@ -115,7 +116,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md', accent }: ModalP
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -127,7 +128,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md', accent }: ModalP
       >
         {/* Header */}
         {title ? (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               {accent && (
                 <div className={`p-1.5 rounded-lg shrink-0 ${accent.colorClass}`}>
@@ -141,13 +142,18 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md', accent }: ModalP
             </div>
           </div>
         ) : (
-          <div className="flex justify-end px-6 pt-4 shrink-0">
+          <div className="flex justify-end px-4 sm:px-6 pt-3 sm:pt-4 shrink-0">
             {closeButton}
           </div>
         )}
 
         {/* Scrollable content */}
-        <div className="px-6 py-4 overflow-y-auto flex-1">{children}</div>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 overflow-y-auto flex-1">{children}</div>
+
+        {/* Footer */}
+        {footer && (
+          <div className="px-4 sm:px-6 py-3 border-t border-gray-200 shrink-0">{footer}</div>
+        )}
 
         {/* Resize handle — bottom-right corner */}
         <div

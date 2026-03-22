@@ -1,36 +1,38 @@
 import { useCallback, useState } from 'react'
-import { Laudo, LaudoVersion, LAUDO_STATUS_LABELS } from '@/types'
-import { getVersionHistory, saveVersion } from '@/lib/version-storage'
+import type { Report, ReportVersion } from '@/types'
+import { REPORT_STATUS_LABELS } from '@/types'
+import { getReportVersions, createReportVersion } from '@/lib/api/report-api'
 
-export function useVersioning(laudo: Laudo | null) {
-  const [versions, setVersions] = useState<LaudoVersion[]>([])
+export function useVersioning(report: Report | null) {
+  const [versions, setVersions] = useState<ReportVersion[]>([])
 
-  const refreshVersions = useCallback(() => {
-    if (!laudo) return
-    setVersions(getVersionHistory(laudo.id))
-  }, [laudo])
+  const refreshVersions = useCallback(async () => {
+    if (!report) return
+    try {
+      const v = await getReportVersions(report.id)
+      setVersions(v)
+    } catch {
+      // ignore
+    }
+  }, [report])
 
   const createSnapshot = useCallback(
-    (description: string) => {
-      if (!laudo) return
-      const version: LaudoVersion = {
-        id: crypto.randomUUID(),
-        laudoId: laudo.id,
-        createdAt: new Date().toISOString(),
-        status: laudo.status,
-        description,
-        patientName: laudo.patientName,
-        blocks: JSON.parse(JSON.stringify(laudo.blocks)),
+    async (description: string) => {
+      if (!report) return
+      try {
+        await createReportVersion(report.id, { description })
+        const v = await getReportVersions(report.id)
+        setVersions(v)
+      } catch {
+        // ignore
       }
-      saveVersion(version)
-      setVersions(getVersionHistory(laudo.id))
     },
-    [laudo]
+    [report]
   )
 
   const createStatusChangeSnapshot = useCallback(
     (fromStatus: string) => {
-      createSnapshot(`Status alterado de ${LAUDO_STATUS_LABELS[fromStatus as keyof typeof LAUDO_STATUS_LABELS] ?? fromStatus}`)
+      createSnapshot(`Status alterado de ${REPORT_STATUS_LABELS[fromStatus as keyof typeof REPORT_STATUS_LABELS] ?? fromStatus}`)
     },
     [createSnapshot]
   )

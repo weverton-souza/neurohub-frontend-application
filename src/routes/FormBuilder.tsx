@@ -15,17 +15,16 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import type {
-  AnamnesisForm,
+  Form,
   FormField,
   FormFieldType,
-  FormSectionGroup,
 } from '@/types'
 import { createEmptyFormField } from '@/types'
-import { getFormById, updateForm } from '@/lib/form-service'
+import { getFormById, updateForm } from '@/lib/api/form-api'
 import { useAutoSave } from '@/lib/hooks/use-auto-save'
+import { useSortedFields } from '@/lib/hooks/use-sorted-fields'
 import { getAllTemplates } from '@/lib/default-templates'
-import { getCustomTemplates } from '@/lib/storage'
-import { buildFormSectionGroups } from '@/lib/utils'
+import { getReportTemplates } from '@/lib/api/template-api'
 import Button from '@/components/ui/Button'
 import QuestionCard from '@/components/form-builder/QuestionCard'
 import FloatingToolbar from '@/components/form-builder/FloatingToolbar'
@@ -34,6 +33,8 @@ import FieldMappingEditor from '@/components/form-builder/FieldMappingEditor'
 import FormPreview from '@/components/form-builder/FormPreview'
 import SectionDeleteModal from '@/components/ui/SectionDeleteModal'
 import SectionReorderModal from '@/components/form-builder/SectionReorderModal'
+import GenerateFormLinkModal from '@/components/form-builder/GenerateFormLinkModal'
+import DotPattern from '@/components/ui/DotPattern'
 
 type ViewMode = 'editor' | 'preview' | 'mapping'
 
@@ -41,26 +42,30 @@ export default function FormBuilder() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const [form, setForm] = useState<AnamnesisForm | null>(null)
+  const [form, setForm] = useState<Form | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('editor')
   const [showTemplateLinkModal, setShowTemplateLinkModal] = useState(false)
   const [showSectionReorderModal, setShowSectionReorderModal] = useState(false)
+  const [showLinkModal, setShowLinkModal] = useState(false)
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null)
 
-  const updateFormFn = useCallback((data: AnamnesisForm) => updateForm(data), [])
-  const { saveStatus, scheduleSave, forceSave } = useAutoSave<AnamnesisForm>(updateFormFn)
-  const templates = useMemo(() => getAllTemplates(getCustomTemplates()), [])
+  const updateFormFn = useCallback((data: Form) => updateForm(data), [])
+  const { saveStatus, scheduleSave, forceSave } = useAutoSave<Form>(updateFormFn)
+  const [templates, setTemplates] = useState(() => getAllTemplates([]))
 
-  // Load form
+  // Load form and templates
   useEffect(() => {
     if (!id) return
-    getFormById(id).then((loaded) => {
-      if (loaded) setForm(loaded)
-      else navigate('/formularios')
-    })
+    Promise.all([getFormById(id), getReportTemplates()])
+      .then(([raw, customTemplates]) => {
+        if (raw) setForm(raw)
+        else navigate('/forms')
+        setTemplates(getAllTemplates(customTemplates))
+      })
+      .catch(() => navigate('/forms'))
   }, [id, navigate])
 
-  const updateFormState = useCallback((patch: Partial<AnamnesisForm>) => {
+  const updateFormState = useCallback((patch: Partial<Form>) => {
     setForm((prev) => {
       if (!prev) return prev
       const updated = { ...prev, ...patch }
@@ -72,7 +77,7 @@ export default function FormBuilder() {
   // Force save on navigation
   const handleBack = useCallback(async () => {
     if (form) await forceSave(form)
-    navigate('/formularios')
+    navigate('/forms')
   }, [form, navigate, forceSave])
 
   // DnD
@@ -155,8 +160,7 @@ export default function FormBuilder() {
     const fields = form.fields
       .filter((f) => f.id !== fieldId)
       .map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => m.fieldId !== fieldId)
-    updateFormState({ fields, fieldMappings })
+    updateFormState({ fields })
     if (focusedFieldId === fieldId) setFocusedFieldId(null)
   }, [form, updateFormState, focusedFieldId])
 
@@ -168,15 +172,7 @@ export default function FormBuilder() {
     childFieldIds: string[]
   } | null>(null)
 
-  const sortedFields = useMemo(
-    () => form ? [...form.fields].sort((a, b) => a.order - b.order) : [],
-    [form]
-  )
-
-  const sectionGroups: FormSectionGroup[] = useMemo(
-    () => buildFormSectionGroups(sortedFields),
-    [sortedFields]
-  )
+  const { sortedFields, sectionGroups } = useSortedFields(form?.fields)
 
   const handleRemoveFieldOrSection = useCallback((fieldId: string) => {
     if (!form) return
@@ -203,8 +199,7 @@ export default function FormBuilder() {
     const fields = form.fields
       .filter((f) => !idsToRemove.has(f.id))
       .map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => !idsToRemove.has(m.fieldId))
-    updateFormState({ fields, fieldMappings })
+    updateFormState({ fields })
     setSectionDeleteTarget(null)
   }, [form, sectionDeleteTarget, updateFormState])
 
@@ -229,8 +224,7 @@ export default function FormBuilder() {
     remaining.splice(insertIndex, 0, ...childFields)
 
     const reordered = remaining.map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => m.fieldId !== sectionDeleteTarget.sectionFieldId)
-    updateFormState({ fields: reordered, fieldMappings })
+    updateFormState({ fields: reordered })
     setSectionDeleteTarget(null)
   }, [form, sectionDeleteTarget, sectionGroups, updateFormState])
 
@@ -289,8 +283,7 @@ export default function FormBuilder() {
     const fields = form.fields
       .filter((f) => f.id !== sectionFieldId)
       .map((f, i) => ({ ...f, order: i }))
-    const fieldMappings = form.fieldMappings.filter((m) => m.fieldId !== sectionFieldId)
-    updateFormState({ fields, fieldMappings })
+    updateFormState({ fields })
   }, [form, updateFormState])
 
   // ─── Derived ──────────────────────────────────────────
@@ -337,8 +330,8 @@ export default function FormBuilder() {
     <>
       {/* Tabs header (Google Forms style) */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-[860px] mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-[860px] mx-auto px-3 sm:px-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={handleBack}
@@ -349,21 +342,26 @@ export default function FormBuilder() {
               </svg>
             </button>
 
-            {/* Save status */}
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${
-                saveStatus === 'saved' ? 'bg-green-400' :
-                saveStatus === 'saving' ? 'bg-yellow-400' :
-                'bg-gray-300'
-              }`} />
-              <span className="text-xs text-gray-400">
-                {saveStatus === 'saved' ? 'Salvo' : saveStatus === 'saving' ? 'Salvando...' : ''}
-              </span>
+            {/* Version + Save status */}
+            <div className="flex items-center gap-3">
+              {form.currentVersion > 1 && (
+                <span className="text-xs text-gray-400 font-medium">v{form.currentVersion}</span>
+              )}
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${
+                  saveStatus === 'saved' ? 'bg-green-400' :
+                  saveStatus === 'saving' ? 'bg-yellow-400' :
+                  'bg-gray-300'
+                }`} />
+                <span className="text-xs text-gray-400 hidden sm:inline">
+                  {saveStatus === 'saved' ? 'Salvo' : saveStatus === 'saving' ? 'Salvando...' : ''}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex">
+          <div className="flex overflow-x-auto">
             {([
               { mode: 'editor' as ViewMode, label: 'Perguntas' },
               { mode: 'preview' as ViewMode, label: 'Preview' },
@@ -373,7 +371,7 @@ export default function FormBuilder() {
                 key={mode}
                 type="button"
                 onClick={() => setViewMode(mode)}
-                className={`px-4 py-3 text-sm font-medium border-b-[3px] transition-colors ${
+                className={`px-3 sm:px-4 py-3 text-sm font-medium border-b-[3px] transition-colors whitespace-nowrap ${
                   viewMode === mode
                     ? 'text-brand-600 border-brand-500'
                     : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50'
@@ -384,20 +382,37 @@ export default function FormBuilder() {
             ))}
           </div>
 
-          {/* Template link */}
-          <Button
-            variant={form.linkedTemplateId ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setShowTemplateLinkModal(true)}
-          >
-            {form.linkedTemplateId ? linkedTemplate?.name ?? 'Template' : 'Vincular Template'}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Generate Link */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLinkModal(true)}
+              className="hidden sm:inline-flex"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline -mt-0.5 mr-1">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              Gerar Link
+            </Button>
+
+            {/* Template link */}
+            <Button
+              variant={form.linkedTemplateId ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setShowTemplateLinkModal(true)}
+              className="hidden sm:inline-flex"
+            >
+              {form.linkedTemplateId ? linkedTemplate?.name ?? 'Template' : 'Vincular Template'}
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main
-        className="min-h-[calc(100vh-49px)] bg-gray-100 py-6"
+      <DotPattern
+        className="min-h-[calc(100vh-49px)] py-6"
         onClick={handleContainerClick}
       >
         {/* Editor mode */}
@@ -536,13 +551,13 @@ export default function FormBuilder() {
           <div className="max-w-[860px] mx-auto px-4">
             <FieldMappingEditor
               fields={sortedFields}
-              mappings={form.fieldMappings}
+              mappings={Array.isArray(form.fieldMappings) ? form.fieldMappings : []}
               template={linkedTemplate}
               onChange={(mappings) => updateFormState({ fieldMappings: mappings })}
             />
           </div>
         )}
-      </main>
+      </DotPattern>
 
       {/* Modals */}
       <TemplateLinkModal
@@ -569,6 +584,14 @@ export default function FormBuilder() {
         sections={sectionReorderItems}
         onReorder={handleReorderSections}
       />
+
+      {id && (
+        <GenerateFormLinkModal
+          isOpen={showLinkModal}
+          onClose={() => setShowLinkModal(false)}
+          formId={id}
+        />
+      )}
     </>
   )
 }

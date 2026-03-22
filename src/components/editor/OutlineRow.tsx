@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { TrashIcon } from '@/components/ui/ListCard'
 import type {
   Block,
   BlockData,
@@ -28,6 +29,7 @@ interface OutlineRowProps {
   onDuplicate: (blockId: string) => void
   onRemove: (blockId: string) => void
   onChange: (blockId: string, data: BlockData) => void
+  onTogglePageBreak?: (blockId: string) => void
 }
 
 function getBlockBorderColor(block: Block, meta: BlockMeta): string {
@@ -57,7 +59,8 @@ function getBlockSummary(block: Block): string {
     }
     case 'references': {
       const d = block.data as ReferencesData
-      const count = d.references.filter((r) => r.trim()).length
+      const refs = d.references ?? []
+      const count = refs.filter((r) => r.trim()).length
       return `${count} ${count === 1 ? 'referência' : 'referências'}`
     }
     case 'closing-page': {
@@ -125,6 +128,7 @@ export default function OutlineRow({
   onDuplicate,
   onRemove,
   onChange,
+  onTogglePageBreak,
 }: OutlineRowProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [confirmingRemove, setConfirmingRemove] = useState(false)
@@ -218,16 +222,21 @@ export default function OutlineRow({
     'placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal'
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      data-block-id={block.id}
-      className={`
-        group flex items-center gap-2.5 px-4 py-4 rounded-lg border-l-4 transition-all
-        ${getBlockBorderColor(block, meta)}
-        ${isDragging ? 'opacity-50 shadow-lg bg-white z-10' : 'bg-white shadow-sm hover:shadow-md'}
-      `}
-    >
+    <div ref={setNodeRef} style={style} data-block-id={block.id}>
+      {block.pageBreakBefore && (
+        <div className="flex items-center gap-2 py-1 mb-1">
+          <div className="flex-1 border-t-2 border-dashed border-amber-400" />
+          <span className="text-[10px] text-amber-500 font-medium uppercase tracking-wider shrink-0">Quebra de página</span>
+          <div className="flex-1 border-t-2 border-dashed border-amber-400" />
+        </div>
+      )}
+      <div
+        className={`
+          group flex items-center gap-2.5 px-4 py-4 rounded-lg border-l-4 transition-all
+          ${getBlockBorderColor(block, meta)}
+          ${isDragging ? 'opacity-50 shadow-lg bg-white z-10' : 'bg-white shadow-sm hover:shadow-md'}
+        `}
+      >
       {/* Drag handle */}
       <button
         type="button"
@@ -309,6 +318,13 @@ export default function OutlineRow({
           </span>
         )}
 
+        {/* AI badge */}
+        {block.generatedByAi && (
+          <span className="text-[10px] font-medium bg-violet-100 text-violet-600 px-1 py-0.5 rounded shrink-0">
+            IA
+          </span>
+        )}
+
         {/* Block type badge for leaf blocks */}
         {level === 2 && (
           <span className="text-xs text-gray-400 shrink-0 hidden group-hover:inline">
@@ -382,6 +398,23 @@ export default function OutlineRow({
                 Duplicar
               </button>
 
+              {/* Page break toggle */}
+              {onTogglePageBreak && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onTogglePageBreak(block.id)
+                    setShowMenu(false)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                >
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M1 3.75A.75.75 0 011.75 3h16.5a.75.75 0 010 1.5H1.75A.75.75 0 011 3.75zM1 16.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H1.75a.75.75 0 01-.75-.75zM1 10a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5A.75.75 0 011 10zm12.25-.75a.75.75 0 000 1.5h5a.75.75 0 000-1.5h-5z" clipRule="evenodd" />
+                  </svg>
+                  {block.pageBreakBefore ? 'Remover quebra de página' : 'Quebra de página antes'}
+                </button>
+              )}
+
               {/* Remove */}
               <button
                 type="button"
@@ -392,18 +425,13 @@ export default function OutlineRow({
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <TrashIcon size={14} />
                 {level === 0 ? 'Excluir seção' : confirmingRemove ? 'Confirmar remoção' : 'Remover'}
               </button>
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

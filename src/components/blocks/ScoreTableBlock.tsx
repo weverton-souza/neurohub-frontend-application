@@ -15,11 +15,11 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { ScoreTableData, ScoreTableColumn, ScoreTableTemplate } from '@/types'
+import type { ScoreTableData, ScoreTableColumn } from '@/types'
 import { createEmptyScoreTableRow, createScoreTableColumn } from '@/types'
-import { isFormulaColumn, computeCellResult, cellHasFormula, getCellFormulaText, getFormulaFunctions } from '@/lib/formula-engine'
-import { adjustFormulaRefs, isFormula, remapFormulaRefs, indexToLetter } from '@/lib/formula-parser'
-import { saveScoreTableTemplate, getTemplateCategories } from '@/lib/score-table-template-service'
+import { isFormulaColumn, computeCellResult, cellHasFormula, getCellFormulaText, getFormulaFunctions } from '@/lib/docx-engine/table'
+import { adjustFormulaRefs, isFormula, remapFormulaRefs, indexToLetter } from '@/lib/docx-engine/table'
+import { createScoreTableTemplate, getScoreTableTemplates } from '@/lib/api/template-api'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -230,18 +230,22 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
   const colorPickerRef = useRef<HTMLDivElement>(null)
   const acRef = useRef<HTMLDivElement>(null)
   const tableRef = useRef<HTMLTableElement>(null)
+  const cursorPosRef = useRef<number | null>(null)
+  const modalOpenRef = useRef(false)
 
   // Reset color picker state when cell changes
-  useEffect(() => { setCpEditIndex(null); setCpBaseHsl(null) }, [editingCellId])
+  useEffect(() => { setCpEditIndex(null); setCpBaseHsl(null); cursorPosRef.current = null }, [editingCellId])
 
   // Blur handler: don't clear editingCellId if focus moves between cell and formula bar
   const handleCellBlur = useCallback((e: React.FocusEvent) => {
+    if (modalOpenRef.current) return
     const related = e.relatedTarget as HTMLElement | null
     if (related && (related === formulaBarRef.current || tableRef.current?.contains(related) || colorPickerRef.current?.contains(related))) return
     setEditingCellId(null)
   }, [])
 
   const handleFormulaBarBlur = useCallback((e: React.FocusEvent) => {
+    if (modalOpenRef.current) return
     const related = e.relatedTarget as HTMLElement | null
     if (related && (tableRef.current?.contains(related) || colorPickerRef.current?.contains(related))) return
     setEditingCellId(null)
@@ -310,11 +314,9 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
 
   const updateCell = useCallback(
     (rowId: string, colId: string, value: string) => {
-      // Auto-uppercase quando começa com =
-      const finalValue = value.trimStart().startsWith('=') ? value.toUpperCase() : value
       const rows = data.rows.map((row) =>
         row.id === rowId
-          ? { ...row, values: { ...row.values, [colId]: finalValue } }
+          ? { ...row, values: { ...row.values, [colId]: value } }
           : row
       )
       onChange({ ...data, rows })
@@ -416,12 +418,18 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
     return col?.formula ?? ''
   })()
 
-  const handleFormulaBarChange = (value: string) => {
+  const handleFormulaBarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingCellId) return
     const [rowId, colId] = editingCellId.split(':')
     if (!rowId || !colId) return
-    updateCell(rowId, colId, value)
+    cursorPosRef.current = e.target.selectionStart
+    updateCell(rowId, colId, e.target.value)
   }
+
+  const handleCellInputChange = useCallback((rowId: string, colId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    cursorPosRef.current = e.target.selectionStart
+    updateCell(rowId, colId, e.target.value)
+  }, [updateCell])
 
   // ========== Formula Autocomplete ==========
 
@@ -492,9 +500,12 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
   }, [activeBarValue])
 
   // Detecta se o cursor está em posição @# para abrir color picker (digitando novo)
+  // Usa posição do cursor para detectar @ no meio da fórmula (não só no final)
   const showColorPickerNew = useMemo(() => {
     if (!activeBarValue || !activeBarValue.trim().startsWith('=')) return false
-    const match = activeBarValue.match(/@#([0-9A-Fa-f]{0,5})$/)
+    const pos = cursorPosRef.current ?? activeBarValue.length
+    const textBeforeCursor = activeBarValue.slice(0, pos)
+    const match = textBeforeCursor.match(/@#?([0-9A-Fa-f]{0,5})$/)
     return !!match
   }, [activeBarValue])
 
@@ -524,15 +535,52 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
         const after = activeBarValue.slice(fc.index + 8) // "@#RRGGBB" = 8 chars
         const newValue = before + '@' + color.toUpperCase() + after
         updateCell(rowId, colId, newValue)
+        const cursorTarget = fc.index + 8 // após @#RRGGBB
+        requestAnimationFrame(() => {
+          formulaBarRef.current?.focus()
+          formulaBarRef.current?.setSelectionRange(cursorTarget, cursorTarget)
+        })
       }
       setCpEditIndex(null)
     } else {
-      // Inserindo nova cor: remove @# parcial do final e insere @#RRGGBB completo
-      const cleaned = activeBarValue.replace(/@#[0-9A-Fa-f]{0,6}$/, '')
-      const newValue = cleaned + '@' + color.toUpperCase()
+      // Inserindo nova cor: ajusta lightness para igualar as cores existentes na tabela
+      let finalColor = color
+      const colorRegex = /@#([0-9A-Fa-f]{6})/g
+      const lightnesses: number[] = []
+      for (const row of data.rows) {
+        for (const col of data.columns) {
+          if (`${row.id}:${col.id}` === editingCellId) continue
+          const val = row.values[col.id] ?? ''
+          let m
+          colorRegex.lastIndex = 0
+          while ((m = colorRegex.exec(val)) !== null) {
+            lightnesses.push(hexToHsl('#' + m[1])[2])
+          }
+        }
+      }
+      if (lightnesses.length > 0) {
+        const lightestL = Math.max(...lightnesses)
+        const [h, s] = hexToHsl(color)
+        finalColor = hslToHex(h, s, lightestL)
+      }
+      // Remove @#parcial na posição do cursor e insere @#RRGGBB completo
+      const pos = cursorPosRef.current ?? activeBarValue.length
+      const textBeforeCursor = activeBarValue.slice(0, pos)
+      const textAfterCursor = activeBarValue.slice(pos)
+      const cleaned = textBeforeCursor.replace(/@#?[0-9A-Fa-f]{0,6}$/, '')
+      const colorAnnotation = '@' + finalColor.toUpperCase()
+      const newValue = cleaned + colorAnnotation + textAfterCursor
       updateCell(rowId, colId, newValue)
+      const cursorTarget = cleaned.length + colorAnnotation.length
+      requestAnimationFrame(() => {
+        formulaBarRef.current?.focus()
+        formulaBarRef.current?.setSelectionRange(cursorTarget, cursorTarget)
+      })
     }
-  }, [editingCellId, activeBarValue, updateCell, cpEditIndex, formulaColors])
+    // Fechar color picker
+    setCpBaseHsl(null)
+    setCpHex('')
+  }, [editingCellId, activeBarValue, updateCell, cpEditIndex, formulaColors, data])
 
   const handleAcSelect = useCallback((funcName: string) => {
     if (!editingCellId || !acData) return
@@ -604,34 +652,44 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
     setShowSaveTemplate(true)
   }
 
-  const handleSaveTemplate = () => {
-    const template: ScoreTableTemplate = {
-      id: `tpl-custom-${crypto.randomUUID()}`,
-      name: templateName.trim(),
-      description: templateDescription.trim(),
-      instrumentName: templateInstrument.trim(),
-      category: templateCategory.trim(),
-      columns: data.columns.map(c => ({
-        id: c.id,
-        label: c.label,
-        formula: c.formula ?? null,
-      })),
-      rows: data.rows.map(r => ({
-        id: r.id,
-        defaultValues: { ...r.values },
-      })),
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const handleSaveTemplate = async () => {
+    try {
+      await createScoreTableTemplate({
+        name: templateName.trim(),
+        description: templateDescription.trim(),
+        instrumentName: templateInstrument.trim(),
+        category: templateCategory.trim(),
+        columns: data.columns.map(c => ({
+          id: c.id,
+          label: c.label,
+          formula: c.formula ?? null,
+        })),
+        rows: data.rows.map(r => ({
+          id: r.id,
+          defaultValues: { ...r.values },
+        })),
+        isDefault: false,
+      })
+      setShowSaveTemplate(false)
+      setSavedFeedback(true)
+      setTimeout(() => setSavedFeedback(false), 2000)
+    } catch {
+      // error saving template
     }
-    saveScoreTableTemplate(template)
-    setShowSaveTemplate(false)
-    setSavedFeedback(true)
-    setTimeout(() => setSavedFeedback(false), 2000)
   }
 
   const canSaveTemplate = templateName.trim() && templateInstrument.trim() && templateCategory.trim()
-  const existingCategories = showSaveTemplate ? getTemplateCategories() : []
+
+  const [existingCategories, setExistingCategories] = useState<string[]>([])
+  useEffect(() => {
+    if (!showSaveTemplate) return
+    getScoreTableTemplates()
+      .then(tpls => {
+        const cats = [...new Set(tpls.map(t => t.category))]
+        setExistingCategories(cats.sort())
+      })
+      .catch(() => {})
+  }, [showSaveTemplate])
 
   // ========== Replicar fórmula ==========
 
@@ -793,7 +851,8 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
           ref={formulaBarRef}
           type="text"
           value={activeBarValue}
-          onChange={(e) => handleFormulaBarChange(e.target.value)}
+          onChange={handleFormulaBarChange}
+          onSelect={(e) => { cursorPosRef.current = (e.target as HTMLInputElement).selectionStart }}
           onKeyDown={handleFormulaBarKeyDown}
           onBlur={handleFormulaBarBlur}
           disabled={!editingCellId}
@@ -978,15 +1037,19 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
                     style={{ backgroundColor: adjustedColor! }}
                     onMouseDown={(e) => {
                       e.preventDefault()
+                      const isEditingExisting = cpEditIndex !== null
                       handleColorSelect(adjustedColor!)
-                      const currentLightness = cpBaseHsl[2]
-                      const others = findAllTableColors(editingCellId ?? undefined)
-                      const withDiffLightness = others.filter(oc => {
-                        const [, , l] = hexToHsl(oc.color)
-                        return Math.abs(l - currentLightness) > 0.02
-                      })
-                      if (withDiffLightness.length > 0) {
-                        setApplyAllPrompt({ lightness: currentLightness, otherColors: withDiffLightness })
+                      if (isEditingExisting) {
+                        const currentLightness = cpBaseHsl[2]
+                        const others = findAllTableColors(editingCellId ?? undefined)
+                        const withDiffLightness = others.filter(oc => {
+                          const [, , l] = hexToHsl(oc.color)
+                          return Math.abs(l - currentLightness) > 0.02
+                        })
+                        if (withDiffLightness.length > 0) {
+                          modalOpenRef.current = true
+                          setApplyAllPrompt({ lightness: currentLightness, otherColors: withDiffLightness })
+                        }
                       }
                       setCpBaseHsl(null)
                     }}
@@ -1174,7 +1237,8 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
                                 type="text"
                                 autoFocus
                                 value={rawValue || formulaText}
-                                onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                                onChange={(e) => handleCellInputChange(row.id, col.id, e)}
+                                onSelect={(e) => { cursorPosRef.current = (e.target as HTMLInputElement).selectionStart }}
                                 onBlur={handleCellBlur}
                                 onKeyDown={handleCellKeyDown}
                                 className={`w-full bg-white border border-brand-400 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-500 rounded font-mono text-xs ${alignClass(col)}`}
@@ -1323,7 +1387,11 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
       {/* Modal: Aplicar intensidade a todas */}
       <Modal
         isOpen={!!applyAllPrompt}
-        onClose={() => setApplyAllPrompt(null)}
+        onClose={() => {
+          setApplyAllPrompt(null)
+          modalOpenRef.current = false
+          requestAnimationFrame(() => formulaBarRef.current?.focus())
+        }}
         title="Aplicar intensidade"
         size="sm"
       >
@@ -1352,7 +1420,11 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" size="sm" onClick={() => setApplyAllPrompt(null)}>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setApplyAllPrompt(null)
+                  modalOpenRef.current = false
+                  requestAnimationFrame(() => formulaBarRef.current?.focus())
+                }}>
                   Apenas esta
                 </Button>
                 <Button
@@ -1360,6 +1432,8 @@ export default function ScoreTableBlock({ data, onChange }: ScoreTableBlockProps
                   onClick={() => {
                     applyLightnessToAll(applyAllPrompt.otherColors, applyAllPrompt.lightness)
                     setApplyAllPrompt(null)
+                    modalOpenRef.current = false
+                    requestAnimationFrame(() => formulaBarRef.current?.focus())
                   }}
                 >
                   Aplicar a todas

@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { FormField, FormFieldType } from '@/types'
 import { createEmptyFormFieldOption } from '@/types'
-import { sanitizeVariableKey } from '@/lib/variable-service'
+import { TrashIcon, CopyIcon } from '@/components/ui/ListCard'
 
 // ─── Props ────────────────────────────────────────────────────
 
@@ -46,9 +46,7 @@ export default function QuestionCard({
   sectionIndex,
   totalSections,
 }: QuestionCardProps) {
-  const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showSectionMenu, setShowSectionMenu] = useState(false)
-  const [showVarKey, setShowVarKey] = useState(!!(field.variableKey ?? ''))
   const [showDescription, setShowDescription] = useState(!!field.description)
 
   const isSectionHeader = field.type === 'section-header'
@@ -71,7 +69,6 @@ export default function QuestionCard({
   // Reset menus when losing focus
   useEffect(() => {
     if (!isFocused) {
-      setShowMoreMenu(false)
       setShowSectionMenu(false)
     }
   }, [isFocused])
@@ -139,74 +136,84 @@ export default function QuestionCard({
 
           <div className="px-6 py-4">
             {isFocused ? (
-              <div className="flex items-start gap-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={field.label}
-                    onChange={(e) => update({ label: e.target.value })}
-                    placeholder="Título da seção"
-                    className="w-full text-base font-normal text-gray-900 bg-gray-50 border-b border-gray-300 px-2 py-2 focus:border-brand-500 focus:outline-none placeholder:text-gray-400"
-                  />
-                  <input
-                    type="text"
-                    value={field.description}
-                    onChange={(e) => update({ description: e.target.value })}
-                    placeholder="Descrição (opcional)"
-                    className="w-full text-sm text-gray-600 bg-transparent border-b border-gray-200 px-2 py-2 mt-2 focus:border-brand-500 focus:outline-none placeholder:text-gray-400"
-                  />
-                </div>
+              <div>
+                <input
+                  type="text"
+                  value={field.label}
+                  onChange={(e) => update({ label: e.target.value })}
+                  placeholder="Título da seção"
+                  className="w-full text-base font-normal text-gray-900 bg-gray-50 border-b border-gray-300 px-2 py-2 focus:border-brand-500 focus:outline-none placeholder:text-gray-400"
+                />
+                <input
+                  type="text"
+                  value={field.description}
+                  onChange={(e) => update({ description: e.target.value })}
+                  placeholder="Descrição (opcional)"
+                  className="w-full text-sm text-gray-600 bg-transparent border-b border-gray-200 px-2 py-2 mt-2 focus:border-brand-500 focus:outline-none placeholder:text-gray-400"
+                />
 
-                {/* Section actions: collapse + three-dots */}
-                <div className="flex items-center gap-0.5 shrink-0 pt-1">
-                  {/* Three-dots menu */}
-                  <div className="relative">
+                {/* Section actions */}
+                <div className="border-t border-gray-200 mt-4 pt-3">
+                  <div className="flex items-center justify-end gap-1">
+                    {/* Duplicate */}
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setShowSectionMenu(!showSectionMenu) }}
+                      onClick={(e) => { e.stopPropagation(); onDuplicate() }}
                       className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-                      title="Opções da seção"
+                      title="Duplicar seção"
                     >
-                      <ThreeDotsIcon />
+                      <CopyIcon size={18} />
                     </button>
 
-                    {showSectionMenu && (
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onRemove() }}
+                      className="p-2 rounded-full hover:bg-red-50 text-amber-500 hover:text-red-500 transition-colors"
+                      title="Excluir seção"
+                    >
+                      <TrashIcon size={18} />
+                    </button>
+
+                    {/* Three-dots menu (merge, reorder) */}
+                    {((onMergeUp && sectionIndex != null && sectionIndex > 1) || (onReorderSections && totalSections != null && totalSections > 1)) && (
                       <>
-                        <div className="fixed inset-0 z-10" onClick={() => setShowSectionMenu(false)} />
-                        <div className="absolute right-0 top-10 z-20 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                        <div className="w-px h-6 bg-gray-200 mx-2" />
+                        <div className="relative">
                           <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); onDuplicate(); setShowSectionMenu(false) }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            onClick={(e) => { e.stopPropagation(); setShowSectionMenu(!showSectionMenu) }}
+                            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+                            title="Mais opções"
                           >
-                            Duplicar seção
+                            <ThreeDotsIcon />
                           </button>
-                          {onMergeUp && sectionIndex != null && sectionIndex > 1 && (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); onMergeUp(); setShowSectionMenu(false) }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            >
-                              Mesclar com a seção acima
-                            </button>
+
+                          {showSectionMenu && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowSectionMenu(false)} />
+                              <div className="absolute right-0 bottom-10 z-20 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                                {onMergeUp && sectionIndex != null && sectionIndex > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onMergeUp(); setShowSectionMenu(false) }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                  >
+                                    Mesclar com a seção acima
+                                  </button>
+                                )}
+                                {onReorderSections && totalSections != null && totalSections > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onReorderSections(); setShowSectionMenu(false) }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                  >
+                                    Reorganizar seções
+                                  </button>
+                                )}
+                              </div>
+                            </>
                           )}
-                          {onReorderSections && totalSections != null && totalSections > 1 && (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); onReorderSections(); setShowSectionMenu(false) }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            >
-                              Reorganizar seções
-                            </button>
-                          )}
-                          <div className="border-t border-gray-100 my-1" />
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onRemove(); setShowSectionMenu(false) }}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                          >
-                            Excluir seção
-                          </button>
                         </div>
                       </>
                     )}
@@ -323,19 +330,6 @@ export default function QuestionCard({
           </div>
         )}
 
-        {/* Variable key (toggleable) */}
-        {showVarKey && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-xs text-gray-400 shrink-0">Variável:</span>
-            <input
-              type="text"
-              value={field.variableKey ?? ''}
-              onChange={(e) => update({ variableKey: sanitizeVariableKey(e.target.value) })}
-              placeholder="ex: queixa_principal"
-              className="flex-1 text-xs font-mono text-brand-600 bg-brand-50/50 border border-brand-200 rounded px-2 py-1 focus:border-brand-500 focus:outline-none placeholder:text-gray-400"
-            />
-          </div>
-        )}
 
         {/* Separator */}
         <div className="border-t border-gray-200 mt-5 pt-3">
@@ -347,17 +341,17 @@ export default function QuestionCard({
               className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
               title="Duplicar"
             >
-              <CopyIcon />
+              <CopyIcon size={18} />
             </button>
 
             {/* Delete */}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onRemove() }}
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+              className="p-2 rounded-full hover:bg-red-50 text-amber-500 hover:text-red-500 transition-colors"
               title="Excluir"
             >
-              <TrashIcon />
+              <TrashIcon size={18} />
             </button>
 
             {/* Vertical separator */}
@@ -381,41 +375,19 @@ export default function QuestionCard({
               />
             </button>
 
-            {/* Three-dots menu */}
-            <div className="relative ml-1">
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setShowMoreMenu(!showMoreMenu) }}
-                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-                title="Mais opções"
-              >
-                <ThreeDotsIcon />
-              </button>
-
-              {showMoreMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowMoreMenu(false)} />
-                  <div className="absolute right-0 bottom-10 z-20 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-                    <button
-                      type="button"
-                      onClick={() => { setShowDescription(!showDescription); setShowMoreMenu(false) }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      {showDescription ? <CheckIcon /> : <span className="w-4" />}
-                      Descrição
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowVarKey(!showVarKey); setShowMoreMenu(false) }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      {showVarKey ? <CheckIcon /> : <span className="w-4" />}
-                      Chave de variável
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Description toggle */}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowDescription(!showDescription) }}
+              className={`p-2 rounded-full transition-colors ml-1 ${
+                showDescription ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-100 text-gray-500'
+              }`}
+              title={showDescription ? 'Ocultar descrição' : 'Adicionar descrição'}
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M2 3.75A.75.75 0 012.75 3h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 3.75zM2 7.5a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 7.5zM2 11.25a.75.75 0 01.75-.75h9.5a.75.75 0 010 1.5h-9.5a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -699,24 +671,6 @@ function DragDotsIcon() {
   )
 }
 
-function CopyIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  )
-}
-
-function TrashIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  )
-}
-
 function ThreeDotsIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -732,14 +686,6 @@ function CloseIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
     </svg>
   )
 }

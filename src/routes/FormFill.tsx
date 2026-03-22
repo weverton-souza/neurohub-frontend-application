@@ -1,16 +1,18 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import type { AnamnesisForm, FormResponse, FormFieldAnswer } from '@/types'
+import type { Form, FormResponse, FormFieldAnswer } from '@/types'
 import { createEmptyFormResponse, createEmptyFormFieldAnswer } from '@/types'
 import {
   getFormById,
   getFormResponseById,
   createFormResponse,
   updateFormResponse,
-} from '@/lib/form-service'
+  getFormVersion,
+} from '@/lib/api/form-api'
+import { getCustomer } from '@/lib/api/customer-api'
 import { useAutoSave } from '@/lib/hooks/use-auto-save'
-import { getPatient } from '@/lib/storage'
-import { buildFormSectionGroups } from '@/lib/utils'
+import { useFormValidation } from '@/lib/hooks/use-form-validation'
+import { useSortedFields } from '@/lib/hooks/use-sorted-fields'
 import FormFieldRenderer from '@/components/form-fill/FormFieldRenderer'
 
 export default function FormFill() {
@@ -18,14 +20,17 @@ export default function FormFill() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const [form, setForm] = useState<AnamnesisForm | null>(null)
+  const [form, setForm] = useState<Form | null>(null)
   const [response, setResponse] = useState<FormResponse | null>(null)
-  const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set())
+  const [versionFields, setVersionFields] = useState<Form['fields'] | null>(null)
 
-  const updateResponseFn = useCallback((data: FormResponse) => updateFormResponse(data), [])
+  const updateResponseFn = useCallback(
+    (data: FormResponse) => id ? updateFormResponse(id, data) : Promise.resolve(data),
+    [id],
+  )
   const { saveStatus, scheduleSave, forceSave } = useAutoSave<FormResponse>(updateResponseFn)
   const responseIdParam = searchParams.get('response')
-  const patientIdParam = searchParams.get('patient')
+  const customerIdParam = searchParams.get('customer')
 
   // Load form
   useEffect(() => {
@@ -33,29 +38,40 @@ export default function FormFill() {
 
     getFormById(id).then(async (loadedForm) => {
       if (!loadedForm) {
-        navigate('/formularios')
+        navigate('/forms')
         return
       }
       setForm(loadedForm)
 
-      // Load or create response
       if (responseIdParam) {
-        const existing = await getFormResponseById(responseIdParam)
-        if (existing) {
-          setResponse(existing)
-          return
+        try {
+          const existing = await getFormResponseById(id, responseIdParam)
+          if (existing) {
+            if (existing.version != null && existing.version !== loadedForm.currentVersion) {
+              const ver = await getFormVersion(id, existing.version)
+              setVersionFields(ver.fields)
+            }
+            setResponse(existing)
+            return
+          }
+        } catch {
+          // response not found, create new
         }
       }
 
       // Create new response
       const newResponse = createEmptyFormResponse(loadedForm.id)
 
-      // Pre-fill patient if param provided
-      if (patientIdParam) {
-        const patient = getPatient(patientIdParam)
-        if (patient) {
-          newResponse.patientId = patient.id
-          newResponse.patientName = patient.data.name
+      // Pre-fill customer if param provided
+      if (customerIdParam) {
+        try {
+          const customer = await getCustomer(customerIdParam)
+          if (customer) {
+            newResponse.customerId = customer.id
+            newResponse.customerName = customer.data.name
+          }
+        } catch {
+          // customer not found
         }
       }
 
@@ -64,10 +80,10 @@ export default function FormFill() {
         .filter((f) => f.type !== 'section-header')
         .map((f) => createEmptyFormFieldAnswer(f.id))
 
-      const created = await createFormResponse(newResponse)
+      const created = await createFormResponse(id, newResponse)
       setResponse(created)
     })
-  }, [id, navigate, responseIdParam, patientIdParam])
+  }, [id, navigate, responseIdParam, customerIdParam])
 
   const updateResponseState = useCallback((patch: Partial<FormResponse>) => {
     setResponse((prev) => {
@@ -78,59 +94,28 @@ export default function FormFill() {
     })
   }, [scheduleSave])
 
+  const activeFields = versionFields ?? form?.fields ?? []
+
+  const { validationErrors, validate, clearFieldError } = useFormValidation(
+    useCallback(() => activeFields, [activeFields]),
+    useCallback(() => response?.answers ?? [], [response]),
+  )
+
   const handleAnswerChange = useCallback((answer: FormFieldAnswer) => {
     if (!response) return
     const answers = response.answers.map((a) =>
       a.fieldId === answer.fieldId ? answer : a
     )
-    // If field didn't exist yet, add it
     if (!answers.find((a) => a.fieldId === answer.fieldId)) {
       answers.push(answer)
     }
     updateResponseState({ answers })
+    clearFieldError(answer.fieldId)
+  }, [response, updateResponseState, clearFieldError])
 
-    // Clear validation error
-    if (validationErrors.has(answer.fieldId)) {
-      setValidationErrors((prev) => {
-        const next = new Set(prev)
-        next.delete(answer.fieldId)
-        return next
-      })
-    }
-  }, [response, updateResponseState, validationErrors])
-
-  const handlePatientNameChange = useCallback((name: string) => {
-    updateResponseState({ patientName: name })
+  const handleCustomerNameChange = useCallback((name: string) => {
+    updateResponseState({ customerName: name })
   }, [updateResponseState])
-
-  const validate = useCallback((): boolean => {
-    if (!form || !response) return false
-    const errors = new Set<string>()
-
-    for (const field of form.fields) {
-      if (!field.required || field.type === 'section-header') continue
-
-      const answer = response.answers.find((a) => a.fieldId === field.id)
-      if (!answer) {
-        errors.add(field.id)
-        continue
-      }
-
-      const isEmpty =
-        (field.type === 'short-text' || field.type === 'long-text' || field.type === 'date' || field.type === 'yes-no')
-          ? !answer.value.trim()
-        : (field.type === 'single-choice' || field.type === 'multiple-choice')
-          ? answer.selectedOptionIds.length === 0
-        : field.type === 'scale'
-          ? answer.scaleValue === null
-        : false
-
-      if (isEmpty) errors.add(field.id)
-    }
-
-    setValidationErrors(errors)
-    return errors.size === 0
-  }, [form, response])
 
   const handleFinalize = useCallback(async () => {
     if (!validate() || !response) return
@@ -139,7 +124,7 @@ export default function FormFill() {
     await forceSave(finalized)
     setResponse(finalized)
 
-    navigate(`/formulario/${id}/respostas`)
+    navigate(`/forms/${id}/responses`)
   }, [validate, response, id, navigate, forceSave])
 
   const handleSaveDraft = useCallback(async () => {
@@ -149,24 +134,17 @@ export default function FormFill() {
 
   const handleBack = useCallback(async () => {
     if (response) await forceSave(response)
-    navigate(`/formulario/${id}/respostas`)
+    navigate(`/forms/${id}/responses`)
   }, [response, id, navigate, forceSave])
 
-  // Derived
-  const sortedFields = useMemo(
-    () => form ? [...form.fields].sort((a, b) => a.order - b.order) : [],
-    [form]
-  )
-
-  const sectionGroups = useMemo(
-    () => buildFormSectionGroups(sortedFields),
-    [sortedFields]
-  )
+  const { sectionGroups } = useSortedFields(activeFields)
 
   const getAnswer = useCallback((fieldId: string): FormFieldAnswer => {
     return response?.answers.find((a) => a.fieldId === fieldId)
       ?? createEmptyFormFieldAnswer(fieldId)
   }, [response])
+
+  const isReadOnly = response?.status === 'concluido'
 
   if (!form || !response) {
     return (
@@ -225,17 +203,18 @@ export default function FormFill() {
           </div>
         </div>
 
-        {/* Patient name */}
+        {/* Customer name */}
         <div className="bg-white rounded-lg shadow-sm px-6 py-5">
           <label className="block text-sm text-gray-900 mb-1">
-            Nome do paciente <span className="text-red-500">*</span>
+            Nome do cliente <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            value={response.patientName}
-            onChange={(e) => handlePatientNameChange(e.target.value)}
-            placeholder="Nome completo do paciente"
-            className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors"
+            value={response.customerName}
+            onChange={(e) => handleCustomerNameChange(e.target.value)}
+            placeholder="Nome completo do cliente"
+            disabled={isReadOnly}
+            className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-0 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -284,6 +263,7 @@ export default function FormFill() {
                     field={field}
                     answer={getAnswer(field.id)}
                     onChange={handleAnswerChange}
+                    disabled={isReadOnly}
                   />
 
                   {hasError && (
@@ -301,22 +281,24 @@ export default function FormFill() {
         ))}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4 pb-10">
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
-          >
-            Salvar rascunho
-          </button>
-          <button
-            type="button"
-            onClick={handleFinalize}
-            className="px-8 py-2.5 rounded-full bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 shadow-sm hover:shadow-md transition-all"
-          >
-            Enviar
-          </button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex items-center justify-between pt-4 pb-10">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
+            >
+              Salvar rascunho
+            </button>
+            <button
+              type="button"
+              onClick={handleFinalize}
+              className="px-8 py-2.5 rounded-full bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 shadow-sm hover:shadow-md transition-all"
+            >
+              Enviar
+            </button>
+          </div>
+        )}
       </main>
     </div>
   )

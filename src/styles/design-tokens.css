@@ -1,0 +1,98 @@
+:root {
+  /* ══════════════════════════════════════════
+     PRIMITIVAS — Azul Apple
+     ══════════════════════════════════════════ */
+  --color-blue-50:  #EFF6FF;
+  --color-blue-100: #DBEAFE;
+  --color-blue-200: #BFDBFE;
+  --color-blue-300: #93C5FD;
+  --color-blue-400: #60A5FA;
+  --color-blue-500: #007AFF;
+  --color-blue-600: #0066D6;
+  --color-blue-700: #0055B3;
+  --color-blue-800: #004494;
+  --color-blue-900: #003375;
+
+  /* ══════════════════════════════════════════
+     PRIMITIVAS — Cinzas quentes (Apple)
+     ══════════════════════════════════════════ */
+  --color-gray-50:  #FAFAFA;
+  --color-gray-100: #F5F5F7;
+  --color-gray-200: #E8E8ED;
+  --color-gray-300: #D2D2D7;
+  --color-gray-400: #AEAEB2;
+  --color-gray-500: #8E8E93;
+  --color-gray-600: #6E6E73;
+  --color-gray-700: #48484A;
+  --color-gray-800: #3A3A3C;
+  --color-gray-900: #1D1D1F;
+
+  /* ══════════════════════════════════════════
+     SEMÂNTICAS — Superfícies
+     ══════════════════════════════════════════ */
+  --color-surface:       var(--color-gray-100);
+  --color-surface-card:  #FFFFFF;
+  --color-surface-hover: var(--color-gray-50);
+
+  /* ══════════════════════════════════════════
+     SEMÂNTICAS — Bordas
+     ══════════════════════════════════════════ */
+  --color-border:        var(--color-gray-200);
+  --color-border-subtle: var(--color-gray-200);
+
+  /* ══════════════════════════════════════════
+     SEMÂNTICAS — Texto
+     ══════════════════════════════════════════ */
+  --color-text-primary:   var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-tertiary:  var(--color-gray-400);
+
+  /* ══════════════════════════════════════════
+     SEMÂNTICAS — Marca
+     ══════════════════════════════════════════ */
+  --color-brand-primary: var(--color-blue-500);
+  --color-brand-hover:   var(--color-blue-600);
+  --color-brand-active:  var(--color-blue-700);
+  --color-brand-subtle:  var(--color-blue-50);
+  --color-brand-light:   var(--color-blue-100);
+
+  /* ══════════════════════════════════════════
+     SEMÂNTICAS — Status
+     ══════════════════════════════════════════ */
+  --color-success: #34C759;
+  --color-warning: #FF9500;
+  --color-danger:  #FF3B30;
+
+  /* ══════════════════════════════════════════
+     SOMBRAS — Apple-style (multi-layer, difusas)
+     ══════════════════════════════════════════ */
+  --shadow-xs:       0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm:       0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:       0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-lg:       0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-xl:       0 16px 48px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-card:     0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-modal:    0 24px 80px rgba(0, 0, 0, 0.16), 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* ══════════════════════════════════════════
+     RAIOS DE BORDA
+     ══════════════════════════════════════════ */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* ══════════════════════════════════════════
+     TIPOGRAFIA
+     ══════════════════════════════════════════ */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  /* ══════════════════════════════════════════
+     TRANSIÇÕES
+     ══════════════════════════════════════════ */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow:   350ms ease;
+}

@@ -1,8 +1,8 @@
 import type {
   VariableMap,
   VariableInfo,
-  PatientData,
-  AnamnesisForm,
+  CustomerData,
+  Form,
   FormField,
   FormResponse,
   Block,
@@ -17,9 +17,9 @@ import { isSlateContent } from '@/types'
 
 const VARIABLE_REGEX = /\{\{(\w+)\}\}/g
 
-// ========== Patient Variables ==========
+// ========== Customer Variables ==========
 
-const PATIENT_VARIABLE_DEFS: { key: string; label: string; field: keyof PatientData }[] = [
+const CUSTOMER_VARIABLE_DEFS: { key: string; label: string; field: keyof CustomerData }[] = [
   { key: 'paciente_nome', label: 'Nome do Paciente', field: 'name' },
   { key: 'paciente_cpf', label: 'CPF', field: 'cpf' },
   { key: 'paciente_data_nascimento', label: 'Data de Nascimento', field: 'birthDate' },
@@ -42,20 +42,20 @@ const PATIENT_VARIABLE_DEFS: { key: string; label: string; field: keyof PatientD
 ]
 
 /**
- * Returns patient variable definitions as VariableInfo items.
+ * Returns customer variable definitions as VariableInfo items.
  */
-export function getPatientVariableInfos(): VariableInfo[] {
-  return PATIENT_VARIABLE_DEFS.map((d) => ({
+export function getCustomerVariableInfos(): VariableInfo[] {
+  return CUSTOMER_VARIABLE_DEFS.map((d) => ({
     key: d.key,
     label: d.label,
-    source: 'patient' as const,
+    source: 'customer' as const,
   }))
 }
 
 /**
  * Returns form field variable definitions as VariableInfo items.
  */
-export function getFormVariableInfos(form: AnamnesisForm): VariableInfo[] {
+export function getFormVariableInfos(form: Form): VariableInfo[] {
   return form.fields
     .filter((f) => f.type !== 'section-header' && (f.variableKey ?? ''))
     .map((f) => ({
@@ -66,12 +66,12 @@ export function getFormVariableInfos(form: AnamnesisForm): VariableInfo[] {
 }
 
 /**
- * Returns all available variable infos (patient + form).
+ * Returns all available variable infos (customer + form).
  */
-export function getAllVariableInfos(form: AnamnesisForm | null): VariableInfo[] {
-  const patient = getPatientVariableInfos()
+export function getAllVariableInfos(form: Form | null): VariableInfo[] {
+  const customer = getCustomerVariableInfos()
   const formVars = form ? getFormVariableInfos(form) : []
-  return [...patient, ...formVars]
+  return [...customer, ...formVars]
 }
 
 // ========== Answer Display ==========
@@ -114,13 +114,13 @@ export function resolveAnswerDisplay(
 // ========== Variable Resolution ==========
 
 /**
- * Builds a VariableMap from patient data.
+ * Builds a VariableMap from customer data.
  */
-function getPatientVariables(patient: PatientData | null): VariableMap {
-  if (!patient) return {}
+function getCustomerVariables(customer: CustomerData | null): VariableMap {
+  if (!customer) return {}
   const map: VariableMap = {}
-  for (const def of PATIENT_VARIABLE_DEFS) {
-    const value = patient[def.field]
+  for (const def of CUSTOMER_VARIABLE_DEFS) {
+    const value = customer[def.field]
     if (value) map[def.key] = String(value)
   }
   return map
@@ -130,7 +130,7 @@ function getPatientVariables(patient: PatientData | null): VariableMap {
  * Builds a VariableMap from form response answers.
  * Only fields with variableKey set are included.
  */
-function getFormVariables(form: AnamnesisForm, response: FormResponse): VariableMap {
+function getFormVariables(form: Form, response: FormResponse): VariableMap {
   const map: VariableMap = {}
 
   for (const field of form.fields) {
@@ -149,16 +149,16 @@ function getFormVariables(form: AnamnesisForm, response: FormResponse): Variable
 
 /**
  * Builds a unified VariableMap from all available sources.
- * Priority: backendData > form > patient (last wins).
+ * Priority: backendData > form > customer (last wins).
  */
 export function buildVariableMap(
-  patient: PatientData | null,
-  form: AnamnesisForm | null,
+  customer: CustomerData | null,
+  form: Form | null,
   response: FormResponse | null,
   backendData?: Record<string, string>,
 ): VariableMap {
   const map: VariableMap = {
-    ...getPatientVariables(patient),
+    ...getCustomerVariables(customer),
     ...(form && response ? getFormVariables(form, response) : {}),
     ...(backendData ?? {}),
   }

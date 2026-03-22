@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { ChartTemplate } from '@/types'
-import { getChartTemplates } from '@/lib/chart-template-service'
+import { getChartTemplates } from '@/lib/api/template-api'
 
 interface ChartTemplatePickerProps {
   onSelectTemplate: (templateId: string) => void
@@ -14,8 +14,11 @@ export default function ChartTemplatePicker({
   onBack,
 }: ChartTemplatePickerProps) {
   const [search, setSearch] = useState('')
+  const [templates, setTemplates] = useState<ChartTemplate[]>([])
 
-  const templates = useMemo(() => getChartTemplates(), [])
+  useEffect(() => {
+    getChartTemplates().then(setTemplates).catch(() => {})
+  }, [])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return templates

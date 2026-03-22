@@ -50,10 +50,11 @@ export interface Solicitor {
   specialty?: string
 }
 
-// ========== Patient ==========
+// ========== Customer ==========
 
-export interface PatientData {
+export interface CustomerData {
   name: string
+  sex: string // Masculino, Feminino, Outro
   cpf: string
   birthDate: string // ISO date string
   age: string // editável — ex: "32 anos e 4 meses"
@@ -77,26 +78,26 @@ export interface PatientData {
   referralDoctor?: string      // médico solicitante
 }
 
-export interface Patient {
+export interface Customer {
   id: string
   createdAt: string
   updatedAt: string
-  data: PatientData
+  data: CustomerData
 }
 
-export interface PatientNote {
+export interface CustomerNote {
   id: string
-  patientId: string
+  customerId: string
   createdAt: string
   updatedAt: string
   content: string
 }
 
-// ========== Patient Timeline ==========
+// ========== Customer Timeline ==========
 
-export type PatientEventType = 'consulta' | 'retorno' | 'avaliacao' | 'laudo' | 'observacao'
+export type CustomerEventType = string
 
-export const PATIENT_EVENT_TYPE_LABELS: Record<PatientEventType, string> = {
+export const CUSTOMER_EVENT_TYPE_LABELS: Record<string, string> = {
   consulta: 'Consulta',
   retorno: 'Retorno',
   avaliacao: 'Avaliação',
@@ -104,21 +105,151 @@ export const PATIENT_EVENT_TYPE_LABELS: Record<PatientEventType, string> = {
   observacao: 'Observação',
 }
 
-export const PATIENT_EVENT_TYPE_COLORS: Record<PatientEventType, string> = {
+export const CUSTOMER_EVENT_TYPE_COLORS: Record<string, string> = {
   consulta: 'bg-blue-500',
   retorno: 'bg-emerald-500',
   avaliacao: 'bg-purple-500',
   laudo: 'bg-amber-500',
   observacao: 'bg-gray-400',
+  // Tipos adicionais por vertical
+  vistoria: 'bg-blue-500',
+  medicao: 'bg-emerald-500',
+  ocorrencia: 'bg-red-500',
+  relatorio_tecnico: 'bg-purple-500',
+  audiencia: 'bg-blue-500',
+  peticao: 'bg-emerald-500',
+  despacho: 'bg-purple-500',
+  parecer: 'bg-amber-500',
+  atendimento: 'bg-blue-500',
+  reuniao: 'bg-purple-500',
+  encaminhamento: 'bg-amber-500',
+  nota: 'bg-gray-300',
 }
 
-export interface PatientEvent {
+// ========== Vertical Record Config ==========
+
+export interface VerticalEventTypeOption {
+  value: string
+  label: string
+}
+
+export interface VerticalRecordConfig {
+  tabName: string
+  eventTypes: VerticalEventTypeOption[]
+}
+
+const HEALTH_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'consulta', label: 'Consulta' },
+  { value: 'retorno', label: 'Retorno' },
+  { value: 'avaliacao', label: 'Avaliação' },
+  { value: 'laudo', label: 'Laudo' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const ENGINEERING_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'vistoria', label: 'Vistoria' },
+  { value: 'medicao', label: 'Medição' },
+  { value: 'ocorrencia', label: 'Ocorrência' },
+  { value: 'relatorio_tecnico', label: 'Relatório Técnico' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const LEGAL_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'audiencia', label: 'Audiência' },
+  { value: 'peticao', label: 'Petição' },
+  { value: 'despacho', label: 'Despacho' },
+  { value: 'parecer', label: 'Parecer' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const EDUCATION_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'atendimento', label: 'Atendimento' },
+  { value: 'avaliacao', label: 'Avaliação' },
+  { value: 'reuniao', label: 'Reunião' },
+  { value: 'encaminhamento', label: 'Encaminhamento' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+const GENERAL_EVENT_TYPES: VerticalEventTypeOption[] = [
+  { value: 'atendimento', label: 'Atendimento' },
+  { value: 'retorno', label: 'Retorno' },
+  { value: 'avaliacao', label: 'Avaliação' },
+  { value: 'relatorio_tecnico', label: 'Relatório Técnico' },
+  { value: 'observacao', label: 'Observação' },
+]
+
+export const VERTICAL_RECORD_CONFIG: Record<string, VerticalRecordConfig> = {
+  HEALTH: { tabName: 'Prontuário', eventTypes: HEALTH_EVENT_TYPES },
+  ENGINEERING: { tabName: 'Diário de Obra', eventTypes: ENGINEERING_EVENT_TYPES },
+  LEGAL: { tabName: 'Acompanhamento Processual', eventTypes: LEGAL_EVENT_TYPES },
+  EDUCATION: { tabName: 'Registro Pedagógico', eventTypes: EDUCATION_EVENT_TYPES },
+  GENERAL: { tabName: 'Registro de Atendimento', eventTypes: GENERAL_EVENT_TYPES },
+}
+
+export function getVerticalRecordConfig(vertical: string): VerticalRecordConfig {
+  return VERTICAL_RECORD_CONFIG[vertical] ?? VERTICAL_RECORD_CONFIG.GENERAL
+}
+
+export interface CustomerEvent {
   id: string
-  patientId: string
-  type: PatientEventType
+  customerId: string
+  type: CustomerEventType
   title: string
   description: string
   date: string       // ISO datetime — data/hora do evento
+  createdAt: string
+}
+
+// ========== Calendar Event Tags ==========
+
+export interface EventTag {
+  id: string
+  name: string
+  color: string
+  createdAt: string
+  updatedAt: string
+}
+
+// ========== Calendar Events (Google Calendar pattern) ==========
+
+export interface EventDateTime {
+  date?: string
+  dateTime?: string
+  timeZone?: string
+}
+
+export interface CalendarEvent {
+  id: string
+  summary: string
+  description?: string
+  location?: string
+  start: EventDateTime
+  end: EventDateTime
+  allDay: boolean
+  tagId?: string
+  tagName?: string
+  tagColor?: string
+  customerId?: string
+  customerName?: string
+  status: 'confirmed' | 'tentative' | 'cancelled'
+  recurrence?: string[]
+  reminders?: { useDefault: boolean; overrides?: { method: string; minutes: number }[] }
+  googleEventId?: string
+  iCalUID?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// ========== Customer Event (calendar global view — from prontuário) ==========
+
+export interface CustomerCalendarEvent {
+  id: string
+  customerId: string
+  customerName: string
+  type: CustomerEventType
+  title: string
+  description: string
+  date: string
   createdAt: string
 }
 
@@ -127,8 +258,8 @@ export interface PatientEvent {
 export interface IdentificationData {
   professional: Professional
   solicitor?: Solicitor
-  patient: PatientData
-  date: string // data do laudo
+  customer: CustomerData
+  date: string // data do relatório
   location: string // ex: "Belo Horizonte - MG"
 }
 
@@ -259,6 +390,19 @@ export interface ScoreTableData {
   templateId?: string | null
 }
 
+// ========== Base Template ==========
+
+export interface BaseTemplate {
+  id: string
+  name: string
+  description: string
+  instrumentName: string
+  category: string
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 // ========== Score Table Templates ==========
 
 export interface ScoreTableTemplateColumn {
@@ -272,27 +416,14 @@ export interface ScoreTableTemplateRow {
   defaultValues: Record<string, string>  // inclui fórmulas como valores
 }
 
-export interface ScoreTableTemplate {
-  id: string
-  name: string
-  description: string
-  instrumentName: string
-  category: string
+export interface ScoreTableTemplate extends BaseTemplate {
   columns: ScoreTableTemplateColumn[]
   rows: ScoreTableTemplateRow[]
-  isDefault: boolean
-  createdAt: string
-  updatedAt: string
 }
 
 // ========== Chart Templates ==========
 
-export interface ChartTemplate {
-  id: string
-  name: string
-  description: string
-  instrumentName: string
-  category: string
+export interface ChartTemplate extends BaseTemplate {
   chartType: ChartType
   displayMode: ChartDisplayMode
   series: ChartSeries[]
@@ -303,9 +434,6 @@ export interface ChartTemplate {
   showValues: boolean
   showLegend: boolean
   showRegionLegend: boolean
-  isDefault: boolean
-  createdAt: string
-  updatedAt: string
 }
 
 export interface InfoBoxData {
@@ -396,50 +524,54 @@ export interface Block {
   order: number
   data: BlockData
   collapsed: boolean
+  pageBreakBefore?: boolean
+  generatedByAi?: boolean
+  generationId?: string
 }
 
-// ========== Laudo ==========
+// ========== Report ==========
 
-export type LaudoStatus = 'rascunho' | 'em_revisao' | 'finalizado'
+export type ReportStatus = 'rascunho' | 'em_revisao' | 'finalizado'
 
-export const LAUDO_STATUS_LABELS: Record<LaudoStatus, string> = {
+export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
   rascunho: 'Rascunho',
   em_revisao: 'Em Revisão',
   finalizado: 'Finalizado',
 }
 
-export const LAUDO_STATUS_COLORS: Record<LaudoStatus, { bg: string; text: string }> = {
+export const REPORT_STATUS_COLORS: Record<ReportStatus, { bg: string; text: string }> = {
   rascunho: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
   em_revisao: { bg: 'bg-blue-100', text: 'text-blue-700' },
   finalizado: { bg: 'bg-green-100', text: 'text-green-700' },
 }
 
-export const LAUDO_STATUS_TRANSITIONS: Record<LaudoStatus, LaudoStatus[]> = {
+export const REPORT_STATUS_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
   rascunho: ['em_revisao', 'finalizado'],
   em_revisao: ['rascunho', 'finalizado'],
   finalizado: ['em_revisao'],
 }
 
-export interface Laudo {
+export interface Report {
   id: string
   createdAt: string
   updatedAt: string
-  status: LaudoStatus
-  patientName: string
-  patientId?: string
-  formResponseId?: string  // link para resposta de formulário que gerou este laudo
+  status: ReportStatus
+  customerName: string
+  customerId?: string
+  formId?: string           // link para formulário de origem
+  formResponseId?: string   // link para resposta de formulário que gerou este relatório
   blocks: Block[]
 }
 
-// ========== Laudo Versioning ==========
+// ========== Report Versioning ==========
 
-export interface LaudoVersion {
+export interface ReportVersion {
   id: string
-  laudoId: string
+  reportId: string
   createdAt: string
-  status: LaudoStatus
+  status: ReportStatus
   description: string
-  patientName: string
+  customerName: string
   blocks: Block[]
 }
 
@@ -464,7 +596,7 @@ export interface TemplateBlock {
   data: BlockData
 }
 
-export interface LaudoTemplate {
+export interface ReportTemplate {
   id: string
   name: string
   description: string
@@ -486,9 +618,10 @@ export const DEFAULT_SCORE_COLUMNS: ScoreTableColumn[] = [
 
 // ========== Factory Functions ==========
 
-export function createEmptyPatient(): PatientData {
+export function createEmptyCustomerData(): CustomerData {
   return {
     name: '',
+    sex: '',
     cpf: '',
     birthDate: '',
     age: '',
@@ -499,31 +632,31 @@ export function createEmptyPatient(): PatientData {
   }
 }
 
-export function createEmptyPatientRecord(): Patient {
+export function createEmptyCustomer(): Customer {
   return {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    data: createEmptyPatient(),
+    data: createEmptyCustomerData(),
   }
 }
 
-export function createEmptyPatientNote(patientId: string): PatientNote {
+export function createEmptyCustomerNote(customerId: string): CustomerNote {
   const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
-    patientId,
+    customerId,
     createdAt: now,
     updatedAt: now,
     content: '',
   }
 }
 
-export function createEmptyPatientEvent(patientId: string, type: PatientEventType = 'consulta'): PatientEvent {
+export function createEmptyCustomerEvent(customerId: string, type: CustomerEventType = 'consulta'): CustomerEvent {
   const now = new Date().toISOString()
   return {
     id: crypto.randomUUID(),
-    patientId,
+    customerId,
     type,
     title: '',
     description: '',
@@ -543,7 +676,7 @@ export function createEmptyProfessional(): Professional {
 export function createEmptyIdentificationData(professional?: Professional): IdentificationData {
   return {
     professional: professional ?? createEmptyProfessional(),
-    patient: createEmptyPatient(),
+    customer: createEmptyCustomerData(),
     date: new Date().toISOString().split('T')[0],
     location: '',
   }
@@ -581,7 +714,7 @@ export function createEmptyChartData(): ChartData {
     title: '',
     chartType: 'bar',
     displayMode: 'grouped',
-    series: [{ id: seriesId, label: 'Série 1', color: '#2E86C1' }],
+    series: [{ id: seriesId, label: 'Série 1', color: '#007AFF' }],
     categories: [],
     referenceLines: [],
     referenceRegions: [],
@@ -690,7 +823,7 @@ export function createChartFromTemplate(template: ChartTemplate): ChartData {
   }
 }
 
-// ========== Anamnesis Form ==========
+// ========== Form ==========
 
 export type FormFieldType =
   | 'short-text'
@@ -753,7 +886,7 @@ export type VariableMap = Record<string, string>
 export interface VariableInfo {
   key: string
   label: string
-  source: 'patient' | 'form' | 'backend'
+  source: 'customer' | 'form' | 'backend'
 }
 
 export interface FormFieldMapping {
@@ -762,15 +895,28 @@ export interface FormFieldMapping {
   hint: string                // dica livre para a IA, ex: "nível de escolaridade do paciente"
 }
 
-export interface AnamnesisForm {
+export interface Form {
   id: string
   title: string
   description: string
   createdAt: string
   updatedAt: string
   fields: FormField[]
-  linkedTemplateId: string | null  // link para LaudoTemplate.id
+  linkedTemplateId: string | null
   fieldMappings: FormFieldMapping[]
+  currentVersion: number
+  isDefault?: boolean
+}
+
+export interface FormVersion {
+  id: string
+  formId: string
+  version: number
+  title: string
+  description: string | null
+  fields: FormField[]
+  fieldMappings: FormFieldMapping[]
+  createdAt: string
 }
 
 export type FormResponseStatus = 'em_andamento' | 'concluido'
@@ -795,13 +941,15 @@ export interface FormFieldAnswer {
 export interface FormResponse {
   id: string
   formId: string
-  patientId: string | null     // link opcional ao cadastro de pacientes
-  patientName: string          // sempre armazenado (pode não estar no cadastro)
+  formVersionId: string
+  customerId: string | null
+  customerName: string
   status: FormResponseStatus
   answers: FormFieldAnswer[]
   createdAt: string
   updatedAt: string
-  generatedLaudoId: string | null  // preenchido após IA gerar o laudo
+  generatedReportId: string | null
+  version?: number
 }
 
 // ========== Form Factory Functions ==========
@@ -833,7 +981,7 @@ export function createEmptyFormField(type: FormFieldType = 'short-text', order: 
   }
 }
 
-export function createEmptyAnamnesisForm(): AnamnesisForm {
+export function createEmptyForm(): Form {
   return {
     id: crypto.randomUUID(),
     title: '',
@@ -843,6 +991,7 @@ export function createEmptyAnamnesisForm(): AnamnesisForm {
     fields: [],
     linkedTemplateId: null,
     fieldMappings: [],
+    currentVersion: 1,
   }
 }
 
@@ -859,13 +1008,14 @@ export function createEmptyFormResponse(formId: string): FormResponse {
   return {
     id: crypto.randomUUID(),
     formId,
-    patientId: null,
-    patientName: '',
+    formVersionId: '',
+    customerId: null,
+    customerName: '',
     status: 'em_andamento',
     answers: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    generatedLaudoId: null,
+    generatedReportId: null,
   }
 }
 
@@ -876,4 +1026,184 @@ export interface FormSectionGroup {
   sectionTitle: string
   sectionField: FormField | null
   children: FormField[]
+}
+
+// ========== API Error Types (RFC 7807 ProblemDetail) ==========
+
+export type ApiErrorCode =
+  | 'RESOURCE_NOT_FOUND'
+  | 'DUPLICATE_RESOURCE'
+  | 'INVALID_CREDENTIALS'
+  | 'INVALID_TOKEN'
+  | 'TOKEN_EXPIRED'
+  | 'ACCESS_DENIED'
+  | 'BUSINESS_RULE_VIOLATION'
+  | 'VALIDATION_ERROR'
+  | 'INTERNAL_ERROR'
+  | 'QUOTA_EXCEEDED'
+  | 'RATE_LIMITED'
+  | 'AI_UNAVAILABLE'
+
+export interface ValidationFieldError {
+  field: string
+  message: string
+  rejectedValue: unknown
+}
+
+export interface ProblemDetailProperties {
+  errorCode: ApiErrorCode
+  timestamp: string
+  resource?: string
+  identifier?: string
+  field?: string
+  value?: string
+  errors?: ValidationFieldError[]
+  traceId?: string
+}
+
+export interface ProblemDetail {
+  type: string
+  title: string
+  status: number
+  detail: string
+  instance: string
+  properties: ProblemDetailProperties
+}
+
+// ========== Public Form ==========
+
+export type FormLinkStatus = 'PENDING' | 'ANSWERED' | 'EXPIRED'
+
+export interface FormLink {
+  id: string
+  token: string
+  formId: string
+  customerId: string
+  status: FormLinkStatus
+  expiresAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PublicFormData {
+  formTitle: string
+  formDescription: string | null
+  fields: FormField[]
+  customerName: string | null
+  expiresAt: string
+}
+
+// ========== Auth Types ==========
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterRequest {
+  name: string
+  email: string
+  password: string
+  vertical?: string
+}
+
+export interface RefreshRequest {
+  refreshToken: string
+}
+
+export interface SwitchTenantRequest {
+  tenantId: string
+}
+
+export interface AuthResponse {
+  accessToken: string
+  refreshToken: string
+  userId: string
+  email: string
+  name: string
+  tenantId: string
+  vertical: string
+}
+
+export interface AuthUser {
+  id: string
+  email: string
+  name: string
+  tenantId: string
+  vertical: string
+}
+
+// ========== Workspace Types ==========
+
+export type TenantType = 'PERSONAL' | 'ORGANIZATION'
+export type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER'
+
+export interface Workspace {
+  tenantId: string
+  name: string
+  type: TenantType
+  vertical: string
+  role: MemberRole | null
+}
+
+// ========== AI Types ==========
+
+export type AiGenerationStatus = 'SUCCESS' | 'ERROR' | 'TIMEOUT'
+
+export interface AiGenerationRequest {
+  sectionType: string
+  formResponseId?: string
+  customerId?: string
+}
+
+export interface AiGenerationResponse {
+  text: string
+  tokensUsed: number
+  model: string
+  generationId: string
+  cached: boolean
+}
+
+export interface AiUsageSummary {
+  used: number
+  limit: number
+  overage: number
+  overageCostCents: number
+  tierName: string | null
+  alertLevel: string | null
+  alertMessage: string | null
+}
+
+export interface AiUsageDetail {
+  id: string
+  reportId: string | null
+  generationId: string
+  sectionType: string
+  model: string
+  inputTokens: number
+  outputTokens: number
+  estimatedCostBrl: number
+  status: AiGenerationStatus
+  durationMs: number
+  isRegeneration: boolean
+  createdAt: string
+}
+
+export interface AiRegenerateSectionRequest {
+  sectionType: string
+  generationId: string
+}
+
+export interface AiQuotaResponse {
+  tier: string
+  model: string
+  monthlyLimit: number
+  overagePriceCents: number
+  enabled: boolean
+}
+
+export interface AiStatusResponse {
+  available: boolean
+  tierName: string | null
+  model: string | null
 }

@@ -115,6 +115,16 @@ export default function OutlineTree({
     [blocks, onBlocksChange]
   )
 
+  const togglePageBreak = useCallback(
+    (blockId: string) => {
+      const updated = blocks.map((b) =>
+        b.id === blockId ? { ...b, pageBreakBefore: !b.pageBreakBefore } : b
+      )
+      onBlocksChange(updated)
+    },
+    [blocks, onBlocksChange]
+  )
+
   const duplicateBlock = useCallback(
     (blockId: string) => {
       const block = blocks.find((b) => b.id === blockId)
@@ -429,6 +439,7 @@ export default function OutlineTree({
                         onDuplicate={duplicateBlock}
                         onRemove={handleRemoveRequest}
                         onChange={updateBlockData}
+                        onTogglePageBreak={togglePageBreak}
                       />
                     </div>
 
@@ -458,6 +469,7 @@ export default function OutlineTree({
                               onDuplicate={duplicateBlock}
                               onRemove={handleRemoveRequest}
                               onChange={updateBlockData}
+                              onTogglePageBreak={togglePageBreak}
                             />
                           </div>
                         </div>
@@ -506,6 +518,7 @@ export default function OutlineTree({
                                 onDuplicate={duplicateBlock}
                                 onRemove={handleRemoveRequest}
                                 onChange={updateBlockData}
+                                onTogglePageBreak={togglePageBreak}
                               />
                             </div>
 
@@ -532,6 +545,7 @@ export default function OutlineTree({
                                         onDuplicate={duplicateBlock}
                                         onRemove={handleRemoveRequest}
                                         onChange={updateBlockData}
+                                        onTogglePageBreak={togglePageBreak}
                                       />
                                     </div>
                                   </div>
@@ -551,6 +565,7 @@ export default function OutlineTree({
                                 onDuplicate={duplicateBlock}
                                 onRemove={handleRemoveRequest}
                                 onChange={updateBlockData}
+                                onTogglePageBreak={togglePageBreak}
                               />
                             </div>
                           ))}
@@ -574,6 +589,7 @@ export default function OutlineTree({
                           onDuplicate={duplicateBlock}
                           onRemove={handleRemoveRequest}
                           onChange={updateBlockData}
+                          onTogglePageBreak={togglePageBreak}
                         />
                       </div>
                     ))}
@@ -587,6 +603,7 @@ export default function OutlineTree({
                           onDuplicate={duplicateBlock}
                           onRemove={handleRemoveRequest}
                           onChange={updateBlockData}
+                          onTogglePageBreak={togglePageBreak}
                         />
                         {sub.children.map((leaf) => (
                           <OutlineRow
@@ -598,6 +615,7 @@ export default function OutlineTree({
                             onDuplicate={duplicateBlock}
                             onRemove={handleRemoveRequest}
                             onChange={updateBlockData}
+                            onTogglePageBreak={togglePageBreak}
                           />
                         ))}
                       </div>
