@@ -54,6 +54,7 @@ export interface Solicitor {
 
 export interface CustomerData {
   name: string
+  sex: string // Masculino, Feminino, Outro
   cpf: string
   birthDate: string // ISO date string
   age: string // editável — ex: "32 anos e 4 meses"
@@ -524,6 +525,8 @@ export interface Block {
   data: BlockData
   collapsed: boolean
   pageBreakBefore?: boolean
+  generatedByAi?: boolean
+  generationId?: string
 }
 
 // ========== Report ==========
@@ -618,6 +621,7 @@ export const DEFAULT_SCORE_COLUMNS: ScoreTableColumn[] = [
 export function createEmptyCustomerData(): CustomerData {
   return {
     name: '',
+    sex: '',
     cpf: '',
     birthDate: '',
     age: '',
@@ -1036,6 +1040,9 @@ export type ApiErrorCode =
   | 'BUSINESS_RULE_VIOLATION'
   | 'VALIDATION_ERROR'
   | 'INTERNAL_ERROR'
+  | 'QUOTA_EXCEEDED'
+  | 'RATE_LIMITED'
+  | 'AI_UNAVAILABLE'
 
 export interface ValidationFieldError {
   field: string
@@ -1137,4 +1144,66 @@ export interface Workspace {
   type: TenantType
   vertical: string
   role: MemberRole | null
+}
+
+// ========== AI Types ==========
+
+export type AiGenerationStatus = 'SUCCESS' | 'ERROR' | 'TIMEOUT'
+
+export interface AiGenerationRequest {
+  sectionType: string
+  formResponseId?: string
+  customerId?: string
+}
+
+export interface AiGenerationResponse {
+  text: string
+  tokensUsed: number
+  model: string
+  generationId: string
+  cached: boolean
+}
+
+export interface AiUsageSummary {
+  used: number
+  limit: number
+  overage: number
+  overageCostCents: number
+  tierName: string | null
+  alertLevel: string | null
+  alertMessage: string | null
+}
+
+export interface AiUsageDetail {
+  id: string
+  reportId: string | null
+  generationId: string
+  sectionType: string
+  model: string
+  inputTokens: number
+  outputTokens: number
+  estimatedCostBrl: number
+  status: AiGenerationStatus
+  durationMs: number
+  isRegeneration: boolean
+  createdAt: string
+}
+
+export interface AiRegenerateSectionRequest {
+  sectionType: string
+  generationId: string
+}
+
+export interface AiQuotaResponse {
+  tier: string
+  model: string
+  monthlyLimit: number
+  overagePriceCents: number
+  enabled: boolean
+}
+
+export interface AiStatusResponse {
+  available: boolean
+  tierName: string | null
+  model: string | null
 }

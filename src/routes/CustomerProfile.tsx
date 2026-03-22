@@ -6,6 +6,8 @@ import type {
   CustomerNote,
   CustomerEvent,
   Report,
+  ReportTemplate,
+  Block,
   FormResponse,
   FormLink,
   Form,
@@ -17,8 +19,10 @@ import {
   getCustomerNotes,
   getCustomerEvents,
 } from '@/lib/api/customer-api'
-import { getReportsByCustomer } from '@/lib/api/report-api'
-import { getFormResponsesByCustomer, listForms } from '@/lib/api/form-api'
+import { getReportsByCustomer, createReport } from '@/lib/api/report-api'
+import { getReportTemplates } from '@/lib/api/template-api'
+import { getAllTemplates } from '@/lib/default-templates'
+import { getFormResponsesByCustomer, listForms, listFormResponses } from '@/lib/api/form-api'
 import { getFormLinksByCustomer, createFormLink, revokeFormLink } from '@/lib/api/form-link-api'
 import { formatDateTime, calculateAge } from '@/lib/utils'
 import { createReportFromCustomer } from '@/lib/report-utils'
@@ -29,8 +33,10 @@ import {
   FORM_RESPONSE_STATUS_COLORS,
 } from '@/types'
 import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
 import TextArea from '@/components/ui/TextArea'
 import Button from '@/components/ui/Button'
+import Modal from '@/components/ui/Modal'
 import CustomerRecordTab from '@/components/customer/CustomerRecordTab'
 import StatusBadge from '@/components/ui/StatusBadge'
 import ListCard, { ListCardPill } from '@/components/ui/ListCard'
@@ -109,6 +115,9 @@ export default function CustomerProfile() {
   const [selectedFormId, setSelectedFormId] = useState('')
   const [generatingLink, setGeneratingLink] = useState(false)
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null)
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [allTemplates, setAllTemplates] = useState<ReportTemplate[]>([])
+  const [creatingReport, setCreatingReport] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -168,12 +177,65 @@ export default function CustomerProfile() {
   const handleCreateReport = useCallback(async () => {
     if (!customer) return
     try {
+      const customTemplates = await getReportTemplates()
+      setAllTemplates(getAllTemplates(customTemplates))
+      setShowTemplateModal(true)
+    } catch (err) {
+      showError(err)
+    }
+  }, [customer, showError])
+
+  const handleCreateFromScratch = useCallback(async () => {
+    if (!customer) return
+    try {
       const report = await createReportFromCustomer(customer)
+      setShowTemplateModal(false)
       navigate(`/reports/${report.id}`)
     } catch (err) {
       showError(err)
     }
   }, [customer, navigate, showError])
+
+  const handleCreateFromTemplate = useCallback(async (template: ReportTemplate) => {
+    if (!customer || creatingReport) return
+    setCreatingReport(true)
+    try {
+      const blocks: Block[] = template.blocks.map((tb) => ({
+        id: crypto.randomUUID(),
+        type: tb.type,
+        order: tb.order,
+        data: JSON.parse(JSON.stringify(tb.data)),
+        collapsed: false,
+      }))
+
+      let formResponseId: string | undefined
+      const linkedForm = forms.find((f) => f.linkedTemplateId === template.id)
+      if (linkedForm) {
+        const responses = await listFormResponses(linkedForm.id)
+        const customerResponse = responses.find(
+          (r) => r.customerId === customer.id && !r.generatedReportId
+        )
+        if (customerResponse) {
+          formResponseId = customerResponse.id
+        }
+      }
+
+      const report = await createReport({
+        status: 'rascunho',
+        customerName: customer.data.name,
+        customerId: customer.id,
+        formResponseId,
+        blocks,
+      })
+
+      setShowTemplateModal(false)
+      navigate(`/reports/${report.id}`)
+    } catch (err) {
+      showError(err)
+    } finally {
+      setCreatingReport(false)
+    }
+  }, [customer, forms, creatingReport, navigate, showError])
 
   const handleGenerateLink = useCallback(async () => {
     if (!customer || !selectedFormId) return
@@ -240,6 +302,7 @@ export default function CustomerProfile() {
       <SectionCard title="Dados Pessoais" onSave={handleSaveSection} saving={saving}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Nome completo" value={editData!.name} onChange={(e) => updateField('name', e.target.value)} />
+          <Select label="Sexo" value={editData!.sex || ''} onChange={(value) => updateField('sex', value)} options={[{ value: '', label: 'Selecione...' }, { value: 'Masculino', label: 'Masculino' }, { value: 'Feminino', label: 'Feminino' }, { value: 'Outro', label: 'Outro' }]} />
           <Input label="CPF" value={editData!.cpf} onChange={(e) => updateField('cpf', e.target.value)} />
           <Input label="Data de Nascimento" type="date" value={editData!.birthDate} onChange={(e) => updateField('birthDate', e.target.value)} />
           <div>
@@ -642,6 +705,68 @@ export default function CustomerProfile() {
           {sectionRenderers[activeSection]()}
         </div>
       </div>
+
+      <Modal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        title="Novo Relatório"
+        size="md"
+      >
+        <div className="p-4 space-y-4">
+          <button
+            type="button"
+            onClick={handleCreateFromScratch}
+            className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/50 transition-all text-left"
+          >
+            <div className="p-3 rounded-lg bg-gray-100">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Começar do zero</p>
+              <p className="text-xs text-gray-500 mt-0.5">Relatório vazio com bloco de identificação</p>
+            </div>
+          </button>
+
+          {allTemplates.length > 0 && (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400 uppercase font-medium">ou use um template</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              <div className="space-y-2">
+                {allTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    disabled={creatingReport}
+                    onClick={() => handleCreateFromTemplate(template)}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/50 transition-all text-left disabled:opacity-50"
+                  >
+                    <div className="p-3 rounded-lg bg-brand-100">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-600" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900">{template.name}</p>
+                      {template.description && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{template.description}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-0.5">{template.blocks.length} blocos</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }

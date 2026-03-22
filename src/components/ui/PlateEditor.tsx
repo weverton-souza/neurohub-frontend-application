@@ -255,7 +255,6 @@ export default function PlateEditorComponent({
     value: initialValueRef.current,
   })
 
-  // Sync external content changes (e.g. undo, load from storage)
   useEffect(() => {
     if (isExternalUpdate.current) {
       isExternalUpdate.current = false
@@ -263,7 +262,8 @@ export default function PlateEditorComponent({
     }
     const currentJson = JSON.stringify(editor.children)
     const newJson = JSON.stringify(content)
-    if (currentJson !== newJson && content) {
+    if (currentJson !== newJson && content && content.length > 0) {
+      isExternalUpdate.current = true
       editor.tf.setValue(content as Value)
     }
   }, [content, editor])
