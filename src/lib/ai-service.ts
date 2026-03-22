@@ -223,31 +223,17 @@ export function parseAIResponse(raw: string, template: ReportTemplate): ReportGe
   }
 }
 
-// ========== Gerador (placeholder para backend) ==========
+// ========== Gerador (DEPRECATED — use GenerateReportModal com ai-api.ts) ==========
 
 /**
- * Gera um laudo a partir das respostas do formulário usando IA.
- *
- * PLACEHOLDER: Esta função será implementada pelo backend.
- * Atualmente lança um erro informativo.
- *
- * Quando o backend estiver pronto, substituir por:
- *   const res = await fetch('/api/ai/generate-laudo', {
- *     method: 'POST',
- *     headers: { 'Content-Type': 'application/json' },
- *     body: JSON.stringify(request),
- *   })
- *   return await res.json()
+ * @deprecated Use o GenerateReportModal que chama ai-api.ts diretamente.
+ * Esta função era o placeholder antes da integração com o backend.
  */
 export async function generateReportFromResponse(
   request: ReportGenerationRequest
 ): Promise<ReportGenerationResult> {
-  // O prompt está pronto — basta enviá-lo ao backend
-  // buildPrompt(request) gera o texto completo
   void request
-
   throw new Error(
-    'O serviço de IA ainda não está configurado. ' +
-    'Configure o backend para utilizar a geração automática de laudos.'
+    'Use o GenerateReportModal atualizado que se integra diretamente com o backend de IA.'
   )
 }

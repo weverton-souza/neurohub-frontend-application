@@ -11,6 +11,9 @@ const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
   BUSINESS_RULE_VIOLATION: 'Operação não permitida.',
   VALIDATION_ERROR: 'Verifique os campos preenchidos.',
   INTERNAL_ERROR: 'Ocorreu um erro interno. Tente novamente mais tarde.',
+  QUOTA_EXCEEDED: 'Franquia mensal de IA atingida. Gerações adicionais serão cobradas como excedente.',
+  RATE_LIMITED: 'Limite de gerações simultâneas atingido. Tente novamente em instantes.',
+  AI_UNAVAILABLE: 'O serviço de IA está temporariamente indisponível.',
 }
 
 const ERROR_ICONS: Record<ApiErrorCode, { colorClass: string; iconType: ErrorIconType }> = {
@@ -23,6 +26,9 @@ const ERROR_ICONS: Record<ApiErrorCode, { colorClass: string; iconType: ErrorIco
   BUSINESS_RULE_VIOLATION: { colorClass: 'bg-amber-100 text-amber-600', iconType: 'warning' },
   VALIDATION_ERROR: { colorClass: 'bg-amber-100 text-amber-600', iconType: 'warning' },
   INTERNAL_ERROR: { colorClass: 'bg-red-100 text-red-600', iconType: 'error' },
+  QUOTA_EXCEEDED: { colorClass: 'bg-amber-100 text-amber-600', iconType: 'warning' },
+  RATE_LIMITED: { colorClass: 'bg-amber-100 text-amber-600', iconType: 'warning' },
+  AI_UNAVAILABLE: { colorClass: 'bg-amber-100 text-amber-600', iconType: 'warning' },
 }
 
 export type ErrorIconType = 'warning' | 'error' | 'lock'

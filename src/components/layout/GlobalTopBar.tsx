@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SettingsIcon } from '@/components/icons'
+import AiUsageBadge from '@/components/ai/AiUsageBadge'
+import AiUsageDashboard from '@/components/ai/AiUsageDashboard'
 
 interface GlobalTopBarProps {
   onOpenProfessionalModal: () => void
@@ -17,6 +19,7 @@ export default function GlobalTopBar({
 }: GlobalTopBarProps) {
   const { user, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showAiUsage, setShowAiUsage] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -41,6 +44,7 @@ export default function GlobalTopBar({
     : '?'
 
   return (
+    <>
     <header
       className="fixed top-0 right-0 h-12 bg-white/80 backdrop-blur-xl border-b border-gray-200 z-40 flex items-center px-4 gap-3"
       style={{ left: isMobile ? 0 : sidebarWidth }}
@@ -63,6 +67,9 @@ export default function GlobalTopBar({
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* AI Usage Badge */}
+      <AiUsageBadge onClick={() => setShowAiUsage(true)} />
 
       {/* Configurações profissionais */}
       <button
@@ -116,5 +123,8 @@ export default function GlobalTopBar({
         )}
       </div>
     </header>
+
+    <AiUsageDashboard isOpen={showAiUsage} onClose={() => setShowAiUsage(false)} />
+    </>
   )
 }

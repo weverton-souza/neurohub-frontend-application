@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Report, ReportTemplate, Block } from '@/types'
+import type { Report, ReportTemplate, Block, Customer, Form, FormResponse } from '@/types'
 import { getReports, createReport, deleteReport } from '@/lib/api/report-api'
 import { getReportTemplates, deleteReportTemplate } from '@/lib/api/template-api'
+import { getCustomers } from '@/lib/api/customer-api'
+import { listForms, listFormResponses } from '@/lib/api/form-api'
 import { getAllTemplates } from '@/lib/default-templates'
 import { formatDateTime } from '@/lib/utils'
 import { createEmptyReport } from '@/lib/report-utils'
@@ -18,6 +20,8 @@ import ListCard, { ListCardPill, ListCardAction, TrashIcon } from '@/components/
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal'
 import EmptyState from '@/components/ui/EmptyState'
 
+type ModalStep = 'templates' | 'select-customer'
+
 export default function ReportList() {
   const navigate = useNavigate()
   const { showError } = useError()
@@ -25,6 +29,13 @@ export default function ReportList() {
   const [reports, setReports] = useState<Report[]>([])
   const [customTemplates, setCustomTemplates] = useState<ReportTemplate[]>([])
   const [showNewModal, setShowNewModal] = useState(false)
+
+  const [modalStep, setModalStep] = useState<ModalStep>('templates')
+  const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null)
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [loadingCustomers, setLoadingCustomers] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
@@ -53,8 +64,24 @@ export default function ReportList() {
     }
   }, [navigate, showError])
 
-  const handleCreateFromTemplate = useCallback(
-    async (template: ReportTemplate) => {
+  const handleSelectTemplate = useCallback(async (template: ReportTemplate) => {
+    setSelectedTemplate(template)
+    setModalStep('select-customer')
+    setLoadingCustomers(true)
+    try {
+      const page = await getCustomers(0, 100)
+      setCustomers(page.content)
+    } catch (err) {
+      showError(err)
+    } finally {
+      setLoadingCustomers(false)
+    }
+  }, [showError])
+
+  const createReportFromTemplate = useCallback(
+    async (template: ReportTemplate, customerId?: string, customerName?: string, formResponseId?: string) => {
+      if (creating) return
+      setCreating(true)
       try {
         const blocks: Block[] = template.blocks.map((tb) => ({
           id: crypto.randomUUID(),
@@ -66,7 +93,9 @@ export default function ReportList() {
 
         const report = await createReport({
           status: 'rascunho',
-          customerName: '',
+          customerName: customerName || '',
+          customerId,
+          formResponseId,
           blocks,
         })
 
@@ -74,10 +103,49 @@ export default function ReportList() {
         navigate(`/reports/${report.id}`)
       } catch (err) {
         showError(err)
+      } finally {
+        setCreating(false)
       }
     },
-    [navigate, showError]
+    [navigate, showError, creating]
   )
+
+  const handleSelectCustomer = useCallback(async (customer: Customer) => {
+    if (!selectedTemplate) return
+
+    try {
+      const forms = await listForms()
+      const linkedForm = forms.find((f: Form) => f.linkedTemplateId === selectedTemplate.id)
+
+      let formResponseId: string | undefined
+      if (linkedForm) {
+        const responses = await listFormResponses(linkedForm.id)
+        const customerResponse = responses.find(
+          (r: FormResponse) => r.customerId === customer.id && !r.generatedReportId
+        )
+        if (customerResponse) {
+          formResponseId = customerResponse.id
+        }
+      }
+
+      const name = (customer.data?.name || '') as string
+      await createReportFromTemplate(selectedTemplate, customer.id, name, formResponseId)
+    } catch (err) {
+      showError(err)
+    }
+  }, [selectedTemplate, createReportFromTemplate, showError])
+
+  const handleSkipCustomer = useCallback(async () => {
+    if (!selectedTemplate) return
+    await createReportFromTemplate(selectedTemplate)
+  }, [selectedTemplate, createReportFromTemplate])
+
+  const closeNewModal = useCallback(() => {
+    setShowNewModal(false)
+    setModalStep('templates')
+    setSelectedTemplate(null)
+    setCustomerSearch('')
+  }, [])
 
   const handleDeleteReport = useCallback(async (id: string) => {
     try {
@@ -112,18 +180,27 @@ export default function ReportList() {
 
   const { page: paginatedPage, setCurrentPage, pageSize, changePageSize } = usePagination(sortedReports)
 
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch.trim()) return customers
+    const search = customerSearch.toLowerCase()
+    return customers.filter((c) => {
+      const name = ((c.data?.name || '') as string).toLowerCase()
+      const cpf = ((c.data?.cpf || '') as string).toLowerCase()
+      return name.includes(search) || cpf.includes(search)
+    })
+  }, [customers, customerSearch])
+
   return (
     <>
       <PageHeader
         title="Relatórios"
         subtitle="Montagem de relatórios"
         actions={
-          <Button onClick={() => setShowNewModal(true)}>+ Novo Relatório</Button>
+          <Button onClick={() => { setModalStep('templates'); setShowNewModal(true) }}>+ Novo Relatório</Button>
         }
       />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {/* Filters */}
         {reports.length > 0 && (
           <div className="mb-6 hidden sm:flex items-center justify-end">
             <div className="flex items-center gap-1.5">
@@ -159,10 +236,9 @@ export default function ReportList() {
             title="Nenhum relatório ainda"
             message="Crie seu primeiro relatório para começar"
             buttonLabel="+ Novo Relatório"
-            onAction={() => setShowNewModal(true)}
+            onAction={() => { setModalStep('templates'); setShowNewModal(true) }}
           />
         ) : (
-          /* Report list */
           <>
           <div className="space-y-3">
             {paginatedPage.content.map((report) => (
@@ -196,87 +272,166 @@ export default function ReportList() {
         )}
       </main>
 
-      {/* New Report Modal */}
       <Modal
         isOpen={showNewModal}
-        onClose={() => setShowNewModal(false)}
-        title="Novo Relatório"
+        onClose={closeNewModal}
+        title={modalStep === 'templates' ? 'Novo Relatório' : `Associar cliente — ${selectedTemplate?.name}`}
         size="md"
       >
-        <div className="p-4 space-y-4">
-          {/* From scratch */}
-          <button
-            type="button"
-            onClick={handleCreateFromScratch}
-            className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/50 transition-all text-left"
-          >
-            <div className="p-3 rounded-lg bg-gray-100">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Começar do zero</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Relatório vazio com bloco de identificação
-              </p>
-            </div>
-          </button>
+        {modalStep === 'templates' && (
+          <div className="p-4 space-y-4">
+            <button
+              type="button"
+              onClick={handleCreateFromScratch}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/50 transition-all text-left"
+            >
+              <div className="p-3 rounded-lg bg-gray-100">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Começar do zero</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Relatório vazio com bloco de identificação
+                </p>
+              </div>
+            </button>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400 uppercase font-medium">ou use um template</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 uppercase font-medium">ou use um template</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
 
-          {/* Templates */}
-          <div className="space-y-2">
-            {allTemplates.map((template) => (
-              <div
-                key={template.id}
-                className="flex items-center gap-3"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleCreateFromTemplate(template)}
-                  className="flex-1 flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/50 transition-all text-left"
+            <div className="space-y-2">
+              {allTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className="flex items-center gap-3"
                 >
-                  <div className="p-3 rounded-lg bg-brand-100">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-600" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">{template.name}</p>
-                    {template.description && (
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">
-                        {template.description}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {template.blocks.length} blocos
-                    </p>
-                  </div>
-                </button>
-                {!template.isDefault && (
                   <button
                     type="button"
-                    onClick={() => handleDeleteTemplate(template.id)}
-                    className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0"
-                    title="Excluir template"
+                    onClick={() => handleSelectTemplate(template)}
+                    className="flex-1 flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/50 transition-all text-left"
                   >
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
+                    <div className="p-3 rounded-lg bg-brand-100">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-600" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900">{template.name}</p>
+                      {template.description && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                          {template.description}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {template.blocks.length} blocos
+                      </p>
+                    </div>
                   </button>
-                )}
-              </div>
-            ))}
+                  {!template.isDefault && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTemplate(template.id)}
+                      className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                      title="Excluir template"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {modalStep === 'select-customer' && (
+          <div className="p-4 space-y-4">
+            <button
+              type="button"
+              onClick={handleSkipCustomer}
+              disabled={creating}
+              className="w-full flex items-center gap-4 p-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/50 transition-all text-left"
+            >
+              <div className="p-2 rounded-lg bg-gray-100">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 text-sm">Criar sem cliente</p>
+                <p className="text-xs text-gray-500">Associar depois no editor</p>
+              </div>
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 uppercase font-medium">ou selecione um cliente</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <input
+              type="text"
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              placeholder="Buscar por nome ou CPF..."
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+            />
+
+            {loadingCustomers ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand-500 border-t-transparent" />
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <p className="text-center text-sm text-gray-400 py-6">
+                {customerSearch ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {filteredCustomers.map((customer) => {
+                  const name = (customer.data?.name || 'Sem nome') as string
+                  const cpf = (customer.data?.cpf || '') as string
+                  return (
+                    <button
+                      key={customer.id}
+                      type="button"
+                      disabled={creating}
+                      onClick={() => handleSelectCustomer(customer)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/50 transition-all text-left disabled:opacity-50"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm shrink-0">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate">{name}</p>
+                        {cpf && <p className="text-xs text-gray-500">{cpf}</p>}
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 shrink-0" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => { setModalStep('templates'); setCustomerSearch('') }}
+              className="w-full text-center text-sm text-gray-500 hover:text-brand-600 transition-colors py-1"
+            >
+              ← Voltar aos templates
+            </button>
+          </div>
+        )}
       </Modal>
 
       <ConfirmDeleteModal

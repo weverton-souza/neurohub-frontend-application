@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import type { Block, BlockType, BlockData, Report, ReportStatus, ReportVersion, TextBlockData, Customer, ScoreTableTemplate, ChartTemplate } from '@/types'
 import { createScoreTableFromTemplate, createChartFromTemplate } from '@/types'
 import { getReport, updateReport } from '@/lib/api/report-api'
+import { getUsageSummary } from '@/lib/api/ai-api'
 import { getCustomers } from '@/lib/api/customer-api'
 import { createReportTemplate, getScoreTableTemplates, getChartTemplates } from '@/lib/api/template-api'
 import { getFormById, getFormResponseById } from '@/lib/api/form-api'
@@ -22,6 +23,10 @@ import Input from '@/components/ui/Input'
 import StatusSelector from '@/components/editor/StatusSelector'
 import { HistoryIcon, SaveIcon } from '@/components/icons'
 import DotPattern from '@/components/ui/DotPattern'
+import AiUsageBadge from '@/components/ai/AiUsageBadge'
+import AiUsageDashboard from '@/components/ai/AiUsageDashboard'
+import AiFinalizationModal from '@/components/ai/AiFinalizationModal'
+import AiQuotaAlert from '@/components/ai/AiQuotaAlert'
 
 export default function ReportEditor() {
   const { id } = useParams<{ id: string }>()
@@ -45,6 +50,11 @@ export default function ReportEditor() {
   const [formProvenanceId, setFormProvenanceId] = useState<string | null>(null)
   const [scoreTableTemplates, setScoreTableTemplates] = useState<ScoreTableTemplate[]>([])
   const [chartTemplatesState, setChartTemplatesState] = useState<ChartTemplate[]>([])
+  const [showAiUsage, setShowAiUsage] = useState(false)
+  const [showAiFinalization, setShowAiFinalization] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<ReportStatus | null>(null)
+  const [aiAlertLevel, setAiAlertLevel] = useState<string | null>(null)
+  const [aiAlertMessage, setAiAlertMessage] = useState<string | null>(null)
   const sectionSelectorRef = useRef<HTMLDivElement>(null)
 
   const saveReportFn = useCallback((data: Report) => updateReport(data), [])
@@ -85,6 +95,13 @@ export default function ReportEditor() {
     }
     load()
   }, [id, navigate])
+
+  useEffect(() => {
+    getUsageSummary().then((summary) => {
+      setAiAlertLevel(summary.alertLevel)
+      setAiAlertMessage(summary.alertMessage)
+    }).catch(() => {})
+  }, [])
 
   // Versioning
   const {
@@ -243,8 +260,18 @@ export default function ReportEditor() {
     }
   }, [report, templateName, templateDesc, showError])
 
+  const hasAiBlocks = useMemo(
+    () => report?.blocks.some((b) => b.generatedByAi) ?? false,
+    [report?.blocks]
+  )
+
   const handleGenerateDocx = useCallback(async () => {
     if (!report) return
+
+    if (hasAiBlocks && report.status === 'rascunho') {
+      showError(new Error('Revise e finalize o laudo antes de exportar. Laudos com IA precisam ser revisados.'))
+      return
+    }
 
     try {
       createExportSnapshot('DOCX')
@@ -257,7 +284,15 @@ export default function ReportEditor() {
     } catch (err) {
       showError(err)
     }
-  }, [report, createExportSnapshot, showError])
+  }, [report, createExportSnapshot, showError, hasAiBlocks])
+
+  const handleConfirmAiFinalization = useCallback(() => {
+    if (!report || !pendingStatus) return
+    setShowAiFinalization(false)
+    createStatusChangeSnapshot(report.status)
+    handleUpdateReport({ status: pendingStatus })
+    setPendingStatus(null)
+  }, [report, pendingStatus, createStatusChangeSnapshot, handleUpdateReport])
 
   const handleForceSave = useCallback(() => {
     if (!report) return
@@ -266,10 +301,15 @@ export default function ReportEditor() {
 
   const handleStatusChange = useCallback(
     (newStatus: ReportStatus) => {
+      if (newStatus === 'finalizado' && hasAiBlocks) {
+        setPendingStatus(newStatus)
+        setShowAiFinalization(true)
+        return
+      }
       if (report) createStatusChangeSnapshot(report.status)
       handleUpdateReport({ status: newStatus })
     },
-    [report, handleUpdateReport, createStatusChangeSnapshot]
+    [report, handleUpdateReport, createStatusChangeSnapshot, hasAiBlocks]
   )
 
   const handleRestoreVersion = useCallback(
@@ -404,6 +444,8 @@ export default function ReportEditor() {
               {saveStatus === 'saved' ? 'Salvo' : saveStatus === 'saving' ? 'Salvando...' : 'Não salvo'}
             </span>
           </div>
+
+          <AiUsageBadge onClick={() => setShowAiUsage(true)} />
 
           <StatusSelector status={report.status} onChange={handleStatusChange} />
 
@@ -613,6 +655,7 @@ export default function ReportEditor() {
         onChange={handleBlockDataChange}
         customers={customers}
         onCustomerSelected={handleCustomerSelected}
+        reportId={report?.id}
       />
 
       {/* Block Selector Modal */}
@@ -663,6 +706,19 @@ export default function ReportEditor() {
         versions={versions}
         onRestore={handleRestoreVersion}
       />
+
+      <AiUsageDashboard
+        isOpen={showAiUsage}
+        onClose={() => setShowAiUsage(false)}
+      />
+
+      <AiFinalizationModal
+        isOpen={showAiFinalization}
+        onClose={() => { setShowAiFinalization(false); setPendingStatus(null) }}
+        onConfirm={handleConfirmAiFinalization}
+      />
+
+      <AiQuotaAlert alertLevel={aiAlertLevel} alertMessage={aiAlertMessage} />
 
     </DotPattern>
   )

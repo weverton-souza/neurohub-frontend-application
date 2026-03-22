@@ -12,6 +12,7 @@ import { useError } from '@/contexts/ErrorContext'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
 import Pagination from '@/components/ui/Pagination'
 import PageHeader from '@/components/layout/PageHeader'
 import ListCard, { ListCardPill, ListCardBadge, ListCardAction, TrashIcon, EditIcon, DocumentPlusIcon } from '@/components/ui/ListCard'
@@ -303,6 +304,12 @@ export default function CustomerList() {
                 value={editingCustomer.data.name}
                 onChange={(e) => updateEditingField('name', e.target.value)}
                 placeholder="Nome completo do cliente"
+              />
+              <Select
+                label="Sexo"
+                value={editingCustomer.data.sex || ''}
+                onChange={(value) => updateEditingField('sex', value)}
+                options={[{ value: '', label: 'Selecione...' }, { value: 'Masculino', label: 'Masculino' }, { value: 'Feminino', label: 'Feminino' }, { value: 'Outro', label: 'Outro' }]}
               />
               <Input
                 label="CPF"

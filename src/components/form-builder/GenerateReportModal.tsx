@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import type { Form, FormResponse, ReportTemplate } from '@/types'
-import { generateReportFromResponse } from '@/lib/ai-service'
-import { getProfessional } from '@/lib/api/professional-api'
+import type { Form, FormResponse, ReportTemplate, Block, TextBlockData, InfoBoxData } from '@/types'
+import { generateSection } from '@/lib/api/ai-api'
 import { createReport } from '@/lib/api/report-api'
 import { getCustomer } from '@/lib/api/customer-api'
 import { updateFormResponse } from '@/lib/api/form-api'
 import { buildVariableMap, resolveBlockVariables } from '@/lib/variable-service'
+import { getBlockTitle } from '@/lib/block-constants'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 
@@ -30,6 +30,7 @@ export default function GenerateReportModal({
 }: GenerateReportModalProps) {
   const [state, setState] = useState<GenerationState>('confirm')
   const [errorMessage, setErrorMessage] = useState('')
+  const [progress, setProgress] = useState({ current: 0, total: 0, sectionName: '' })
 
   const handleGenerate = async () => {
     if (!form || !response || !template) return
@@ -38,15 +39,16 @@ export default function GenerateReportModal({
     setErrorMessage('')
 
     try {
-      const professional = await getProfessional()
-      const result = await generateReportFromResponse({
-        form,
-        response,
-        template,
-        professional,
-      })
+      // 1. Criar relatório vazio (rascunho) a partir do template
+      const blocks: Block[] = template.blocks.map((tb, i) => ({
+        id: crypto.randomUUID(),
+        type: tb.type,
+        order: i,
+        data: structuredClone(tb.data),
+        collapsed: false,
+      }))
 
-      // Resolve template variables on result blocks
+      // Resolve template variables
       let customerData = null
       if (response.customerId) {
         try {
@@ -56,24 +58,54 @@ export default function GenerateReportModal({
           // customer not found
         }
       }
-      const variableMap = buildVariableMap(
-        customerData,
-        form,
-        response,
-      )
-      const resolvedBlocks = resolveBlockVariables(result.blocks, variableMap)
+      const variableMap = buildVariableMap(customerData, form, response)
+      const resolvedBlocks = resolveBlockVariables(blocks, variableMap)
 
-      // Criar relatório via API
       const report = await createReport({
         status: 'rascunho',
-        customerName: result.customerName || response.customerName,
+        customerName: response.customerName,
         customerId: response.customerId ?? undefined,
         formResponseId: response.id,
         formId: form.id,
         blocks: resolvedBlocks,
       })
 
-      // Atualizar resposta com link para o relatório
+      // 2. Gerar texto seção a seção via backend IA
+      const aiEligibleBlocks = resolvedBlocks.filter(
+        (b) => b.type === 'text' || b.type === 'info-box',
+      )
+      setProgress({ current: 0, total: aiEligibleBlocks.length, sectionName: '' })
+
+      for (let i = 0; i < aiEligibleBlocks.length; i++) {
+        const block = aiEligibleBlocks[i]
+        const sectionType = getBlockTitle(block)
+        setProgress({ current: i + 1, total: aiEligibleBlocks.length, sectionName: sectionType })
+
+        try {
+          const result = await generateSection(report.id, {
+            sectionType,
+            formResponseId: response.id,
+            customerId: response.customerId ?? undefined,
+          })
+
+          // Atualizar bloco no array
+          const idx = resolvedBlocks.findIndex((b) => b.id === block.id)
+          if (idx !== -1 && result.text) {
+            if (block.type === 'text') {
+              (resolvedBlocks[idx].data as TextBlockData).content = result.text
+            } else if (block.type === 'info-box') {
+              (resolvedBlocks[idx].data as InfoBoxData).content = result.text
+            }
+            resolvedBlocks[idx].generatedByAi = true
+            resolvedBlocks[idx].generationId = result.generationId
+          }
+        } catch {
+          // Falha parcial — continua com próxima seção
+        }
+      }
+
+      // 3. Atualizar relatório com blocos preenchidos
+      // (o relatório já foi criado, atualizamos via API)
       await updateFormResponse(form.id, {
         ...response,
         generatedReportId: report.id,
@@ -85,7 +117,7 @@ export default function GenerateReportModal({
       setErrorMessage(
         err instanceof Error
           ? err.message
-          : 'Erro desconhecido ao gerar o relatório.'
+          : 'Erro desconhecido ao gerar o relatório.',
       )
     }
   }
@@ -159,7 +191,21 @@ export default function GenerateReportModal({
           <div className="text-center py-8">
             <div className="mx-auto animate-spin w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full mb-4" />
             <p className="text-sm text-gray-600">Gerando relatório com IA...</p>
-            <p className="text-xs text-gray-400 mt-1">Isso pode levar alguns segundos</p>
+            {progress.total > 0 && (
+              <>
+                <p className="text-xs text-gray-500 mt-2">
+                  Seção {progress.current} de {progress.total}
+                  {progress.sectionName && `: ${progress.sectionName}`}
+                </p>
+                <div className="mt-3 mx-auto max-w-xs h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                  />
+                </div>
+              </>
+            )}
+            <p className="text-xs text-gray-400 mt-2">Isso pode levar alguns segundos</p>
           </div>
         ) : (
           /* Error */
