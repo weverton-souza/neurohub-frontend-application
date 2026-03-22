@@ -22,6 +22,10 @@ import InfoBoxBlock from '@/components/blocks/InfoBoxBlock'
 import ChartBlock from '@/components/blocks/ChartBlock'
 import ReferencesBlock from '@/components/blocks/ReferencesBlock'
 import ClosingPageBlock from '@/components/blocks/ClosingPageBlock'
+import AiGenerateButton from '@/components/ai/AiGenerateButton'
+import AiRegenerateBar from '@/components/ai/AiRegenerateBar'
+import AiLoadingOverlay from '@/components/ai/AiLoadingOverlay'
+import { useAiGeneration } from '@/lib/hooks/use-ai-generation'
 
 interface BlockEditModalProps {
   block: Block | null
@@ -29,6 +33,7 @@ interface BlockEditModalProps {
   onChange: (blockId: string, data: BlockData) => void
   customers?: Customer[]
   onCustomerSelected?: (customerId: string) => void
+  reportId?: string
 }
 
 const MODAL_SIZES: Record<BlockType, 'sm' | 'md' | 'lg' | 'xl' | '2xl'> = {
@@ -75,16 +80,39 @@ function getModalTitle(block: Block): string {
   }
 }
 
-export default function BlockEditModal({ block, onClose, onChange, customers, onCustomerSelected }: BlockEditModalProps) {
+export default function BlockEditModal({ block, onClose, onChange, customers, onCustomerSelected, reportId }: BlockEditModalProps) {
   const [localData, setLocalData] = useState<BlockData | null>(null)
+  const ai = useAiGeneration()
+
+  const isAiEligible = block?.type === 'text' || block?.type === 'info-box'
 
   useEffect(() => {
     if (block) {
       setLocalData(structuredClone(block.data))
+      ai.reset()
     } else {
       setLocalData(null)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [block])
+
+  const handleAiGenerate = async () => {
+    if (!block || !reportId || !localData) return
+    const sectionType = block.type === 'text'
+      ? (localData as TextBlockData).title || block.type
+      : block.type === 'info-box'
+        ? (localData as InfoBoxData).label || block.type
+        : block.type
+
+    const result = await ai.generate(reportId, sectionType)
+    if (result?.text) {
+      if (block.type === 'text') {
+        setLocalData({ ...localData as TextBlockData, content: result.text })
+      } else if (block.type === 'info-box') {
+        setLocalData({ ...localData as InfoBoxData, content: result.text })
+      }
+    }
+  }
 
   if (!block || !localData) return null
 
@@ -186,7 +214,35 @@ export default function BlockEditModal({ block, onClose, onChange, customers, on
       }}
       footer={footer}
     >
-      {renderContent()}
+      <div className="relative">
+        {/* AI controls */}
+        {isAiEligible && reportId && (
+          <div className="px-4 pt-3 space-y-2">
+            {block.generatedByAi ? (
+              <AiRegenerateBar
+                onRegenerate={handleAiGenerate}
+                regenerationsUsed={0}
+                maxRegenerations={3}
+                loading={ai.status === 'loading'}
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <AiGenerateButton
+                  onClick={handleAiGenerate}
+                  loading={ai.status === 'loading'}
+                  disabled={ai.status === 'loading'}
+                />
+                {ai.status === 'error' && ai.error && (
+                  <span className="text-xs text-red-500">{ai.error}</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <AiLoadingOverlay visible={ai.status === 'loading'} />
+        {renderContent()}
+      </div>
     </Modal>
   )
 }

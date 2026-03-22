@@ -59,7 +59,8 @@ function getBlockSummary(block: Block): string {
     }
     case 'references': {
       const d = block.data as ReferencesData
-      const count = d.references.filter((r) => r.trim()).length
+      const refs = d.references ?? []
+      const count = refs.filter((r) => r.trim()).length
       return `${count} ${count === 1 ? 'referência' : 'referências'}`
     }
     case 'closing-page': {
@@ -314,6 +315,13 @@ export default function OutlineRow({
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M2 3.75A.75.75 0 012.75 3h11.5a.75.75 0 010 1.5H2.75A.75.75 0 012 3.75zM2 7.5a.75.75 0 01.75-.75h6.365a.75.75 0 010 1.5H2.75A.75.75 0 012 7.5zM14 7a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02l-1.95-2.1v6.59a.75.75 0 01-1.5 0V9.66l-1.95 2.1a.75.75 0 11-1.1-1.02l3.25-3.5A.75.75 0 0114 7zM2 11.25a.75.75 0 01.75-.75H7A.75.75 0 017 12H2.75a.75.75 0 01-.75-.75z" clipRule="evenodd" />
             </svg>
+          </span>
+        )}
+
+        {/* AI badge */}
+        {block.generatedByAi && (
+          <span className="text-[10px] font-medium bg-violet-100 text-violet-600 px-1 py-0.5 rounded shrink-0">
+            IA
           </span>
         )}
 
